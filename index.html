@@ -1790,7 +1790,8 @@
         fontSize: 'var(--font-sm)',
         textAlign: 'left',
         boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`,
-        transition: 'transform 0.1s'
+        transition: 'transform 0.1s',
+        minHeight: '48px'
       },
       moveButtonDisabled: {
         opacity: 0.4,
@@ -1924,7 +1925,8 @@
         fontSize: 'var(--font-sm)',
         textAlign: 'center',
         boxShadow: `inset -2px -2px 0 #805ad5, inset 2px 2px 0 #1a0a2e`,
-        gridColumn: 'span 2'
+        gridColumn: 'span 2',
+        minHeight: '48px'
       },
       bindButtonDisabled: {
         backgroundColor: '#1a1a2a',
@@ -1944,7 +1946,10 @@
         backgroundColor: GBC.bgLight,
         border: `2px solid ${GBC.border}`,
         cursor: 'pointer',
-        fontSize: 'var(--font-sm)'
+        fontSize: 'var(--font-sm)',
+        minHeight: '48px',
+        display: 'flex',
+        alignItems: 'center'
       },
       helpButton: {
         position: 'fixed',
@@ -4202,210 +4207,6 @@
       );
     }
 
-    // ============= TOUCH CONTROLS =============
-    function TouchControls({ mode, onMove, onAction, onExamine, onMenu, onSelectMove, moveCount = 4, canUseMove }) {
-      const [isTouch] = useState(() => isTouchDevice());
-
-      if (!isTouch) return null;
-
-      const touchControlStyles = {
-        container: {
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: '180px',
-          pointerEvents: 'none',
-          zIndex: 1000,
-        },
-        dpad: {
-          position: 'absolute',
-          bottom: '20px',
-          left: '20px',
-          width: '144px',
-          height: '144px',
-          pointerEvents: 'auto',
-        },
-        dpadButton: {
-          position: 'absolute',
-          width: '48px',
-          height: '48px',
-          backgroundColor: 'rgba(51, 51, 51, 0.5)',
-          border: '2px solid rgba(255, 255, 255, 0.3)',
-          borderRadius: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontSize: '16px',
-          fontFamily: 'monospace',
-          pointerEvents: 'auto',
-          touchAction: 'none',
-          userSelect: 'none',
-        },
-        dpadUp: { top: '0', left: '48px' },
-        dpadDown: { bottom: '0', left: '48px' },
-        dpadLeft: { top: '48px', left: '0' },
-        dpadRight: { top: '48px', right: '0' },
-        dpadCenter: {
-          top: '48px',
-          left: '48px',
-          backgroundColor: 'rgba(51, 51, 51, 0.5)',
-          border: 'none',
-        },
-        buttonArea: {
-          position: 'absolute',
-          bottom: '20px',
-          right: '20px',
-          display: 'flex',
-          gap: '12px',
-          pointerEvents: 'auto',
-        },
-        actionButton: {
-          width: '56px',
-          height: '56px',
-          backgroundColor: 'rgba(51, 51, 51, 0.5)',
-          border: '2px solid rgba(255, 255, 255, 0.3)',
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontSize: '14px',
-          fontFamily: '"Press Start 2P", monospace',
-          touchAction: 'none',
-          userSelect: 'none',
-        },
-        menuButton: {
-          position: 'absolute',
-          top: '60px',
-          right: '20px',
-          width: '56px',
-          height: '36px',
-          backgroundColor: 'rgba(51, 51, 51, 0.5)',
-          border: '2px solid rgba(255, 255, 255, 0.3)',
-          borderRadius: '6px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontSize: '8px',
-          fontFamily: '"Press Start 2P", monospace',
-          pointerEvents: 'auto',
-          touchAction: 'none',
-          userSelect: 'none',
-        },
-        moveButtons: {
-          position: 'absolute',
-          bottom: '90px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'flex',
-          gap: '8px',
-          pointerEvents: 'auto',
-        },
-        moveButton: {
-          width: '48px',
-          height: '48px',
-          backgroundColor: 'rgba(51, 51, 51, 0.5)',
-          border: '2px solid rgba(255, 255, 255, 0.3)',
-          borderRadius: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontSize: '14px',
-          fontFamily: '"Press Start 2P", monospace',
-          touchAction: 'none',
-          userSelect: 'none',
-        },
-        moveButtonDisabled: {
-          opacity: 0.4,
-        },
-      };
-
-      const handleTouch = (callback) => (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (callback) callback();
-      };
-
-      return (
-        <div style={touchControlStyles.container}>
-          {/* Menu button - top right */}
-          <div
-            style={touchControlStyles.menuButton}
-            onTouchStart={handleTouch(onMenu)}
-          >
-            MENU
-          </div>
-
-          {/* D-pad */}
-          <div style={touchControlStyles.dpad}>
-            <div
-              style={{ ...touchControlStyles.dpadButton, ...touchControlStyles.dpadUp }}
-              onTouchStart={handleTouch(() => onMove && onMove(0, -1))}
-            >
-              ▲
-            </div>
-            <div
-              style={{ ...touchControlStyles.dpadButton, ...touchControlStyles.dpadDown }}
-              onTouchStart={handleTouch(() => onMove && onMove(0, 1))}
-            >
-              ▼
-            </div>
-            <div
-              style={{ ...touchControlStyles.dpadButton, ...touchControlStyles.dpadLeft }}
-              onTouchStart={handleTouch(() => onMove && onMove(-1, 0))}
-            >
-              ◀
-            </div>
-            <div
-              style={{ ...touchControlStyles.dpadButton, ...touchControlStyles.dpadRight }}
-              onTouchStart={handleTouch(() => onMove && onMove(1, 0))}
-            >
-              ▶
-            </div>
-            <div style={{ ...touchControlStyles.dpadButton, ...touchControlStyles.dpadCenter }} />
-          </div>
-
-          {/* A/B buttons */}
-          <div style={touchControlStyles.buttonArea}>
-            <div
-              style={{ ...touchControlStyles.actionButton, backgroundColor: 'rgba(100, 60, 60, 0.5)' }}
-              onTouchStart={handleTouch(onExamine)}
-            >
-              B
-            </div>
-            <div
-              style={{ ...touchControlStyles.actionButton, backgroundColor: 'rgba(60, 100, 60, 0.5)' }}
-              onTouchStart={handleTouch(onAction)}
-            >
-              A
-            </div>
-          </div>
-
-          {/* Battle mode: number buttons for moves */}
-          {mode === 'battle' && (
-            <div style={touchControlStyles.moveButtons}>
-              {[1, 2, 3, 4].slice(0, moveCount).map((num) => (
-                <div
-                  key={num}
-                  style={{
-                    ...touchControlStyles.moveButton,
-                    ...(canUseMove && !canUseMove(num - 1) ? touchControlStyles.moveButtonDisabled : {})
-                  }}
-                  onTouchStart={handleTouch(() => onSelectMove && onSelectMove(num - 1))}
-                >
-                  {num}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      );
-    }
-
     function Exploration({ state, dispatch }) {
       const map = state.currentMap === 'ashenPath' ? ASHEN_PATH : state.currentMap === 'hollowDeep' ? HOLLOW_DEEP : FALLEN_KEEP;
       const mapName = state.currentMap === 'ashenPath' ? 'Ashen Path' : state.currentMap === 'hollowDeep' ? 'The Hollow Deep' : 'Fallen Keep';
@@ -4462,9 +4263,54 @@
         }
       };
 
+      // Handle tile tap for movement/interaction
+      const handleTileTap = (x, y, tile) => {
+        // If examine overlay is open, close it
+        if (state.examineText) {
+          dispatch({ type: 'CLOSE_EXAMINE' });
+          return;
+        }
+
+        const px = state.playerPos.x;
+        const py = state.playerPos.y;
+        const dx = x - px;
+        const dy = y - py;
+        const currentTileType = map[py][px];
+
+        // Tap on player tile
+        if (x === px && y === py) {
+          // If on bonfire, interact with it
+          if (currentTileType === 'B') {
+            dispatch({ type: 'INTERACT_BONFIRE' });
+          } else {
+            // Check for lore tile
+            const key = `${px},${py}`;
+            const hasLore = TILE_LORE[state.currentMap]?.[key];
+            if (hasLore) {
+              dispatch({ type: 'EXAMINE_TILE' });
+            } else {
+              // Open pause menu
+              window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+            }
+          }
+          return;
+        }
+
+        // Check if adjacent tile (including diagonals for tap)
+        const isAdjacent = Math.abs(dx) <= 1 && Math.abs(dy) <= 1;
+
+        if (isAdjacent) {
+          // Move in that direction
+          dispatch({ type: 'MOVE_PLAYER', dx, dy });
+        }
+      };
+
       return (
-        <div style={{ paddingBottom: isTouchDevice() ? '190px' : 0 }}>
-          <div style={styles.header}>
+        <div>
+          <div
+            style={{ ...styles.header, cursor: isTouchDevice() ? 'pointer' : 'default' }}
+            onClick={() => isTouchDevice() && window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))}
+          >
             <span style={styles.souls}>SOULS {state.souls}</span>
             <span style={{ color: GBC.textDim }}>{mapName}</span>
             <span style={{ color: GBC.textDim, fontSize: 'var(--font-sm)' }}>TEAM {state.team.length}/{MAX_TEAM_SIZE}</span>
@@ -4483,10 +4329,20 @@
                     state.droppedSouls.pos.x === x &&
                     state.droppedSouls.pos.y === y;
 
+                  // Check if adjacent to player for tap highlighting
+                  const px = state.playerPos.x;
+                  const py = state.playerPos.y;
+                  const isAdjacent = Math.abs(x - px) <= 1 && Math.abs(y - py) <= 1 && !(x === px && y === py);
+                  const isWalkable = tile !== 'W';
+
                   return (
                     <div
                       key={`${x}-${y}`}
-                      style={styles.tile}
+                      style={{
+                        ...styles.tile,
+                        cursor: (isAdjacent && isWalkable) || isPlayer ? 'pointer' : 'default'
+                      }}
+                      onClick={() => handleTileTap(x, y, tile)}
                     >
                       {renderTileBackground(tile)}
                       {isPlayer && (
@@ -4537,7 +4393,7 @@
               border: `2px solid ${GBC.border}`,
               fontSize: 'var(--font-sm)'
             }}>
-              {isTouchDevice() ? 'Tap A to rest at bonfire' : 'Press E to rest at bonfire'}
+              {isTouchDevice() ? 'Tap here to rest' : 'Press E to rest at bonfire'}
             </div>
           )}
 
@@ -4617,7 +4473,7 @@
                   border: `2px solid ${GBC.border}`,
                   fontSize: 'var(--font-sm)'
                 }}>
-                  {isTouchDevice() ? 'Tap B to examine' : 'Press X to examine'}
+                  {isTouchDevice() ? 'Tap here to examine' : 'Press X to examine'}
                 </div>
               );
             }
@@ -4632,7 +4488,7 @@
                 {state.examineText.lines.map((line, i) => (
                   <div key={i} style={styles.examineLine}>{line || '\u00A0'}</div>
                 ))}
-                <div style={styles.examinePrompt}>{isTouchDevice() ? '[Tap B to close]' : '[Press X to close]'}</div>
+                <div style={styles.examinePrompt}>{isTouchDevice() ? '[Tap to close]' : '[Press X to close]'}</div>
               </div>
             </div>
           )}
@@ -4650,36 +4506,6 @@
               WASD: Move | E: Rest | X: Examine | ESC: Menu
             </div>
           )}
-
-          {/* Touch controls for mobile */}
-          <TouchControls
-            mode="exploration"
-            onMove={(dx, dy) => {
-              if (state.examineText) {
-                dispatch({ type: 'CLOSE_EXAMINE' });
-              } else {
-                dispatch({ type: 'MOVE_PLAYER', dx, dy });
-              }
-            }}
-            onAction={() => {
-              if (state.examineText) {
-                dispatch({ type: 'CLOSE_EXAMINE' });
-              } else {
-                const tile = map[state.playerPos.y][state.playerPos.x];
-                if (tile === 'B') {
-                  dispatch({ type: 'INTERACT_BONFIRE' });
-                }
-              }
-            }}
-            onExamine={() => {
-              if (state.examineText) {
-                dispatch({ type: 'CLOSE_EXAMINE' });
-              } else {
-                dispatch({ type: 'EXAMINE_TILE' });
-              }
-            }}
-            onMenu={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))}
-          />
         </div>
       );
     }
@@ -4936,7 +4762,7 @@
       const enemyType = state.isBossFight ? (state.isHollowWardenFight ? 'hollowWarden' : 'boss') : state.enemyCreature.type;
 
       return (
-        <div style={{ ...styles.battleContainer, paddingBottom: isTouchDevice() ? '190px' : undefined }}>
+        <div style={styles.battleContainer}>
           <div style={styles.header}>
             <span style={styles.souls}>SOULS {state.souls}</span>
             <span style={{ color: state.isBossFight ? GBC.red : GBC.textDim, fontSize: 'var(--font-sm)' }}>
@@ -4971,9 +4797,33 @@
               </div>
             </div>
             <div style={{ fontSize: 'var(--font-xl)', color: GBC.textDim }}>VS</div>
-            <div style={{ textAlign: 'center', position: 'relative' }}>
+            <div
+              style={{
+                textAlign: 'center',
+                position: 'relative',
+                cursor: state.turnPhase === 'player' ? 'pointer' : 'default',
+                padding: 'var(--spacing-xs)'
+              }}
+              onClick={() => {
+                if (state.turnPhase !== 'player') return;
+                // Find first available move and use it
+                const moves = activeBase.moves;
+                for (let i = 0; i < moves.length; i++) {
+                  const move = getMoveWithPriority(moves[i]);
+                  if (move.cost <= activeCreature.stamina) {
+                    playSfx('menuClick');
+                    dispatch({ type: 'SELECT_MOVE', move });
+                    break;
+                  }
+                }
+              }}
+              title={state.turnPhase === 'player' ? 'Tap to attack' : ''}
+            >
               <CreatureSprite type={enemyType} size={state.isBossFight ? 56 : 48} isEnemy={true} />
               <div style={{ fontSize: 'var(--font-xs)', color: GBC.text, marginTop: 'var(--spacing-xs)' }}>{state.enemyCreature.name}</div>
+              {isTouchDevice() && state.turnPhase === 'player' && (
+                <div style={{ fontSize: 'var(--font-xs)', color: GBC.gold, marginTop: '2px' }}>TAP TO ATTACK</div>
+              )}
             </div>
             {/* Damage numbers */}
             {damageNumbers.map(dn => (
@@ -5174,45 +5024,6 @@
               <div key={i} style={{ marginBottom: '2px' }}>{log}</div>
             ))}
           </div>
-
-          {/* Touch controls for mobile */}
-          <TouchControls
-            mode="battle"
-            moveCount={activeBase.moves.length}
-            canUseMove={(index) => {
-              const move = activeBase.moves[index];
-              return move && move.cost <= activeCreature.stamina && state.turnPhase === 'player';
-            }}
-            onSelectMove={(index) => {
-              if (state.turnPhase !== 'player') return;
-              const moves = activeBase.moves;
-              if (index < moves.length) {
-                const move = getMoveWithPriority(moves[index]);
-                if (move.cost <= activeCreature.stamina) {
-                  dispatch({ type: 'SELECT_MOVE', move });
-                }
-              }
-            }}
-            onAction={() => {
-              // A button - confirm / first available move
-              if (state.turnPhase !== 'player') return;
-              const moves = activeBase.moves;
-              for (let i = 0; i < moves.length; i++) {
-                const move = getMoveWithPriority(moves[i]);
-                if (move.cost <= activeCreature.stamina) {
-                  dispatch({ type: 'SELECT_MOVE', move });
-                  break;
-                }
-              }
-            }}
-            onExamine={() => {
-              // B button - bind attempt (if not boss fight)
-              if (!state.isBossFight && state.turnPhase === 'player') {
-                dispatch({ type: 'BIND_ATTEMPT' });
-              }
-            }}
-            onMenu={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))}
-          />
         </div>
       );
     }
@@ -6000,8 +5811,57 @@
       );
     }
 
+    // Tap to Start splash screen
+    function TapToStart({ onStart }) {
+      return (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: GBC.bg,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontFamily: '"Press Start 2P", monospace',
+            cursor: 'pointer',
+            zIndex: 9999,
+          }}
+          onClick={onStart}
+          onTouchStart={onStart}
+        >
+          <div style={{
+            fontSize: 'var(--font-2xl)',
+            color: GBC.gold,
+            marginBottom: 'var(--spacing-xl)',
+            textShadow: '2px 2px 0 #744210'
+          }}>
+            SCARS OF ASH
+          </div>
+          <div style={{
+            fontSize: 'var(--font-sm)',
+            color: GBC.textDim,
+            marginBottom: 'var(--spacing-lg)'
+          }}>
+            The flame remembers.
+          </div>
+          <div style={{
+            fontSize: 'var(--font-base)',
+            color: GBC.text,
+            animation: 'flicker 1.5s infinite'
+          }}>
+            {isTouchDevice() ? 'TAP TO START' : 'CLICK TO START'}
+          </div>
+        </div>
+      );
+    }
+
     function ScarsOfAsh() {
       const [state, dispatch] = useReducer(gameReducer, initialState);
+      const [hasStarted, setHasStarted] = useState(false);
       const [muted, setMuted] = useState(true);
       const [audioStarted, setAudioStarted] = useState(false);
       const [showHelp, setShowHelp] = useState(false);
@@ -6012,6 +5872,26 @@
       const [existingSave, setExistingSave] = useState(null);
       const prevBonfireRef = useRef(null);
       const playTimeRef = useRef(Date.now());
+
+      // Handle tap to start
+      const handleStart = async () => {
+        try {
+          await musicManager.init();
+          await sfxManager.init();
+          setAudioStarted(true);
+          setMuted(false);
+          sfxManager.setMuted(false);
+        } catch (e) {
+          // Audio init failed, continue anyway
+          console.warn('Audio initialization failed:', e);
+        }
+        setHasStarted(true);
+      };
+
+      // Show tap to start screen
+      if (!hasStarted) {
+        return <TapToStart onStart={handleStart} />;
+      }
 
       // Check for existing save on mount
       useEffect(() => {
