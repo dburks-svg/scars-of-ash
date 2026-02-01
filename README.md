@@ -1,6 +1,6 @@
 # Poke Souls
 
-A browser-based game that fuses Pokemon-style creature collecting with Dark Souls-inspired mechanics. Cute monsters. Grim consequences.
+A browser-based game that fuses creature collecting with Dark Souls-inspired mechanics. Cute monsters. Grim consequences.
 
 ## How to Play
 
@@ -94,14 +94,14 @@ Press **ESC** or click the **gear icon** to pause:
 ## Story
 
 ### The Prologue
-*"The bonfire wars ended long ago. Trainers and their companions fell, one by one. The creatures that survived... changed. Now they wander the ashen paths, feral and scarred."*
+*"The bonfire wars ended long ago. Binders and their companions fell, one by one. The creatures that survived... changed. Now they wander the ashen paths, feral and scarred."*
 
 ### Environmental Storytelling
 Press **X** to examine points of interest:
 - Old signposts pointing to places that no longer exist
-- Collapsed Pokemon Center signs faded to gray
+- Collapsed Healer's Sanctuary signs faded to gray
 - Scratched warnings about the keeper
-- Broken pokeballs, dozens of them
+- Broken Soul Spheres, dozens of them
 
 ### Keeper Varek
 The boss has expanded dialogue:
@@ -268,7 +268,7 @@ Music is muted by default. Click to enable.
 
 ## Visual Style
 
-Inspired by Game Boy Color Pokemon games:
+Inspired by classic handheld era games:
 - 56x56 pixel tiles
 - Pixel art sprites (player, creatures, environment)
 - Press Start 2P font
