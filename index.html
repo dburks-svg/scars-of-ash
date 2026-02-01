@@ -1127,12 +1127,14 @@
     ];
 
     const ASHEN_PATH = [
-      ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
-      ['W', 'B', 'P', 'G', 'G', 'P', 'P', 'W'],
-      ['W', 'P', 'W', 'W', 'G', 'W', 'P', 'W'],
-      ['W', 'P', 'P', 'P', 'P', 'P', 'G', 'W'],
-      ['W', 'W', 'W', 'W', 'P', 'W', 'P', 'W'],
-      ['W', 'W', 'W', 'W', 'X', 'W', 'W', 'W']
+      ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
+      ['W', 'G', 'P', 'P', 'B', 'P', 'G', 'G', 'P', 'P', 'G', 'W'],
+      ['W', 'P', 'W', 'W', 'P', 'W', 'W', 'G', 'W', 'P', 'W', 'W'],
+      ['W', 'P', 'G', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'W'],
+      ['W', 'P', 'W', 'W', 'W', 'W', 'W', 'P', 'W', 'W', 'P', 'W'],
+      ['W', 'P', 'P', 'P', 'P', 'W', 'P', 'P', 'W', 'G', 'P', 'W'],
+      ['W', 'W', 'W', 'W', 'P', 'W', 'P', 'W', 'W', 'P', 'W', 'W'],
+      ['W', 'W', 'W', 'W', 'W', 'W', 'X', 'W', 'W', 'W', 'W', 'W']
     ];
 
     const FALLEN_KEEP = [
@@ -2958,7 +2960,7 @@
       screen: 'difficulty',
       difficulty: 'scarred',
       currentMap: 'ashenPath',
-      playerPos: { x: 1, y: 1 },
+      playerPos: { x: 4, y: 1 },
       playerDir: 'down',
       team: [],
       activeCreatureIndex: 0,
@@ -2974,16 +2976,19 @@
       bossPhase: 1,
       arenaEffect: null,
       grassEncounters: [
-        // Ashen Path encounters
-        { x: 3, y: 1, map: 'ashenPath', active: true },
-        { x: 4, y: 1, map: 'ashenPath', active: true },
-        { x: 4, y: 2, map: 'ashenPath', active: true },
-        { x: 6, y: 3, map: 'ashenPath', active: true },
+        // Ashen Path encounters (expanded 8x12 map)
+        { x: 1, y: 1, map: 'ashenPath', active: true },
+        { x: 6, y: 1, map: 'ashenPath', active: true },
+        { x: 7, y: 1, map: 'ashenPath', active: true },
+        { x: 10, y: 1, map: 'ashenPath', active: true },
+        { x: 7, y: 2, map: 'ashenPath', active: true },
+        { x: 2, y: 3, map: 'ashenPath', active: true },
+        { x: 9, y: 5, map: 'ashenPath', active: true },
         // Hollow Deep encounters (Dark/Light creatures)
         { x: 4, y: 1, map: 'hollowDeep', active: true },
         { x: 6, y: 4, map: 'hollowDeep', active: true }
       ],
-      lastBonfire: { map: 'ashenPath', pos: { x: 1, y: 1 } },
+      lastBonfire: { map: 'ashenPath', pos: { x: 4, y: 1 } },
       bonfireMenuOpen: false,
       hasSeenPrologue: false,
       examineText: null,
@@ -3181,7 +3186,7 @@
             newState = {
               ...newState,
               currentMap: 'ashenPath',
-              playerPos: { x: 4, y: 4 }
+              playerPos: { x: 6, y: 6 }
             };
           }
 
