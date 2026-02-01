@@ -11,13 +11,102 @@
       padding: 0;
       box-sizing: border-box;
     }
+
+    /* CSS Custom Properties for responsive scaling */
+    :root {
+      /* Mobile-first defaults */
+      --container-max-width: 520px;
+      --tile-size: 56px;
+      --font-xs: 7px;
+      --font-sm: 8px;
+      --font-base: 10px;
+      --font-md: 12px;
+      --font-lg: 14px;
+      --font-xl: 16px;
+      --font-2xl: 20px;
+      --spacing-xs: 4px;
+      --spacing-sm: 8px;
+      --spacing-md: 12px;
+      --spacing-lg: 16px;
+      --spacing-xl: 24px;
+      --button-size: 36px;
+      --battle-height: 120px;
+      --sprite-scale: 1;
+    }
+
+    /* Tablet - medium screens */
+    @media (min-width: 768px) {
+      :root {
+        --container-max-width: 680px;
+        --tile-size: 60px;
+        --font-xs: 9px;
+        --font-sm: 10px;
+        --font-base: 12px;
+        --font-md: 14px;
+        --font-lg: 16px;
+        --font-xl: 20px;
+        --font-2xl: 24px;
+        --spacing-sm: 10px;
+        --spacing-md: 16px;
+        --spacing-lg: 20px;
+        --spacing-xl: 32px;
+        --button-size: 44px;
+        --battle-height: 150px;
+        --sprite-scale: 1.2;
+      }
+    }
+
+    /* Desktop - large screens */
+    @media (min-width: 1024px) {
+      :root {
+        --container-max-width: 900px;
+        --tile-size: 64px;
+        --font-xs: 11px;
+        --font-sm: 12px;
+        --font-base: 14px;
+        --font-md: 16px;
+        --font-lg: 20px;
+        --font-xl: 24px;
+        --font-2xl: 32px;
+        --spacing-sm: 12px;
+        --spacing-md: 20px;
+        --spacing-lg: 24px;
+        --spacing-xl: 40px;
+        --button-size: 48px;
+        --battle-height: 180px;
+        --sprite-scale: 1.5;
+      }
+    }
+
+    /* Large desktop - 1440p+ */
+    @media (min-width: 1440px) {
+      :root {
+        --container-max-width: 1000px;
+        --tile-size: 72px;
+        --font-xs: 12px;
+        --font-sm: 14px;
+        --font-base: 16px;
+        --font-md: 18px;
+        --font-lg: 22px;
+        --font-xl: 28px;
+        --font-2xl: 36px;
+        --spacing-sm: 14px;
+        --spacing-md: 24px;
+        --spacing-lg: 28px;
+        --spacing-xl: 48px;
+        --button-size: 52px;
+        --battle-height: 200px;
+        --sprite-scale: 1.8;
+      }
+    }
+
     body {
       background-color: #0f0f1a;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
     #root {
-      max-width: 520px;
+      max-width: var(--container-max-width);
       margin: 0 auto;
     }
 
@@ -1080,11 +1169,11 @@
     const styles = {
       container: {
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: '10px',
+        fontSize: 'var(--font-base)',
         backgroundColor: GBC.bg,
         color: GBC.text,
         minHeight: '100vh',
-        padding: '8px',
+        padding: 'var(--spacing-sm)',
         boxSizing: 'border-box',
         imageRendering: 'pixelated'
       },
@@ -1092,33 +1181,34 @@
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '8px 12px',
+        padding: 'var(--spacing-sm) var(--spacing-md)',
         backgroundColor: GBC.bgPanel,
         border: `3px solid ${GBC.border}`,
         borderRadius: '0',
-        marginBottom: '8px',
+        marginBottom: 'var(--spacing-sm)',
         boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
       },
       souls: {
         color: GBC.gold,
-        textShadow: '1px 1px 0 #744210'
+        textShadow: '1px 1px 0 #744210',
+        fontSize: 'var(--font-base)'
       },
       mapContainer: {
         display: 'flex',
         justifyContent: 'center',
-        marginBottom: '8px'
+        marginBottom: 'var(--spacing-sm)'
       },
       grid: {
         display: 'grid',
         gap: '0px',
         backgroundColor: GBC.wallDark,
-        padding: '4px',
+        padding: 'var(--spacing-xs)',
         border: `4px solid ${GBC.border}`,
         boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14, 0 4px 8px rgba(0,0,0,0.5)`
       },
       tile: {
-        width: '56px',
-        height: '56px',
+        width: 'var(--tile-size)',
+        height: 'var(--tile-size)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -1127,20 +1217,21 @@
       },
       teamStatus: {
         backgroundColor: GBC.bgPanel,
-        padding: '8px',
+        padding: 'var(--spacing-sm)',
         border: `3px solid ${GBC.border}`,
         boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
       },
       creatureStatus: {
-        marginBottom: '6px',
-        padding: '6px',
+        marginBottom: 'var(--spacing-xs)',
+        padding: 'var(--spacing-xs)',
         backgroundColor: GBC.bgLight,
-        border: `2px solid ${GBC.border}`
+        border: `2px solid ${GBC.border}`,
+        fontSize: 'var(--font-sm)'
       },
       hpBar: {
-        height: '10px',
+        height: 'var(--spacing-sm)',
         backgroundColor: GBC.wallDark,
-        marginTop: '4px',
+        marginTop: 'var(--spacing-xs)',
         position: 'relative',
         border: `2px solid ${GBC.border}`,
         boxShadow: 'inset 1px 1px 0 #0a0a14'
@@ -1151,9 +1242,9 @@
         imageRendering: 'pixelated'
       },
       staminaBar: {
-        height: '8px',
+        height: 'var(--spacing-sm)',
         backgroundColor: GBC.wallDark,
-        marginTop: '4px',
+        marginTop: 'var(--spacing-xs)',
         border: `2px solid ${GBC.border}`,
         boxShadow: 'inset 1px 1px 0 #0a0a14'
       },
@@ -1163,44 +1254,45 @@
         transition: 'width 0.2s'
       },
       battleContainer: {
-        padding: '8px',
+        padding: 'var(--spacing-sm)',
         backgroundColor: GBC.bg
       },
       battleCreature: {
-        padding: '10px',
+        padding: 'var(--spacing-md)',
         backgroundColor: GBC.bgPanel,
         border: `3px solid ${GBC.border}`,
-        marginBottom: '8px',
-        boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
+        marginBottom: 'var(--spacing-sm)',
+        boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`,
+        fontSize: 'var(--font-sm)'
       },
       battleAnimation: {
-        height: '120px',
+        height: 'var(--battle-height)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: GBC.bgLight,
-        margin: '8px 0',
+        margin: 'var(--spacing-sm) 0',
         border: `3px solid ${GBC.border}`,
-        fontSize: '9px',
+        fontSize: 'var(--font-sm)',
         textAlign: 'center',
-        padding: '8px',
+        padding: 'var(--spacing-sm)',
         boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
       },
       moveButtons: {
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
-        gap: '6px',
-        marginTop: '8px'
+        gap: 'var(--spacing-sm)',
+        marginTop: 'var(--spacing-sm)'
       },
       moveButton: {
-        padding: '10px 8px',
+        padding: 'var(--spacing-md) var(--spacing-sm)',
         backgroundColor: GBC.bgPanel,
         border: `3px solid ${GBC.border}`,
         color: GBC.text,
         cursor: 'pointer',
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: '8px',
+        fontSize: 'var(--font-sm)',
         textAlign: 'left',
         boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`,
         transition: 'transform 0.1s'
@@ -1211,13 +1303,13 @@
       },
       starterSelect: {
         textAlign: 'center',
-        padding: '30px 15px'
+        padding: 'var(--spacing-xl) var(--spacing-lg)'
       },
       starterCard: {
         display: 'inline-block',
-        width: '150px',
-        padding: '15px 10px',
-        margin: '8px',
+        width: 'clamp(150px, 25vw, 220px)',
+        padding: 'var(--spacing-lg) var(--spacing-md)',
+        margin: 'var(--spacing-sm)',
         backgroundColor: GBC.bgPanel,
         border: `4px solid ${GBC.border}`,
         cursor: 'pointer',
@@ -1230,14 +1322,14 @@
         padding: '2px 4px',
         backgroundColor: '#3d1515',
         color: GBC.red,
-        fontSize: '7px',
+        fontSize: 'var(--font-xs)',
         marginLeft: '3px',
         border: '2px solid #5a2020'
       },
       status: {
         display: 'inline-block',
         padding: '2px 4px',
-        fontSize: '7px',
+        fontSize: 'var(--font-xs)',
         marginLeft: '3px'
       },
       winded: {
@@ -1252,57 +1344,57 @@
       },
       victory: {
         textAlign: 'center',
-        padding: '40px 15px',
+        padding: 'var(--spacing-xl) var(--spacing-lg)',
         backgroundColor: '#0a1a0a',
         border: `4px solid ${GBC.green}`,
-        margin: '20px',
+        margin: 'var(--spacing-lg)',
         boxShadow: `inset -3px -3px 0 #1a3a1a, inset 3px 3px 0 #051005`
       },
       gameOver: {
         textAlign: 'center',
-        padding: '40px 15px',
+        padding: 'var(--spacing-xl) var(--spacing-lg)',
         backgroundColor: '#1a0a0a',
         border: `4px solid ${GBC.red}`,
-        margin: '20px',
+        margin: 'var(--spacing-lg)',
         boxShadow: `inset -3px -3px 0 #3a1a1a, inset 3px 3px 0 #100505`
       },
       button: {
-        padding: '12px 24px',
+        padding: 'var(--spacing-md) var(--spacing-xl)',
         backgroundColor: GBC.bgPanel,
         border: `4px solid ${GBC.border}`,
         color: GBC.text,
         cursor: 'pointer',
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: '10px',
-        marginTop: '16px',
+        fontSize: 'var(--font-base)',
+        marginTop: 'var(--spacing-lg)',
         boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
       },
       typeIcon: {
-        fontSize: '20px'
+        fontSize: 'var(--font-xl)'
       },
       log: {
         backgroundColor: GBC.bgLight,
-        padding: '8px',
-        marginTop: '8px',
+        padding: 'var(--spacing-sm)',
+        marginTop: 'var(--spacing-sm)',
         border: `3px solid ${GBC.border}`,
-        maxHeight: '70px',
+        maxHeight: 'clamp(70px, 10vh, 120px)',
         overflowY: 'auto',
-        fontSize: '8px',
+        fontSize: 'var(--font-sm)',
         boxShadow: `inset 2px 2px 0 #0a0a14`
       },
       muteButton: {
         position: 'fixed',
-        top: '8px',
-        right: '8px',
-        width: '36px',
-        height: '36px',
+        top: 'var(--spacing-sm)',
+        right: 'var(--spacing-sm)',
+        width: 'var(--button-size)',
+        height: 'var(--button-size)',
         backgroundColor: GBC.bgPanel,
         border: `3px solid ${GBC.border}`,
         borderRadius: '0',
         color: GBC.textDim,
         cursor: 'pointer',
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: '14px',
+        fontSize: 'var(--font-lg)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -1313,26 +1405,27 @@
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: '8px'
+        marginRight: 'var(--spacing-sm)',
+        transform: 'scale(var(--sprite-scale))'
       },
       battleSpriteArea: {
         display: 'flex',
         justifyContent: 'space-around',
         alignItems: 'center',
-        padding: '10px',
+        padding: 'var(--spacing-md)',
         backgroundColor: GBC.grassDark,
         border: `3px solid ${GBC.border}`,
-        marginBottom: '8px',
-        minHeight: '100px'
+        marginBottom: 'var(--spacing-sm)',
+        minHeight: 'var(--battle-height)'
       },
       bindButton: {
-        padding: '10px 8px',
+        padding: 'var(--spacing-md) var(--spacing-sm)',
         backgroundColor: '#2a1a3a',
         border: `3px solid #6b46c1`,
         color: '#d6bcfa',
         cursor: 'pointer',
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: '8px',
+        fontSize: 'var(--font-sm)',
         textAlign: 'center',
         boxShadow: `inset -2px -2px 0 #805ad5, inset 2px 2px 0 #1a0a2e`,
         gridColumn: 'span 2'
@@ -1346,30 +1439,30 @@
       bonfireMenu: {
         backgroundColor: GBC.bgPanel,
         border: `3px solid ${GBC.border}`,
-        padding: '10px',
-        marginTop: '8px'
+        padding: 'var(--spacing-md)',
+        marginTop: 'var(--spacing-sm)'
       },
       bonfireOption: {
-        padding: '8px',
-        marginBottom: '6px',
+        padding: 'var(--spacing-sm)',
+        marginBottom: 'var(--spacing-xs)',
         backgroundColor: GBC.bgLight,
         border: `2px solid ${GBC.border}`,
         cursor: 'pointer',
-        fontSize: '8px'
+        fontSize: 'var(--font-sm)'
       },
       helpButton: {
         position: 'fixed',
-        top: '8px',
-        right: '52px',
-        width: '36px',
-        height: '36px',
+        top: 'var(--spacing-sm)',
+        right: 'calc(var(--button-size) + var(--spacing-lg))',
+        width: 'var(--button-size)',
+        height: 'var(--button-size)',
         backgroundColor: GBC.bgPanel,
         border: `3px solid ${GBC.border}`,
         borderRadius: '0',
         color: GBC.textDim,
         cursor: 'pointer',
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: '12px',
+        fontSize: 'var(--font-md)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -1387,13 +1480,13 @@
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '20px'
+        padding: 'var(--spacing-lg)'
       },
       helpContent: {
         backgroundColor: GBC.bgPanel,
         border: `4px solid ${GBC.border}`,
-        padding: '20px',
-        maxWidth: '400px',
+        padding: 'var(--spacing-lg)',
+        maxWidth: 'clamp(400px, 50vw, 600px)',
         maxHeight: '90vh',
         overflowY: 'auto',
         fontFamily: '"Press Start 2P", monospace',
@@ -1401,64 +1494,64 @@
       },
       helpTitle: {
         color: GBC.red,
-        fontSize: '12px',
+        fontSize: 'var(--font-md)',
         textAlign: 'center',
-        marginBottom: '16px',
+        marginBottom: 'var(--spacing-lg)',
         textShadow: '2px 2px 0 #3d1515'
       },
       helpSection: {
-        marginBottom: '14px'
+        marginBottom: 'var(--spacing-md)'
       },
       helpSectionTitle: {
         color: GBC.gold,
-        fontSize: '8px',
-        marginBottom: '6px'
+        fontSize: 'var(--font-sm)',
+        marginBottom: 'var(--spacing-xs)'
       },
       helpText: {
         color: GBC.textDim,
-        fontSize: '7px',
+        fontSize: 'var(--font-xs)',
         lineHeight: '1.6'
       },
       helpClose: {
         display: 'block',
         width: '100%',
-        padding: '12px',
-        marginTop: '16px',
+        padding: 'var(--spacing-md)',
+        marginTop: 'var(--spacing-lg)',
         backgroundColor: GBC.bgLight,
         border: `3px solid ${GBC.border}`,
         color: GBC.text,
         cursor: 'pointer',
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: '9px',
+        fontSize: 'var(--font-sm)',
         textAlign: 'center',
         boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
       },
       helpQuote: {
         color: GBC.textDim,
-        fontSize: '7px',
+        fontSize: 'var(--font-xs)',
         textAlign: 'center',
         fontStyle: 'italic',
-        marginTop: '12px'
+        marginTop: 'var(--spacing-md)'
       },
       prologue: {
         textAlign: 'center',
-        padding: '30px 20px',
+        padding: 'var(--spacing-xl) var(--spacing-lg)',
         backgroundColor: GBC.bg,
-        minHeight: '400px',
+        minHeight: 'clamp(400px, 50vh, 600px)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center'
       },
       prologueLine: {
         color: GBC.textDim,
-        fontSize: '8px',
-        marginBottom: '12px',
+        fontSize: 'var(--font-sm)',
+        marginBottom: 'var(--spacing-md)',
         lineHeight: '1.8'
       },
       prologueHighlight: {
         color: GBC.gold,
-        fontSize: '8px',
-        marginBottom: '12px',
+        fontSize: 'var(--font-sm)',
+        marginBottom: 'var(--spacing-md)',
         lineHeight: '1.8'
       },
       examineOverlay: {
@@ -1472,83 +1565,83 @@
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '20px'
+        padding: 'var(--spacing-lg)'
       },
       examineContent: {
         backgroundColor: GBC.bgPanel,
         border: `4px solid ${GBC.border}`,
-        padding: '20px',
-        maxWidth: '350px',
+        padding: 'var(--spacing-lg)',
+        maxWidth: 'clamp(350px, 40vw, 500px)',
         fontFamily: '"Press Start 2P", monospace',
         boxShadow: `inset -3px -3px 0 ${GBC.borderLight}, inset 3px 3px 0 #0a0a14, 0 0 40px rgba(0,0,0,0.8)`
       },
       examineTitle: {
         color: GBC.gold,
-        fontSize: '9px',
-        marginBottom: '12px',
+        fontSize: 'var(--font-sm)',
+        marginBottom: 'var(--spacing-md)',
         textAlign: 'center'
       },
       examineLine: {
         color: GBC.textDim,
-        fontSize: '7px',
+        fontSize: 'var(--font-xs)',
         lineHeight: '1.8',
-        marginBottom: '4px'
+        marginBottom: 'var(--spacing-xs)'
       },
       examinePrompt: {
         color: GBC.border,
-        fontSize: '7px',
+        fontSize: 'var(--font-xs)',
         textAlign: 'center',
-        marginTop: '16px'
+        marginTop: 'var(--spacing-lg)'
       },
       credits: {
         textAlign: 'center',
-        padding: '30px 20px',
+        padding: 'var(--spacing-xl) var(--spacing-lg)',
         backgroundColor: GBC.bg,
-        minHeight: '400px'
+        minHeight: 'clamp(400px, 50vh, 600px)'
       },
       creditsTitle: {
         color: GBC.red,
-        fontSize: '14px',
-        marginBottom: '24px',
+        fontSize: 'var(--font-lg)',
+        marginBottom: 'var(--spacing-xl)',
         textShadow: '2px 2px 0 #3d1515'
       },
       creditsSection: {
-        marginBottom: '16px'
+        marginBottom: 'var(--spacing-lg)'
       },
       creditsLabel: {
         color: GBC.textDim,
-        fontSize: '7px',
-        marginBottom: '4px'
+        fontSize: 'var(--font-xs)',
+        marginBottom: 'var(--spacing-xs)'
       },
       creditsValue: {
         color: GBC.text,
-        fontSize: '8px'
+        fontSize: 'var(--font-sm)'
       },
       creditsQuote: {
         color: GBC.gold,
-        fontSize: '7px',
+        fontSize: 'var(--font-xs)',
         fontStyle: 'italic',
-        marginTop: '24px',
-        marginBottom: '8px',
+        marginTop: 'var(--spacing-xl)',
+        marginBottom: 'var(--spacing-sm)',
         lineHeight: '1.6'
       },
       victoryDialogue: {
         color: GBC.textDim,
-        fontSize: '7px',
+        fontSize: 'var(--font-xs)',
         fontStyle: 'italic',
-        marginBottom: '6px',
+        marginBottom: 'var(--spacing-xs)',
         lineHeight: '1.6'
       },
       victoryTitle: {
-        fontSize: '14px',
+        fontSize: 'var(--font-lg)',
         color: GBC.gold,
-        marginBottom: '16px',
+        marginBottom: 'var(--spacing-lg)',
         textShadow: '2px 2px 0 #744210'
       },
       victorySubtitle: {
-        fontSize: '8px',
+        fontSize: 'var(--font-sm)',
         color: GBC.textDim,
-        marginBottom: '20px',
+        marginBottom: 'var(--spacing-lg)',
         fontStyle: 'italic'
       },
       pauseOverlay: {
@@ -1566,26 +1659,26 @@
       pauseMenu: {
         backgroundColor: GBC.bgPanel,
         border: `4px solid ${GBC.border}`,
-        padding: '24px',
-        minWidth: '280px',
+        padding: 'var(--spacing-xl)',
+        minWidth: 'clamp(280px, 30vw, 400px)',
         fontFamily: '"Press Start 2P", monospace',
         boxShadow: `inset -3px -3px 0 ${GBC.borderLight}, inset 3px 3px 0 #0a0a14, 0 0 60px rgba(0,0,0,0.9)`
       },
       pauseTitle: {
         color: GBC.textDim,
-        fontSize: '10px',
+        fontSize: 'var(--font-base)',
         textAlign: 'center',
-        marginBottom: '20px',
+        marginBottom: 'var(--spacing-lg)',
         letterSpacing: '2px'
       },
       pauseOption: {
-        padding: '12px 16px',
-        marginBottom: '8px',
+        padding: 'var(--spacing-md) var(--spacing-lg)',
+        marginBottom: 'var(--spacing-sm)',
         backgroundColor: GBC.bgLight,
         border: `3px solid ${GBC.border}`,
         color: GBC.text,
         cursor: 'pointer',
-        fontSize: '8px',
+        fontSize: 'var(--font-sm)',
         textAlign: 'center',
         transition: 'border-color 0.1s'
       },
@@ -1595,17 +1688,17 @@
       },
       gearButton: {
         position: 'fixed',
-        top: '8px',
-        right: '96px',
-        width: '36px',
-        height: '36px',
+        top: 'var(--spacing-sm)',
+        right: 'calc(var(--button-size) * 2 + var(--spacing-xl))',
+        width: 'var(--button-size)',
+        height: 'var(--button-size)',
         backgroundColor: GBC.bgPanel,
         border: `3px solid ${GBC.border}`,
         borderRadius: '0',
         color: GBC.textDim,
         cursor: 'pointer',
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: '14px',
+        fontSize: 'var(--font-lg)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -1627,31 +1720,31 @@
       confirmDialog: {
         backgroundColor: GBC.bgPanel,
         border: `4px solid ${GBC.red}`,
-        padding: '24px',
-        maxWidth: '320px',
+        padding: 'var(--spacing-xl)',
+        maxWidth: 'clamp(320px, 35vw, 450px)',
         fontFamily: '"Press Start 2P", monospace',
         boxShadow: `inset -3px -3px 0 #5a2020, inset 3px 3px 0 #0a0a14, 0 0 40px rgba(0,0,0,0.8)`
       },
       confirmText: {
         color: GBC.text,
-        fontSize: '8px',
+        fontSize: 'var(--font-sm)',
         textAlign: 'center',
-        marginBottom: '20px',
+        marginBottom: 'var(--spacing-lg)',
         lineHeight: '1.6'
       },
       confirmButtons: {
         display: 'flex',
-        gap: '12px',
+        gap: 'var(--spacing-md)',
         justifyContent: 'center'
       },
       confirmButton: {
-        padding: '10px 20px',
+        padding: 'var(--spacing-md) var(--spacing-lg)',
         backgroundColor: GBC.bgLight,
         border: `3px solid ${GBC.border}`,
         color: GBC.text,
         cursor: 'pointer',
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: '8px'
+        fontSize: 'var(--font-sm)'
       },
       confirmButtonDanger: {
         borderColor: GBC.red,
@@ -1659,61 +1752,61 @@
       },
       loadScreen: {
         textAlign: 'center',
-        padding: '40px 20px',
+        padding: 'var(--spacing-xl) var(--spacing-lg)',
         backgroundColor: GBC.bg
       },
       loadTitle: {
         color: GBC.textDim,
-        fontSize: '12px',
-        marginBottom: '24px'
+        fontSize: 'var(--font-md)',
+        marginBottom: 'var(--spacing-xl)'
       },
       saveSlot: {
         backgroundColor: GBC.bgPanel,
         border: `3px solid ${GBC.border}`,
-        padding: '16px',
-        marginBottom: '16px',
+        padding: 'var(--spacing-lg)',
+        marginBottom: 'var(--spacing-lg)',
         textAlign: 'left'
       },
       saveSlotTitle: {
         color: GBC.gold,
-        fontSize: '9px',
-        marginBottom: '12px'
+        fontSize: 'var(--font-sm)',
+        marginBottom: 'var(--spacing-md)'
       },
       saveSlotStat: {
         color: GBC.textDim,
-        fontSize: '7px',
-        marginBottom: '4px'
+        fontSize: 'var(--font-xs)',
+        marginBottom: 'var(--spacing-xs)'
       },
       saveNotification: {
         position: 'fixed',
-        bottom: '20px',
+        bottom: 'var(--spacing-lg)',
         left: '50%',
         transform: 'translateX(-50%)',
         backgroundColor: GBC.bgPanel,
         border: `3px solid ${GBC.gold}`,
-        padding: '12px 24px',
+        padding: 'var(--spacing-md) var(--spacing-xl)',
         color: GBC.gold,
-        fontSize: '8px',
+        fontSize: 'var(--font-sm)',
         fontFamily: '"Press Start 2P", monospace',
         zIndex: 1500,
         boxShadow: `0 0 20px rgba(246, 224, 94, 0.3)`
       },
       difficultySelect: {
         textAlign: 'center',
-        padding: '20px 15px'
+        padding: 'var(--spacing-lg)'
       },
       difficultyTitle: {
         color: GBC.textDim,
-        fontSize: '12px',
-        marginBottom: '20px',
+        fontSize: 'var(--font-lg)',
+        marginBottom: 'var(--spacing-xl)',
         letterSpacing: '2px'
       },
       difficultyCard: {
         display: 'block',
         width: '100%',
-        maxWidth: '300px',
-        margin: '0 auto 12px',
-        padding: '12px 16px',
+        maxWidth: 'clamp(300px, 50vw, 500px)',
+        margin: '0 auto var(--spacing-md)',
+        padding: 'var(--spacing-lg)',
         backgroundColor: GBC.bgPanel,
         border: `3px solid ${GBC.border}`,
         cursor: 'pointer',
@@ -1724,48 +1817,48 @@
       difficultyHeader: {
         display: 'flex',
         alignItems: 'center',
-        marginBottom: '6px'
+        marginBottom: 'var(--spacing-sm)'
       },
       difficultyIcon: {
-        fontSize: '14px',
-        marginRight: '8px'
+        fontSize: 'var(--font-xl)',
+        marginRight: 'var(--spacing-sm)'
       },
       difficultyName: {
         color: GBC.text,
-        fontSize: '9px',
-        marginRight: '8px'
+        fontSize: 'var(--font-base)',
+        marginRight: 'var(--spacing-sm)'
       },
       difficultySubtitle: {
         color: GBC.textDim,
-        fontSize: '7px'
+        fontSize: 'var(--font-xs)'
       },
       difficultyDesc: {
         color: GBC.textDim,
-        fontSize: '7px',
+        fontSize: 'var(--font-xs)',
         fontStyle: 'italic',
-        marginBottom: '8px'
+        marginBottom: 'var(--spacing-sm)'
       },
       difficultyDetails: {
         color: GBC.textDim,
-        fontSize: '6px',
+        fontSize: 'var(--font-xs)',
         lineHeight: '1.6'
       },
       difficultyIndicator: {
         position: 'fixed',
-        top: '8px',
-        left: '8px',
+        top: 'var(--spacing-sm)',
+        left: 'var(--spacing-sm)',
         backgroundColor: GBC.bgPanel,
         border: `2px solid ${GBC.border}`,
-        padding: '6px 10px',
-        fontSize: '10px',
+        padding: 'var(--spacing-xs) var(--spacing-md)',
+        fontSize: 'var(--font-base)',
         fontFamily: '"Press Start 2P", monospace',
         zIndex: 1000,
         display: 'flex',
         alignItems: 'center',
-        gap: '6px'
+        gap: 'var(--spacing-xs)'
       },
       difficultyIndicatorName: {
-        fontSize: '7px',
+        fontSize: 'var(--font-xs)',
         color: GBC.textDim
       }
     };
@@ -2978,7 +3071,7 @@
 
       return (
         <div style={styles.difficultySelect}>
-          <h1 style={{ color: GBC.textDim, marginBottom: '4px', fontSize: '16px' }}>POKE SOULS</h1>
+          <h1 style={{ color: GBC.textDim, marginBottom: 'var(--spacing-xs)', fontSize: 'var(--font-2xl)' }}>POKE SOULS</h1>
           <div style={styles.difficultyTitle}>CHOOSE YOUR FATE</div>
 
           {Object.values(DIFFICULTIES).map(diff => (
@@ -3022,8 +3115,8 @@
     function StarterSelect({ dispatch }) {
       return (
         <div style={styles.starterSelect}>
-          <h1 style={{ color: GBC.textDim, marginBottom: '8px', fontSize: '16px' }}>POKE SOULS</h1>
-          <p style={{ color: GBC.text, marginBottom: '20px', fontSize: '9px' }}>Choose your survivor</p>
+          <h1 style={{ color: GBC.textDim, marginBottom: 'var(--spacing-sm)', fontSize: 'var(--font-2xl)' }}>POKE SOULS</h1>
+          <p style={{ color: GBC.text, marginBottom: 'var(--spacing-lg)', fontSize: 'var(--font-sm)' }}>Choose your survivor</p>
           <div>
             {Object.values(STARTERS).map(starter => (
               <div
@@ -3033,20 +3126,20 @@
                 onMouseOver={e => e.currentTarget.style.borderColor = getTypeColor(starter.type)}
                 onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
               >
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--spacing-sm)' }}>
                   <CreatureSprite type={starter.type} size={48} />
                 </div>
-                <div style={{ margin: '8px 0 4px', color: GBC.text, fontSize: '10px' }}>{starter.name}</div>
-                <div style={{ fontSize: '8px', color: getTypeColor(starter.type), margin: '4px 0' }}>
+                <div style={{ margin: 'var(--spacing-sm) 0 var(--spacing-xs)', color: GBC.text, fontSize: 'var(--font-base)' }}>{starter.name}</div>
+                <div style={{ fontSize: 'var(--font-sm)', color: getTypeColor(starter.type), margin: 'var(--spacing-xs) 0' }}>
                   {starter.type.toUpperCase()}
                 </div>
-                <div style={{ fontSize: '7px', color: GBC.textDim }}>
+                <div style={{ fontSize: 'var(--font-xs)', color: GBC.textDim }}>
                   HP {starter.maxHp}
                 </div>
-                <div style={{ fontSize: '7px', color: GBC.textDim }}>
+                <div style={{ fontSize: 'var(--font-xs)', color: GBC.textDim }}>
                   STA {starter.maxStamina}
                 </div>
-                <div style={{ fontSize: '7px', color: getTypeColor(starter.type), marginTop: '6px' }}>
+                <div style={{ fontSize: 'var(--font-xs)', color: getTypeColor(starter.type), marginTop: 'var(--spacing-xs)' }}>
                   {starter.moves[0].name}
                 </div>
               </div>
@@ -3117,13 +3210,13 @@
           <div style={styles.header}>
             <span style={styles.souls}>SOULS {state.souls}</span>
             <span style={{ color: GBC.textDim }}>{mapName}</span>
-            <span style={{ color: GBC.textDim, fontSize: '8px' }}>TEAM {state.team.length}/{MAX_TEAM_SIZE}</span>
+            <span style={{ color: GBC.textDim, fontSize: 'var(--font-sm)' }}>TEAM {state.team.length}/{MAX_TEAM_SIZE}</span>
           </div>
 
           <div style={styles.mapContainer}>
             <div style={{
               ...styles.grid,
-              gridTemplateColumns: `repeat(${map[0].length}, 56px)`
+              gridTemplateColumns: `repeat(${map[0].length}, var(--tile-size))`
             }}>
               {map.map((row, y) =>
                 row.map((tile, x) => {
@@ -3166,10 +3259,11 @@
             <div style={{
               textAlign: 'center',
               color: GBC.gold,
-              marginBottom: '8px',
-              padding: '6px',
+              marginBottom: 'var(--spacing-sm)',
+              padding: 'var(--spacing-xs)',
               backgroundColor: GBC.bgPanel,
-              border: `2px solid ${GBC.border}`
+              border: `2px solid ${GBC.border}`,
+              fontSize: 'var(--font-sm)'
             }}>
               Press E to rest at bonfire
             </div>
@@ -3177,7 +3271,7 @@
 
           {state.bonfireMenuOpen && (
             <div style={styles.bonfireMenu}>
-              <div style={{ color: GBC.gold, marginBottom: '8px', fontSize: '9px' }}>BONFIRE</div>
+              <div style={{ color: GBC.gold, marginBottom: 'var(--spacing-sm)', fontSize: 'var(--font-sm)' }}>BONFIRE</div>
 
               <div
                 style={styles.bonfireOption}
@@ -3189,8 +3283,8 @@
               </div>
 
               {state.team.length > 1 && (
-                <div style={{ marginTop: '8px' }}>
-                  <div style={{ color: GBC.textDim, marginBottom: '6px', fontSize: '7px' }}>SWITCH ACTIVE:</div>
+                <div style={{ marginTop: 'var(--spacing-sm)' }}>
+                  <div style={{ color: GBC.textDim, marginBottom: 'var(--spacing-xs)', fontSize: 'var(--font-xs)' }}>SWITCH ACTIVE:</div>
                   {state.team.map((creature, i) => {
                     const isActive = i === state.activeCreatureIndex;
                     const baseData = STARTERS[creature.id];
@@ -3245,11 +3339,11 @@
                 <div style={{
                   textAlign: 'center',
                   color: GBC.gold,
-                  marginBottom: '8px',
-                  padding: '6px',
+                  marginBottom: 'var(--spacing-sm)',
+                  padding: 'var(--spacing-xs)',
                   backgroundColor: GBC.bgPanel,
                   border: `2px solid ${GBC.border}`,
-                  fontSize: '8px'
+                  fontSize: 'var(--font-sm)'
                 }}>
                   Press X to examine
                 </div>
@@ -3272,10 +3366,10 @@
           )}
 
           <div style={{
-            padding: '6px 8px',
+            padding: 'var(--spacing-xs) var(--spacing-sm)',
             backgroundColor: GBC.bgPanel,
-            marginTop: '8px',
-            fontSize: '7px',
+            marginTop: 'var(--spacing-sm)',
+            fontSize: 'var(--font-xs)',
             color: GBC.textDim,
             border: `2px solid ${GBC.border}`
           }}>
@@ -3288,10 +3382,10 @@
     function TeamStatus({ team, activeIndex, bankedSouls }) {
       return (
         <div style={styles.teamStatus}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', margin: '0 0 6px' }}>
-            <span style={{ color: GBC.textDim, fontSize: '8px' }}>TEAM</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', margin: '0 0 var(--spacing-xs)' }}>
+            <span style={{ color: GBC.textDim, fontSize: 'var(--font-sm)' }}>TEAM</span>
             {bankedSouls !== undefined && (
-              <span style={{ color: GBC.gold, fontSize: '7px' }}>BANKED: {bankedSouls}</span>
+              <span style={{ color: GBC.gold, fontSize: 'var(--font-xs)' }}>BANKED: {bankedSouls}</span>
             )}
           </div>
           {team.map((creature, i) => {
@@ -3317,7 +3411,7 @@
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                    <span style={{ fontSize: '8px' }}>
+                    <span style={{ fontSize: 'var(--font-sm)' }}>
                       {creature.name}
                       {isHollowed && <span style={styles.scar}>HOLLOW</span>}
                       {creature.winded && <span style={{ ...styles.status, ...styles.winded }}>WIND</span>}
@@ -3325,7 +3419,7 @@
                         <span style={{ ...styles.status, ...styles.burn }}>BURN</span>
                       )}
                     </span>
-                    <span style={{ fontSize: '8px', color: GBC.textDim }}>
+                    <span style={{ fontSize: 'var(--font-sm)', color: GBC.textDim }}>
                       {creature.hp}/{maxHp}
                     </span>
                   </div>
@@ -3337,7 +3431,7 @@
                   }} />
                 </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
-                    <span style={{ fontSize: '7px', color: GBC.textDim }}>
+                    <span style={{ fontSize: 'var(--font-xs)', color: GBC.textDim }}>
                       STA {creature.stamina}/{maxStamina}
                     </span>
                     {creature.scars && creature.scars.length > 0 && (
@@ -3393,7 +3487,7 @@
         <div style={styles.battleContainer}>
           <div style={styles.header}>
             <span style={styles.souls}>SOULS {state.souls}</span>
-            <span style={{ color: state.isBossFight ? GBC.red : GBC.textDim, fontSize: '9px' }}>
+            <span style={{ color: state.isBossFight ? GBC.red : GBC.textDim, fontSize: 'var(--font-sm)' }}>
               {state.isBossFight ? 'BOSS' : 'BATTLE'}
             </span>
           </div>
@@ -3401,12 +3495,12 @@
           {state.arenaEffect === 'scorchedEarth' && (
             <div style={{
               textAlign: 'center',
-              padding: '6px',
+              padding: 'var(--spacing-xs)',
               backgroundColor: '#2a1510',
               color: GBC.fire,
-              marginBottom: '8px',
+              marginBottom: 'var(--spacing-sm)',
               border: `2px solid ${GBC.fire}`,
-              fontSize: '8px',
+              fontSize: 'var(--font-sm)',
               animation: 'flicker 0.5s infinite'
             }}>
               SCORCHED EARTH - 2 DMG/TURN
@@ -3417,23 +3511,23 @@
           <div style={styles.battleSpriteArea}>
             <div style={{ textAlign: 'center' }}>
               <CreatureSprite type={activeCreature.type} size={48} />
-              <div style={{ fontSize: '7px', color: GBC.text, marginTop: '4px' }}>{activeCreature.name}</div>
+              <div style={{ fontSize: 'var(--font-xs)', color: GBC.text, marginTop: 'var(--spacing-xs)' }}>{activeCreature.name}</div>
             </div>
-            <div style={{ fontSize: '16px', color: GBC.textDim }}>VS</div>
+            <div style={{ fontSize: 'var(--font-xl)', color: GBC.textDim }}>VS</div>
             <div style={{ textAlign: 'center' }}>
               <CreatureSprite type={enemyType} size={state.isBossFight ? 56 : 48} isEnemy={true} />
-              <div style={{ fontSize: '7px', color: GBC.text, marginTop: '4px' }}>{state.enemyCreature.name}</div>
+              <div style={{ fontSize: 'var(--font-xs)', color: GBC.text, marginTop: 'var(--spacing-xs)' }}>{state.enemyCreature.name}</div>
             </div>
           </div>
 
           {/* Enemy stats */}
           <div style={styles.battleCreature}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <span style={{ fontSize: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-xs)' }}>
+              <span style={{ fontSize: 'var(--font-sm)' }}>
                 {state.enemyCreature.name}
-                {state.bossPhase === 2 && <span style={{ color: GBC.red, marginLeft: '4px' }}>P2</span>}
+                {state.bossPhase === 2 && <span style={{ color: GBC.red, marginLeft: 'var(--spacing-xs)' }}>P2</span>}
               </span>
-              <span style={{ fontSize: '8px', color: GBC.textDim }}>
+              <span style={{ fontSize: 'var(--font-sm)', color: GBC.textDim }}>
                 {state.enemy.hp}/{state.enemyCreature.maxHp}
               </span>
             </div>
@@ -3444,7 +3538,7 @@
                 backgroundColor: GBC.red
               }} />
             </div>
-            <div style={{ fontSize: '7px', color: GBC.textDim, marginTop: '3px' }}>
+            <div style={{ fontSize: 'var(--font-xs)', color: GBC.textDim, marginTop: '3px' }}>
               STA {state.enemy.stamina}/{state.enemyCreature.maxStamina}
               {state.enemy.winded && <span style={{ ...styles.status, ...styles.winded }}>WIND</span>}
               {state.enemy.isGuarding && <span style={{ ...styles.status, backgroundColor: '#1a2a3a', border: `1px solid ${GBC.blue}`, color: GBC.blue }}>GRD</span>}
@@ -3460,14 +3554,14 @@
 
           {/* Player stats */}
           <div style={styles.battleCreature}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <span style={{ fontSize: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-xs)' }}>
+              <span style={{ fontSize: 'var(--font-sm)' }}>
                 {activeCreature.name}
                 {activeCreature.winded && <span style={{ ...styles.status, ...styles.winded }}>WIND</span>}
                 {activeCreature.burnTurns > 0 && <span style={{ ...styles.status, ...styles.burn }}>BURN</span>}
                 {activeCreature.isGuarding && <span style={{ ...styles.status, backgroundColor: '#1a2a3a', border: `1px solid ${GBC.blue}`, color: GBC.blue }}>GRD</span>}
               </span>
-              <span style={{ fontSize: '8px', color: GBC.textDim }}>
+              <span style={{ fontSize: 'var(--font-sm)', color: GBC.textDim }}>
                 {activeCreature.hp}/{maxHp}
               </span>
             </div>
@@ -3478,10 +3572,10 @@
                 backgroundColor: playerHpPercent > 50 ? GBC.green : playerHpPercent > 25 ? GBC.gold : GBC.red
               }} />
             </div>
-            <div style={{ fontSize: '7px', color: GBC.textDim, marginTop: '3px' }}>
+            <div style={{ fontSize: 'var(--font-xs)', color: GBC.textDim, marginTop: '3px' }}>
               STA {activeCreature.stamina}/{maxStamina}
               {activeCreature.scars && activeCreature.scars.length > 0 && (
-                <span style={{ marginLeft: '6px' }}>
+                <span style={{ marginLeft: 'var(--spacing-xs)' }}>
                   {activeCreature.scars.slice(0, 2).map((scar, j) => (
                     <span key={j} style={styles.scar}>{scar.name.slice(0, 4)}</span>
                   ))}
@@ -3513,7 +3607,7 @@
                   onClick={() => dispatch({ type: 'SELECT_MOVE', move: adjustedMove })}
                 >
                   <div>{adjustedMove.name}</div>
-                  <div style={{ fontSize: '7px', color: GBC.textDim, marginTop: '3px' }}>
+                  <div style={{ fontSize: 'var(--font-xs)', color: GBC.textDim, marginTop: '3px' }}>
                     {adjustedMove.cost}SP
                     {adjustedMove.damage > 0 ? ` ${adjustedMove.damage}DMG` : ` ${adjustedMove.effect?.toUpperCase()}`}
                     {adjustedMove.priority && !hasFlinching && ' PRI'}
@@ -3541,7 +3635,7 @@
                   title={`${captureChance}% capture chance`}
                 >
                   <div>SOUL BIND ({BIND_COST} souls)</div>
-                  <div style={{ fontSize: '7px', marginTop: '3px' }}>
+                  <div style={{ fontSize: 'var(--font-xs)', marginTop: '3px' }}>
                     {state.team.length >= MAX_TEAM_SIZE ? 'TEAM FULL' :
                      state.souls < BIND_COST ? `NEED ${BIND_COST - state.souls} MORE SOULS` :
                      `${captureChance}% CHANCE`}
@@ -3552,9 +3646,9 @@
           </div>
 
           {state.team.length > 1 && (
-            <div style={{ marginTop: '8px' }}>
-              <div style={{ fontSize: '7px', color: GBC.textDim, marginBottom: '4px' }}>SWITCH:</div>
-              <div style={{ display: 'flex', gap: '6px' }}>
+            <div style={{ marginTop: 'var(--spacing-sm)' }}>
+              <div style={{ fontSize: 'var(--font-xs)', color: GBC.textDim, marginBottom: 'var(--spacing-xs)' }}>SWITCH:</div>
+              <div style={{ display: 'flex', gap: 'var(--spacing-xs)' }}>
                 {state.team.map((creature, i) => {
                   if (i === state.activeCreatureIndex) return null;
                   const base = STARTERS[creature.id];
@@ -3594,8 +3688,8 @@
       return (
         <div style={styles.victory}>
           {/* Varek's final words */}
-          <div style={{ marginBottom: '20px' }}>
-            <div style={{ color: GBC.textDim, fontSize: '7px', marginBottom: '8px' }}>
+          <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+            <div style={{ color: GBC.textDim, fontSize: 'var(--font-xs)', marginBottom: 'var(--spacing-sm)' }}>
               The Obsidian Hound collapses. Varek speaks one last time:
             </div>
             {BOSS_DIALOGUE.victory.map((line, i) => (
@@ -3604,26 +3698,26 @@
           </div>
 
           <div style={{
-            margin: '16px 0',
-            padding: '12px',
+            margin: 'var(--spacing-lg) 0',
+            padding: 'var(--spacing-md)',
             backgroundColor: 'rgba(104, 211, 145, 0.1)',
             border: `2px solid ${GBC.green}`
           }}>
-            <div style={{ color: GBC.textDim, fontSize: '7px', marginBottom: '8px' }}>
+            <div style={{ color: GBC.textDim, fontSize: 'var(--font-xs)', marginBottom: 'var(--spacing-sm)' }}>
               The gate opens. Light pours through.
             </div>
           </div>
 
           <div style={styles.victoryTitle}>YOU SURVIVED</div>
 
-          <div style={{ margin: '16px 0', textAlign: 'left', display: 'inline-block' }}>
-            <p style={{ color: GBC.red, marginBottom: '6px', fontSize: '8px' }}>
+          <div style={{ margin: 'var(--spacing-lg) 0', textAlign: 'left', display: 'inline-block' }}>
+            <p style={{ color: GBC.red, marginBottom: 'var(--spacing-xs)', fontSize: 'var(--font-sm)' }}>
               Scars earned: {totalScars}
             </p>
-            <p style={{ color: GBC.gold, marginBottom: '6px', fontSize: '8px' }}>
+            <p style={{ color: GBC.gold, marginBottom: 'var(--spacing-xs)', fontSize: 'var(--font-sm)' }}>
               Souls banked: {state.souls + state.bankedSouls}
             </p>
-            <p style={{ color: GBC.green, marginBottom: '6px', fontSize: '8px' }}>
+            <p style={{ color: GBC.green, marginBottom: 'var(--spacing-xs)', fontSize: 'var(--font-sm)' }}>
               Creatures bound: {state.team.length}
             </p>
           </div>
@@ -3632,7 +3726,7 @@
             "Scarred but not broken."
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '16px' }}>
+          <div style={{ display: 'flex', gap: 'var(--spacing-md)', justifyContent: 'center', marginTop: 'var(--spacing-lg)' }}>
             <button
               style={styles.button}
               onClick={() => dispatch({ type: 'RESTART' })}
@@ -3663,24 +3757,24 @@
 
       return (
         <div style={styles.gameOver}>
-          <div style={{ fontSize: '14px', color: GBC.red, marginBottom: '16px' }}>YOU DIED</div>
+          <div style={{ fontSize: 'var(--font-lg)', color: GBC.red, marginBottom: 'var(--spacing-lg)' }}>YOU DIED</div>
 
           {isPermadeath && (
             <div style={{
-              marginBottom: '16px',
-              padding: '10px',
+              marginBottom: 'var(--spacing-lg)',
+              padding: 'var(--spacing-md)',
               backgroundColor: 'rgba(252, 129, 129, 0.1)',
               border: `2px solid ${GBC.red}`
             }}>
-              <p style={{ color: GBC.red, fontSize: '8px', marginBottom: '4px' }}>PERMADEATH</p>
-              <p style={{ color: GBC.textDim, fontSize: '7px' }}>Your save has been erased.</p>
+              <p style={{ color: GBC.red, fontSize: 'var(--font-sm)', marginBottom: 'var(--spacing-xs)' }}>PERMADEATH</p>
+              <p style={{ color: GBC.textDim, fontSize: 'var(--font-xs)' }}>Your save has been erased.</p>
             </div>
           )}
 
           {state.diedToBoss && (
-            <div style={{ marginBottom: '16px' }}>
+            <div style={{ marginBottom: 'var(--spacing-lg)' }}>
               {BOSS_DIALOGUE.playerDeath.map((line, i) => (
-                <p key={i} style={{ color: GBC.textDim, fontSize: '7px', fontStyle: 'italic', marginBottom: '4px' }}>
+                <p key={i} style={{ color: GBC.textDim, fontSize: 'var(--font-xs)', fontStyle: 'italic', marginBottom: 'var(--spacing-xs)' }}>
                   {line}
                 </p>
               ))}
@@ -3688,12 +3782,12 @@
           )}
 
           {state.droppedSouls && !isPermadeath && (
-            <p style={{ color: GBC.gold, marginBottom: '16px', fontSize: '9px' }}>
+            <p style={{ color: GBC.gold, marginBottom: 'var(--spacing-lg)', fontSize: 'var(--font-sm)' }}>
               {state.droppedSouls.amount} souls dropped
             </p>
           )}
 
-          <p style={{ color: GBC.textDim, marginBottom: '20px', fontSize: '8px' }}>
+          <p style={{ color: GBC.textDim, marginBottom: 'var(--spacing-lg)', fontSize: 'var(--font-sm)' }}>
             {isPermadeath ? 'Broken beyond repair.' : 'Scarred but not broken.'}
           </p>
 
@@ -3726,7 +3820,7 @@
 
       return (
         <div style={styles.prologue}>
-          <div style={{ marginBottom: '30px' }}>
+          <div style={{ marginBottom: 'var(--spacing-xl)' }}>
             {prologueLines.map((line, i) => (
               <div
                 key={i}
@@ -3752,8 +3846,8 @@
         <div style={styles.credits}>
           <div style={styles.creditsTitle}>POKE SOULS</div>
 
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ color: GBC.textDim, fontSize: '8px', fontStyle: 'italic' }}>
+          <div style={{ marginBottom: 'var(--spacing-xl)' }}>
+            <div style={{ color: GBC.textDim, fontSize: 'var(--font-sm)', fontStyle: 'italic' }}>
               A game about persistence.
             </div>
           </div>
@@ -3779,8 +3873,8 @@
             And someone must carry them forward."
           </div>
 
-          <div style={{ marginTop: '20px', marginBottom: '20px' }}>
-            <div style={{ color: GBC.text, fontSize: '8px' }}>
+          <div style={{ marginTop: 'var(--spacing-lg)', marginBottom: 'var(--spacing-lg)' }}>
+            <div style={{ color: GBC.text, fontSize: 'var(--font-sm)' }}>
               Thank you for playing.
             </div>
           </div>
@@ -3868,10 +3962,10 @@
 
       return (
         <div style={styles.saveSlot}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-sm)' }}>
             <div style={styles.saveSlotTitle}>SAVED JOURNEY</div>
-            <div style={{ fontSize: '10px' }}>
-              {diff.icon} <span style={{ fontSize: '7px', color: GBC.textDim }}>{diff.name}</span>
+            <div style={{ fontSize: 'var(--font-base)' }}>
+              {diff.icon} <span style={{ fontSize: 'var(--font-xs)', color: GBC.textDim }}>{diff.name}</span>
             </div>
           </div>
           <div style={styles.saveSlotStat}>
