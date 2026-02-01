@@ -1439,6 +1439,117 @@
         textAlign: 'center',
         fontStyle: 'italic',
         marginTop: '12px'
+      },
+      prologue: {
+        textAlign: 'center',
+        padding: '30px 20px',
+        backgroundColor: GBC.bg,
+        minHeight: '400px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center'
+      },
+      prologueLine: {
+        color: GBC.textDim,
+        fontSize: '8px',
+        marginBottom: '12px',
+        lineHeight: '1.8'
+      },
+      prologueHighlight: {
+        color: GBC.gold,
+        fontSize: '8px',
+        marginBottom: '12px',
+        lineHeight: '1.8'
+      },
+      examineOverlay: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(10, 10, 20, 0.9)',
+        zIndex: 1500,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px'
+      },
+      examineContent: {
+        backgroundColor: GBC.bgPanel,
+        border: `4px solid ${GBC.border}`,
+        padding: '20px',
+        maxWidth: '350px',
+        fontFamily: '"Press Start 2P", monospace',
+        boxShadow: `inset -3px -3px 0 ${GBC.borderLight}, inset 3px 3px 0 #0a0a14, 0 0 40px rgba(0,0,0,0.8)`
+      },
+      examineTitle: {
+        color: GBC.gold,
+        fontSize: '9px',
+        marginBottom: '12px',
+        textAlign: 'center'
+      },
+      examineLine: {
+        color: GBC.textDim,
+        fontSize: '7px',
+        lineHeight: '1.8',
+        marginBottom: '4px'
+      },
+      examinePrompt: {
+        color: GBC.border,
+        fontSize: '7px',
+        textAlign: 'center',
+        marginTop: '16px'
+      },
+      credits: {
+        textAlign: 'center',
+        padding: '30px 20px',
+        backgroundColor: GBC.bg,
+        minHeight: '400px'
+      },
+      creditsTitle: {
+        color: GBC.red,
+        fontSize: '14px',
+        marginBottom: '24px',
+        textShadow: '2px 2px 0 #3d1515'
+      },
+      creditsSection: {
+        marginBottom: '16px'
+      },
+      creditsLabel: {
+        color: GBC.textDim,
+        fontSize: '7px',
+        marginBottom: '4px'
+      },
+      creditsValue: {
+        color: GBC.text,
+        fontSize: '8px'
+      },
+      creditsQuote: {
+        color: GBC.gold,
+        fontSize: '7px',
+        fontStyle: 'italic',
+        marginTop: '24px',
+        marginBottom: '8px',
+        lineHeight: '1.6'
+      },
+      victoryDialogue: {
+        color: GBC.textDim,
+        fontSize: '7px',
+        fontStyle: 'italic',
+        marginBottom: '6px',
+        lineHeight: '1.6'
+      },
+      victoryTitle: {
+        fontSize: '14px',
+        color: GBC.gold,
+        marginBottom: '16px',
+        textShadow: '2px 2px 0 #744210'
+      },
+      victorySubtitle: {
+        fontSize: '8px',
+        color: GBC.textDim,
+        marginBottom: '20px',
+        fontStyle: 'italic'
       }
     };
 
@@ -1542,6 +1653,100 @@
       return { maxHp: Math.max(1, maxHp), maxStamina: Math.max(1, maxStamina), hasFlinching };
     };
 
+    // ============= LORE DATA =============
+    const TILE_LORE = {
+      ashenPath: {
+        // Old signpost near start (3,1)
+        '3,1': {
+          name: 'Old Signpost',
+          lines: [
+            '"Pallet Town - 3 leagues east"',
+            '',
+            'The wood is burned. The arrow points to nothing but wall.'
+          ]
+        },
+        // Collapsed statue in corner (6,1)
+        '6,1': {
+          name: 'Collapsed Statue',
+          lines: [
+            'A Pokemon Center sign, half-buried.',
+            '',
+            'The red roof is faded to gray.'
+          ]
+        },
+        // Near the gate
+        '4,4': {
+          name: 'Faded Marks',
+          lines: [
+            'Scratches in the stone. Tally marks.',
+            '',
+            'Dozens of them. Then nothing.'
+          ]
+        }
+      },
+      fallenKeep: {
+        // Scratched message near entrance (2,7)
+        '2,7': {
+          name: 'Scratched Message',
+          lines: [
+            '"V. guards what remains. Do not wake him.',
+            '',
+            'He only wants it to end."'
+          ]
+        },
+        // Broken pokeballs scattered (4,1)
+        '4,1': {
+          name: 'Broken Shells',
+          lines: [
+            'Empty shells. Dozens of them.',
+            '',
+            'Whatever was inside left long ago. Or never survived.'
+          ]
+        },
+        // Near boss room (1,5)
+        '3,5': {
+          name: 'Old Banner',
+          lines: [
+            'A tattered gym banner. The emblem is unreadable.',
+            '',
+            'Someone was proud here, once.'
+          ]
+        },
+        // Boss room entrance warning
+        '3,6': {
+          name: 'Charred Ground',
+          lines: [
+            'The stone is blackened. Still warm.',
+            '',
+            'Something burns eternal beyond this door.'
+          ]
+        }
+      }
+    };
+
+    // Boss dialogue collections
+    const BOSS_DIALOGUE = {
+      intro: [
+        '"Another walks the ash. Another seeks the flame beyond."',
+        '"I was a guardian once. Now I am a door."'
+      ],
+      phase2: [
+        '"You fight like the ones before... but you haven\'t broken yet."',
+        '"Fine. Let me show you why they stopped coming."'
+      ],
+      playerDeath: [
+        '"Rest now. The bonfire remembers you."',
+        '"Return when you\'re ready to fail again."'
+      ],
+      victory: [
+        '"So. One finally passes."',
+        '"Beyond this door... another keeper waits. Another path. Another fire."',
+        '"The cycle doesn\'t end. It never ends."',
+        '"But you... you carry scars and still stand."',
+        '"Perhaps that is enough."'
+      ]
+    };
+
     const initialState = {
       screen: 'starter',
       currentMap: 'ashenPath',
@@ -1567,7 +1772,9 @@
         { x: 6, y: 3, active: true }
       ],
       lastBonfire: { map: 'ashenPath', pos: { x: 1, y: 1 } },
-      bonfireMenuOpen: false
+      bonfireMenuOpen: false,
+      hasSeenPrologue: false,
+      examineText: null
     };
 
     function handleCreatureFaint(state, team, enemy, log) {
@@ -1595,6 +1802,11 @@
           amount: state.souls
         } : state.droppedSouls;
 
+        // Add boss death dialogue if dying to boss
+        if (state.isBossFight) {
+          BOSS_DIALOGUE.playerDeath.forEach(line => log.push(line));
+        }
+
         return {
           ...state,
           screen: 'gameOver',
@@ -1602,7 +1814,8 @@
           enemy,
           battleLog: log,
           souls: 0,
-          droppedSouls
+          droppedSouls,
+          diedToBoss: state.isBossFight
         };
       }
 
@@ -1629,10 +1842,39 @@
             isGuarding: false,
             burnTurns: 0
           };
+          // Show prologue on first playthrough
+          const nextScreen = state.hasSeenPrologue ? 'exploration' : 'prologue';
+          return {
+            ...state,
+            screen: nextScreen,
+            team: [newCreature]
+          };
+        }
+
+        case 'CONTINUE_FROM_PROLOGUE': {
           return {
             ...state,
             screen: 'exploration',
-            team: [newCreature]
+            hasSeenPrologue: true
+          };
+        }
+
+        case 'EXAMINE_TILE': {
+          const key = `${state.playerPos.x},${state.playerPos.y}`;
+          const lore = TILE_LORE[state.currentMap]?.[key];
+          if (lore) {
+            return {
+              ...state,
+              examineText: lore
+            };
+          }
+          return state;
+        }
+
+        case 'CLOSE_EXAMINE': {
+          return {
+            ...state,
+            examineText: null
           };
         }
 
@@ -1722,7 +1964,10 @@
                 isGuarding: false
               },
               enemyCreature: bossData,
-              battleLog: ['Keeper Varek blocks your path!', '"Another challenger... They all fall the same."'],
+              battleLog: [
+                'Keeper Varek blocks your path!',
+                ...BOSS_DIALOGUE.intro
+              ],
               turnPhase: 'player',
               bossPhase: 1,
               arenaEffect: null,
@@ -1877,7 +2122,7 @@
           if (state.isBossFight && state.bossPhase === 1 &&
               newEnemy.hp <= state.enemyCreature.maxHp * 0.3 && newEnemy.hp > 0) {
             newEnemy.hp += 20;
-            log.push('"You fight like the ones before. They all fell too."');
+            BOSS_DIALOGUE.phase2.forEach(line => log.push(line));
             log.push('Obsidian Hound transforms! The arena ignites with scorched earth!');
             return {
               ...state,
@@ -2176,11 +2421,26 @@
             turnPhase: 'player',
             bossPhase: 1,
             arenaEffect: null,
-            isBossFight: false
+            isBossFight: false,
+            diedToBoss: false
           };
         }
 
         case 'RESTART': {
+          return {
+            ...initialState,
+            hasSeenPrologue: true // Skip prologue on subsequent playthroughs
+          };
+        }
+
+        case 'SHOW_CREDITS': {
+          return {
+            ...state,
+            screen: 'credits'
+          };
+        }
+
+        case 'RETURN_TO_TITLE': {
           return initialState;
         }
 
@@ -2234,6 +2494,12 @@
         const key = e.key.toLowerCase();
         let dx = 0, dy = 0;
 
+        // Close examine overlay first if open
+        if (state.examineText && (key === 'x' || key === 'escape' || key === 'enter' || key === 'e')) {
+          dispatch({ type: 'CLOSE_EXAMINE' });
+          return;
+        }
+
         if (key === 'arrowup' || key === 'w') dy = -1;
         else if (key === 'arrowdown' || key === 's') dy = 1;
         else if (key === 'arrowleft' || key === 'a') dx = -1;
@@ -2245,11 +2511,15 @@
           }
           return;
         }
+        else if (key === 'x') {
+          dispatch({ type: 'EXAMINE_TILE' });
+          return;
+        }
 
         if (dx !== 0 || dy !== 0) {
           dispatch({ type: 'MOVE_PLAYER', dx, dy });
         }
-      }, [dispatch, map, state.playerPos]);
+      }, [dispatch, map, state.playerPos, state.examineText]);
 
       useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);
@@ -2396,6 +2666,41 @@
 
           <TeamStatus team={state.team} activeIndex={state.activeCreatureIndex} bankedSouls={state.bankedSouls} />
 
+          {/* Examine prompt when on lore tile */}
+          {(() => {
+            const key = `${state.playerPos.x},${state.playerPos.y}`;
+            const hasLore = TILE_LORE[state.currentMap]?.[key];
+            if (hasLore && !state.examineText) {
+              return (
+                <div style={{
+                  textAlign: 'center',
+                  color: GBC.gold,
+                  marginBottom: '8px',
+                  padding: '6px',
+                  backgroundColor: GBC.bgPanel,
+                  border: `2px solid ${GBC.border}`,
+                  fontSize: '8px'
+                }}>
+                  Press X to examine
+                </div>
+              );
+            }
+            return null;
+          })()}
+
+          {/* Examine overlay */}
+          {state.examineText && (
+            <div style={styles.examineOverlay} onClick={() => dispatch({ type: 'CLOSE_EXAMINE' })}>
+              <div style={styles.examineContent} onClick={e => e.stopPropagation()}>
+                <div style={styles.examineTitle}>{state.examineText.name}</div>
+                {state.examineText.lines.map((line, i) => (
+                  <div key={i} style={styles.examineLine}>{line || '\u00A0'}</div>
+                ))}
+                <div style={styles.examinePrompt}>[Press X to close]</div>
+              </div>
+            </div>
+          )}
+
           <div style={{
             padding: '6px 8px',
             backgroundColor: GBC.bgPanel,
@@ -2404,7 +2709,7 @@
             color: GBC.textDim,
             border: `2px solid ${GBC.border}`
           }}>
-            WASD: Move | E: Rest
+            WASD: Move | E: Rest | X: Examine
           </div>
         </div>
       );
@@ -2717,34 +3022,59 @@
 
       return (
         <div style={styles.victory}>
-          <div style={{ fontSize: '14px', color: GBC.green, marginBottom: '12px' }}>VICTORY</div>
-          <div style={{ fontSize: '9px', color: GBC.text }}>Keeper Varek Defeated</div>
+          {/* Varek's final words */}
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ color: GBC.textDim, fontSize: '7px', marginBottom: '8px' }}>
+              The Obsidian Hound collapses. Varek speaks one last time:
+            </div>
+            {BOSS_DIALOGUE.victory.map((line, i) => (
+              <div key={i} style={styles.victoryDialogue}>{line}</div>
+            ))}
+          </div>
 
-          <div style={{ margin: '20px 0', textAlign: 'left', display: 'inline-block' }}>
-            <p style={{ color: GBC.gold, marginBottom: '8px', fontSize: '9px' }}>
-              SOULS +{BOSS.obsidianHound.souls}
+          <div style={{
+            margin: '16px 0',
+            padding: '12px',
+            backgroundColor: 'rgba(104, 211, 145, 0.1)',
+            border: `2px solid ${GBC.green}`
+          }}>
+            <div style={{ color: GBC.textDim, fontSize: '7px', marginBottom: '8px' }}>
+              The gate opens. Light pours through.
+            </div>
+          </div>
+
+          <div style={styles.victoryTitle}>YOU SURVIVED</div>
+
+          <div style={{ margin: '16px 0', textAlign: 'left', display: 'inline-block' }}>
+            <p style={{ color: GBC.red, marginBottom: '6px', fontSize: '8px' }}>
+              Scars earned: {totalScars}
             </p>
-            <p style={{ color: GBC.red, marginBottom: '8px', fontSize: '9px' }}>
-              SCARS: {totalScars}
+            <p style={{ color: GBC.gold, marginBottom: '6px', fontSize: '8px' }}>
+              Souls banked: {state.souls + state.bankedSouls}
             </p>
-            <p style={{ color: GBC.green, marginBottom: '8px', fontSize: '9px' }}>
-              ALIVE: {survivingCreatures}/{state.team.length}
-            </p>
-            <p style={{ color: GBC.textDim, marginBottom: '8px', fontSize: '9px' }}>
-              TOTAL: {state.souls + state.bankedSouls}
+            <p style={{ color: GBC.green, marginBottom: '6px', fontSize: '8px' }}>
+              Creatures bound: {state.team.length}
             </p>
           </div>
 
-          <p style={{ color: GBC.textDim, fontSize: '8px', marginTop: '20px' }}>
-            "The path ahead grows darker."
-          </p>
+          <div style={styles.victorySubtitle}>
+            "Scarred but not broken."
+          </div>
 
-          <button
-            style={styles.button}
-            onClick={() => dispatch({ type: 'RESTART' })}
-          >
-            NEW JOURNEY
-          </button>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '16px' }}>
+            <button
+              style={styles.button}
+              onClick={() => dispatch({ type: 'RESTART' })}
+            >
+              NEW GAME+
+            </button>
+            <button
+              style={styles.button}
+              onClick={() => dispatch({ type: 'SHOW_CREDITS' })}
+            >
+              CREDITS
+            </button>
+          </div>
         </div>
       );
     }
@@ -2753,6 +3083,16 @@
       return (
         <div style={styles.gameOver}>
           <div style={{ fontSize: '14px', color: GBC.red, marginBottom: '16px' }}>YOU DIED</div>
+
+          {state.diedToBoss && (
+            <div style={{ marginBottom: '16px' }}>
+              {BOSS_DIALOGUE.playerDeath.map((line, i) => (
+                <p key={i} style={{ color: GBC.textDim, fontSize: '7px', fontStyle: 'italic', marginBottom: '4px' }}>
+                  {line}
+                </p>
+              ))}
+            </div>
+          )}
 
           {state.droppedSouls && (
             <p style={{ color: GBC.gold, marginBottom: '16px', fontSize: '9px' }}>
@@ -2769,6 +3109,94 @@
             onClick={() => dispatch({ type: 'RESPAWN' })}
           >
             RETURN
+          </button>
+        </div>
+      );
+    }
+
+    function Prologue({ dispatch }) {
+      const prologueLines = [
+        { text: 'The bonfire wars ended long ago.', highlight: false },
+        { text: '', highlight: false },
+        { text: 'Trainers and their companions fell, one by one.', highlight: false },
+        { text: '', highlight: false },
+        { text: 'The creatures that survived... changed.', highlight: false },
+        { text: '', highlight: false },
+        { text: 'Now they wander the ashen paths, feral and scarred.', highlight: false },
+        { text: '', highlight: false },
+        { text: 'You are not the first to wake at this flame.', highlight: true },
+        { text: '', highlight: false },
+        { text: 'You will not be the last.', highlight: false },
+        { text: '', highlight: false },
+        { text: 'But perhaps you will be the one who endures.', highlight: true }
+      ];
+
+      return (
+        <div style={styles.prologue}>
+          <div style={{ marginBottom: '30px' }}>
+            {prologueLines.map((line, i) => (
+              <div
+                key={i}
+                style={line.highlight ? styles.prologueHighlight : styles.prologueLine}
+              >
+                {line.text || '\u00A0'}
+              </div>
+            ))}
+          </div>
+
+          <button
+            style={styles.button}
+            onClick={() => dispatch({ type: 'CONTINUE_FROM_PROLOGUE' })}
+          >
+            CONTINUE
+          </button>
+        </div>
+      );
+    }
+
+    function Credits({ dispatch }) {
+      return (
+        <div style={styles.credits}>
+          <div style={styles.creditsTitle}>POKE SOULS</div>
+
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ color: GBC.textDim, fontSize: '8px', fontStyle: 'italic' }}>
+              A game about persistence.
+            </div>
+          </div>
+
+          <div style={styles.creditsSection}>
+            <div style={styles.creditsLabel}>Created by</div>
+            <div style={styles.creditsValue}>Zamphere</div>
+          </div>
+
+          <div style={styles.creditsSection}>
+            <div style={styles.creditsLabel}>Built with</div>
+            <div style={styles.creditsValue}>Claude Code</div>
+          </div>
+
+          <div style={styles.creditsSection}>
+            <div style={styles.creditsLabel}>Music</div>
+            <div style={styles.creditsValue}>Procedural chiptune via Tone.js</div>
+          </div>
+
+          <div style={styles.creditsQuote}>
+            "The bonfire wars are over.<br/>
+            But the flames still burn.<br/>
+            And someone must carry them forward."
+          </div>
+
+          <div style={{ marginTop: '20px', marginBottom: '20px' }}>
+            <div style={{ color: GBC.text, fontSize: '8px' }}>
+              Thank you for playing.
+            </div>
+          </div>
+
+          <button
+            style={styles.button}
+            onClick={() => dispatch({ type: 'RETURN_TO_TITLE' })}
+          >
+            RETURN TO TITLE
           </button>
         </div>
       );
@@ -2809,6 +3237,7 @@
               <div style={styles.helpText}>
                 WASD/Arrows - Move<br/>
                 E - Rest at bonfire<br/>
+                X - Examine surroundings<br/>
                 Click - Select moves
               </div>
             </div>
@@ -2907,7 +3336,9 @@
       // Compute the desired track based on game state
       const desiredTrack = (() => {
         if (state.screen === 'starter') return null;
+        if (state.screen === 'prologue') return 'bonfire'; // Somber, reflective
         if (state.screen === 'victory') return 'victory';
+        if (state.screen === 'credits') return 'bonfire'; // Peaceful closing
         if (state.screen === 'gameOver') return 'gameOver';
         if (state.screen === 'battle') {
           if (state.isBossFight && state.bossPhase === 2) return 'bossPhase2';
@@ -2956,6 +3387,9 @@
           {state.screen === 'starter' && (
             <StarterSelect dispatch={dispatch} />
           )}
+          {state.screen === 'prologue' && (
+            <Prologue dispatch={dispatch} />
+          )}
           {state.screen === 'exploration' && (
             <Exploration state={state} dispatch={dispatch} />
           )}
@@ -2967,6 +3401,9 @@
           )}
           {state.screen === 'gameOver' && (
             <GameOver state={state} dispatch={dispatch} />
+          )}
+          {state.screen === 'credits' && (
+            <Credits dispatch={dispatch} />
           )}
         </div>
       );
