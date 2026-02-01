@@ -1,0 +1,2784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Poke Souls</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background-color: #0f0f1a;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    #root {
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    /* Bonfire animation */
+    @keyframes flicker {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      25% { opacity: 0.9; transform: scale(1.02, 0.98); }
+      50% { opacity: 1; transform: scale(0.98, 1.02); }
+      75% { opacity: 0.85; transform: scale(1.01, 0.99); }
+    }
+
+    @keyframes ember {
+      0% { transform: translateY(0) scale(1); opacity: 1; }
+      100% { transform: translateY(-8px) scale(0.5); opacity: 0; }
+    }
+
+    /* Grass sway animation */
+    @keyframes grassSway {
+      0%, 100% { transform: skewX(0deg); }
+      50% { transform: skewX(2deg); }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+  <script type="text/babel">
+    // Inline the component for standalone HTML execution
+    const { useState, useReducer, useEffect, useCallback, useRef } = React;
+
+    // ============= MUSIC SYSTEM =============
+
+    class MusicManager {
+      constructor() {
+        this.initialized = false;
+        this.currentTrack = null;
+        this.muted = false;
+        this.masterGain = null;
+        this.tracks = {};
+        this.activeNodes = [];
+      }
+
+      async init() {
+        if (this.initialized) return;
+        await Tone.start();
+
+        this.masterGain = new Tone.Gain(0.3).toDestination();
+
+        // Create reverb for atmosphere
+        this.reverb = new Tone.Reverb({ decay: 4, wet: 0.5 }).connect(this.masterGain);
+        await this.reverb.generate();
+
+        this.delay = new Tone.FeedbackDelay({ delayTime: '8n', feedback: 0.3, wet: 0.2 }).connect(this.reverb);
+
+        this.initialized = true;
+      }
+
+      stopAllTracks() {
+        this.activeNodes.forEach(node => {
+          try {
+            if (node.stop) node.stop();
+            if (node.dispose) node.dispose();
+          } catch (e) {}
+        });
+        this.activeNodes = [];
+        Tone.Transport.stop();
+        Tone.Transport.cancel();
+      }
+
+      async switchTrack(trackName) {
+        if (!this.initialized) await this.init();
+        if (this.currentTrack === trackName) return;
+
+        this.stopAllTracks();
+        this.currentTrack = trackName;
+
+        if (this.muted) return;
+
+        switch (trackName) {
+          case 'exploration':
+            this.playExploration();
+            break;
+          case 'bonfire':
+            this.playBonfire();
+            break;
+          case 'battle':
+            this.playBattle();
+            break;
+          case 'bossPhase2':
+            this.playBossPhase2();
+            break;
+          case 'victory':
+            this.playVictory();
+            break;
+          case 'gameOver':
+            this.playGameOver();
+            break;
+        }
+      }
+
+      playExploration() {
+        // Chiptune exploration - Lavender Town meets Firelink Shrine
+        // Am - Em - F - G progression, 70 BPM, melancholic but musical
+
+        // Lead melody - square wave, lonely and ancient
+        const lead = new Tone.Synth({
+          oscillator: { type: 'square', width: 0.5 },
+          envelope: { attack: 0.01, decay: 0.1, sustain: 0.3, release: 0.2 }
+        }).connect(new Tone.Gain(0.15).connect(this.masterGain));
+
+        // Harmony - triangle wave for softer texture
+        const harmony = new Tone.Synth({
+          oscillator: { type: 'triangle' },
+          envelope: { attack: 0.01, decay: 0.1, sustain: 0.4, release: 0.3 }
+        }).connect(new Tone.Gain(0.1).connect(this.masterGain));
+
+        // Bass - triangle wave, arpeggiated
+        const bass = new Tone.Synth({
+          oscillator: { type: 'triangle' },
+          envelope: { attack: 0.01, decay: 0.15, sustain: 0.3, release: 0.1 }
+        }).connect(new Tone.Gain(0.2).connect(this.masterGain));
+
+        this.activeNodes.push(lead, harmony, bass);
+
+        // Melancholic melody - 8 bar phrase that loops
+        const melodyNotes = [
+          // Bar 1-2 (Am)
+          'E4', 'D4', 'C4', 'B3', 'A3', null, 'C4', 'E4',
+          // Bar 3-4 (Em)
+          'G4', 'E4', 'D4', 'B3', 'E4', null, 'G4', 'F#4',
+          // Bar 5-6 (F)
+          'A4', 'G4', 'F4', 'E4', 'F4', null, 'A4', 'C5',
+          // Bar 7-8 (G -> Am)
+          'B4', 'G4', 'D4', 'B3', 'C4', 'E4', 'A4', null
+        ];
+
+        const melodySeq = new Tone.Sequence((time, note) => {
+          if (note) lead.triggerAttackRelease(note, '8n', time);
+        }, melodyNotes, '8n');
+
+        // Counter melody / harmony (plays on off-beats, lower)
+        const harmonyNotes = [
+          // Am
+          null, 'A3', null, 'E3', null, 'C4', null, 'A3',
+          // Em
+          null, 'E3', null, 'B3', null, 'G3', null, 'E3',
+          // F
+          null, 'F3', null, 'C4', null, 'A3', null, 'F3',
+          // G
+          null, 'G3', null, 'D4', null, 'B3', null, null
+        ];
+
+        const harmonySeq = new Tone.Sequence((time, note) => {
+          if (note) harmony.triggerAttackRelease(note, '8n', time);
+        }, harmonyNotes, '8n');
+
+        // Arpeggiated bass line
+        const bassPattern = [
+          // Am
+          'A2', 'E2', 'A2', 'C3', 'A2', 'E2', 'A2', 'E2',
+          // Em
+          'E2', 'B2', 'E2', 'G2', 'E2', 'B2', 'E2', 'B2',
+          // F
+          'F2', 'C3', 'F2', 'A2', 'F2', 'C3', 'F2', 'C3',
+          // G
+          'G2', 'D3', 'G2', 'B2', 'G2', 'D3', 'E2', 'A2'
+        ];
+
+        const bassSeq = new Tone.Sequence((time, note) => {
+          if (note) bass.triggerAttackRelease(note, '16n', time);
+        }, bassPattern, '8n');
+
+        this.activeNodes.push(melodySeq, harmonySeq, bassSeq);
+
+        Tone.Transport.bpm.value = 70;
+        melodySeq.start(0);
+        harmonySeq.start(0);
+        bassSeq.start(0);
+        Tone.Transport.start();
+      }
+
+      playBonfire() {
+        // Gentle rest theme - peaceful arpeggios, the safest place
+        // Soft triangle waves, slower tempo, warm feeling
+
+        const arp = new Tone.Synth({
+          oscillator: { type: 'triangle' },
+          envelope: { attack: 0.02, decay: 0.3, sustain: 0.2, release: 0.5 }
+        }).connect(new Tone.Gain(0.12).connect(this.delay));
+
+        const pad = new Tone.PolySynth(Tone.Synth, {
+          oscillator: { type: 'triangle' },
+          envelope: { attack: 0.3, decay: 0.5, sustain: 0.4, release: 1 }
+        }).connect(new Tone.Gain(0.08).connect(this.reverb));
+
+        const bass = new Tone.Synth({
+          oscillator: { type: 'sine' },
+          envelope: { attack: 0.1, decay: 0.3, sustain: 0.5, release: 0.5 }
+        }).connect(new Tone.Gain(0.15).connect(this.masterGain));
+
+        this.activeNodes.push(arp, pad, bass);
+
+        // Gentle ascending/descending arpeggios
+        const arpNotes = [
+          // Am (peaceful)
+          'A3', 'C4', 'E4', 'A4', 'E4', 'C4', 'A3', 'E3',
+          // F (warmth)
+          'F3', 'A3', 'C4', 'F4', 'C4', 'A3', 'F3', 'C3',
+          // C (hope)
+          'C3', 'E3', 'G3', 'C4', 'G3', 'E3', 'C3', 'G2',
+          // E (resolution to Am)
+          'E3', 'G#3', 'B3', 'E4', 'B3', 'G#3', 'E3', 'B2'
+        ];
+
+        const arpSeq = new Tone.Sequence((time, note) => {
+          if (note) arp.triggerAttackRelease(note, '4n', time);
+        }, arpNotes, '8n');
+
+        // Soft pad chords, one per measure
+        const padChords = [
+          ['A3', 'C4', 'E4'],
+          ['F3', 'A3', 'C4'],
+          ['C3', 'E3', 'G3'],
+          ['E3', 'G#3', 'B3']
+        ];
+        let padIndex = 0;
+
+        const padLoop = new Tone.Loop(time => {
+          pad.triggerAttackRelease(padChords[padIndex % padChords.length], '1m', time);
+          padIndex++;
+        }, '1m');
+
+        // Simple bass notes
+        const bassNotes = ['A2', 'F2', 'C2', 'E2'];
+        let bassIndex = 0;
+
+        const bassLoop = new Tone.Loop(time => {
+          bass.triggerAttackRelease(bassNotes[bassIndex % bassNotes.length], '2n', time);
+          bassIndex++;
+        }, '1m');
+
+        this.activeNodes.push(arpSeq, padLoop, bassLoop);
+
+        Tone.Transport.bpm.value = 55;
+        arpSeq.start(0);
+        padLoop.start(0);
+        bassLoop.start(0);
+        Tone.Transport.start();
+      }
+
+      playBattle() {
+        // Tense battle theme - driving rhythm, minor key, stakes are high
+        // Square wave lead, triangle bass, pulse wave rhythm
+
+        const lead = new Tone.Synth({
+          oscillator: { type: 'square', width: 0.25 },
+          envelope: { attack: 0.01, decay: 0.1, sustain: 0.3, release: 0.1 }
+        }).connect(new Tone.Gain(0.12).connect(this.masterGain));
+
+        const bass = new Tone.Synth({
+          oscillator: { type: 'triangle' },
+          envelope: { attack: 0.01, decay: 0.1, sustain: 0.4, release: 0.1 }
+        }).connect(new Tone.Gain(0.2).connect(this.masterGain));
+
+        const pulse = new Tone.Synth({
+          oscillator: { type: 'pulse', width: 0.125 },
+          envelope: { attack: 0.005, decay: 0.05, sustain: 0.1, release: 0.05 }
+        }).connect(new Tone.Gain(0.1).connect(this.masterGain));
+
+        // Noise for percussion
+        const snare = new Tone.NoiseSynth({
+          noise: { type: 'white' },
+          envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
+        }).connect(new Tone.Gain(0.08).connect(this.masterGain));
+
+        this.activeNodes.push(lead, bass, pulse, snare);
+
+        // Urgent, driving melody in C minor
+        const melodyNotes = [
+          // Phrase 1
+          'C4', 'C4', 'Eb4', 'G4', 'F4', 'Eb4', 'D4', 'C4',
+          'Bb3', 'C4', 'D4', 'Eb4', 'D4', 'C4', 'Bb3', 'G3',
+          // Phrase 2 (higher tension)
+          'G4', 'G4', 'Ab4', 'G4', 'F4', 'Eb4', 'F4', 'G4',
+          'Ab4', 'G4', 'F4', 'Eb4', 'D4', 'C4', 'D4', 'Eb4'
+        ];
+
+        const melodySeq = new Tone.Sequence((time, note) => {
+          if (note) lead.triggerAttackRelease(note, '16n', time);
+        }, melodyNotes, '8n');
+
+        // Driving bass pattern
+        const bassNotes = [
+          'C2', null, 'C2', 'C2', null, 'C2', 'G2', null,
+          'Ab2', null, 'Ab2', 'Ab2', null, 'G2', 'F2', null,
+          'Eb2', null, 'Eb2', 'Eb2', null, 'F2', 'G2', null,
+          'Ab2', null, 'Bb2', null, 'G2', 'G2', 'G2', null
+        ];
+
+        const bassSeq = new Tone.Sequence((time, note) => {
+          if (note) bass.triggerAttackRelease(note, '16n', time);
+        }, bassNotes, '8n');
+
+        // Rhythmic pulse on the beat
+        const pulsePattern = [1, 0, 1, 0, 1, 0, 1, 0];
+        const pulseSeq = new Tone.Sequence((time, hit) => {
+          if (hit) pulse.triggerAttackRelease('C5', '32n', time);
+        }, pulsePattern, '8n');
+
+        // Snare on 2 and 4
+        const snarePattern = [0, 0, 1, 0, 0, 0, 1, 0];
+        const snareSeq = new Tone.Sequence((time, hit) => {
+          if (hit) snare.triggerAttackRelease('16n', time);
+        }, snarePattern, '8n');
+
+        this.activeNodes.push(melodySeq, bassSeq, pulseSeq, snareSeq);
+
+        Tone.Transport.bpm.value = 140;
+        melodySeq.start(0);
+        bassSeq.start(0);
+        pulseSeq.start(0);
+        snareSeq.start(0);
+        Tone.Transport.start();
+      }
+
+      playBossPhase2() {
+        // Desperate boss theme - faster, chromatic tension, the hound transforms
+        // Still musical but with dissonant intervals and frantic energy
+
+        const lead = new Tone.Synth({
+          oscillator: { type: 'square', width: 0.5 },
+          envelope: { attack: 0.005, decay: 0.1, sustain: 0.2, release: 0.1 }
+        }).connect(new Tone.Gain(0.12).connect(this.masterGain));
+
+        const lead2 = new Tone.Synth({
+          oscillator: { type: 'sawtooth' },
+          envelope: { attack: 0.005, decay: 0.1, sustain: 0.2, release: 0.1 }
+        }).connect(new Tone.Gain(0.08).connect(this.masterGain));
+
+        const bass = new Tone.Synth({
+          oscillator: { type: 'triangle' },
+          envelope: { attack: 0.005, decay: 0.1, sustain: 0.4, release: 0.05 }
+        }).connect(new Tone.Gain(0.22).connect(this.masterGain));
+
+        const snare = new Tone.NoiseSynth({
+          noise: { type: 'white' },
+          envelope: { attack: 0.002, decay: 0.08, sustain: 0, release: 0.08 }
+        }).connect(new Tone.Gain(0.1).connect(this.masterGain));
+
+        this.activeNodes.push(lead, lead2, bass, snare);
+
+        // Frantic chromatic melody with tritones
+        const melodyNotes = [
+          // Chromatic descent with tension
+          'E5', 'Eb5', 'D5', 'Db5', 'C5', 'B4', 'Bb4', 'A4',
+          'Ab4', 'G4', 'Gb4', 'F4', 'E4', 'Eb4', 'D4', 'Db4',
+          // Rising panic
+          'C4', 'D4', 'Eb4', 'F4', 'Gb4', 'G4', 'Ab4', 'A4',
+          'Bb4', 'B4', 'C5', 'Db5', 'D5', 'Eb5', 'E5', 'F5'
+        ];
+
+        const melodySeq = new Tone.Sequence((time, note) => {
+          if (note) lead.triggerAttackRelease(note, '16n', time);
+        }, melodyNotes, '16n');
+
+        // Harmony a tritone apart for dissonance
+        const harmonyNotes = melodyNotes.map(note => {
+          if (!note) return null;
+          // Transpose down a tritone (6 semitones) for dissonance
+          const noteMap = {'C': 'Gb', 'Db': 'G', 'D': 'Ab', 'Eb': 'A', 'E': 'Bb', 'F': 'B', 'Gb': 'C', 'G': 'Db', 'Ab': 'D', 'A': 'Eb', 'Bb': 'E', 'B': 'F'};
+          const noteName = note.slice(0, -1);
+          const octave = parseInt(note.slice(-1)) - 1;
+          const base = noteName.replace('#', 'b');
+          return (noteMap[base] || base) + octave;
+        });
+
+        const harmonySeq = new Tone.Sequence((time, note) => {
+          if (note) lead2.triggerAttackRelease(note, '16n', time);
+        }, harmonyNotes, '16n');
+
+        // Pounding bass
+        const bassNotes = [
+          'C2', 'C2', 'C2', 'C2', 'Db2', 'Db2', 'D2', 'D2',
+          'Eb2', 'Eb2', 'E2', 'E2', 'F2', 'F2', 'Gb2', 'G2',
+          'Ab2', 'Ab2', 'A2', 'A2', 'Bb2', 'Bb2', 'B2', 'B2',
+          'C3', 'B2', 'Bb2', 'A2', 'Ab2', 'G2', 'Gb2', 'F2'
+        ];
+
+        const bassSeq = new Tone.Sequence((time, note) => {
+          if (note) bass.triggerAttackRelease(note, '16n', time);
+        }, bassNotes, '16n');
+
+        // Fast snare hits
+        const snarePattern = [1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1];
+        const snareSeq = new Tone.Sequence((time, hit) => {
+          if (hit) snare.triggerAttackRelease('32n', time);
+        }, snarePattern, '16n');
+
+        this.activeNodes.push(melodySeq, harmonySeq, bassSeq, snareSeq);
+
+        Tone.Transport.bpm.value = 170;
+        melodySeq.start(0);
+        harmonySeq.start(0);
+        bassSeq.start(0);
+        snareSeq.start(0);
+        Tone.Transport.start();
+      }
+
+      playVictory() {
+        // Somber but triumphant - you survived, barely
+        const lead = new Tone.Synth({
+          oscillator: { type: 'triangle' },
+          envelope: { attack: 0.1, decay: 0.3, sustain: 0.4, release: 0.5 }
+        }).connect(new Tone.Gain(0.15).connect(this.reverb));
+
+        const bass = new Tone.Synth({
+          oscillator: { type: 'triangle' },
+          envelope: { attack: 0.1, decay: 0.2, sustain: 0.5, release: 0.3 }
+        }).connect(new Tone.Gain(0.12).connect(this.masterGain));
+
+        this.activeNodes.push(lead, bass);
+
+        // Simple ascending resolution melody
+        const melodyNotes = [
+          'A3', null, 'C4', null, 'E4', null, 'A4', null,
+          'G4', null, 'E4', null, 'C4', null, 'E4', null,
+          'F4', null, 'A4', null, 'C5', null, 'A4', null,
+          'G4', null, 'B4', null, 'A4', null, null, null
+        ];
+
+        const melodySeq = new Tone.Sequence((time, note) => {
+          if (note) lead.triggerAttackRelease(note, '4n', time);
+        }, melodyNotes, '8n');
+
+        const bassNotes = ['A2', 'A2', 'C3', 'C3', 'F2', 'F2', 'E2', 'A2'];
+        const bassSeq = new Tone.Sequence((time, note) => {
+          if (note) bass.triggerAttackRelease(note, '4n', time);
+        }, bassNotes, '2n');
+
+        this.activeNodes.push(melodySeq, bassSeq);
+
+        Tone.Transport.bpm.value = 60;
+        melodySeq.start(0);
+        bassSeq.start(0);
+        Tone.Transport.start();
+      }
+
+      playGameOver() {
+        // YOU DIED - descending minor phrase
+        const lead = new Tone.Synth({
+          oscillator: { type: 'square', width: 0.5 },
+          envelope: { attack: 0.1, decay: 0.5, sustain: 0.3, release: 1 }
+        }).connect(new Tone.Gain(0.12).connect(this.reverb));
+
+        const bass = new Tone.Synth({
+          oscillator: { type: 'triangle' },
+          envelope: { attack: 0.2, decay: 0.5, sustain: 0.5, release: 1 }
+        }).connect(new Tone.Gain(0.15).connect(this.masterGain));
+
+        this.activeNodes.push(lead, bass);
+
+        // Descending death melody
+        const deathMelody = ['E4', 'D4', 'C4', 'B3', 'A3', null, null, null];
+        const deathSeq = new Tone.Sequence((time, note) => {
+          if (note) {
+            lead.triggerAttackRelease(note, '2n', time);
+            bass.triggerAttackRelease(Tone.Frequency(note).transpose(-12).toNote(), '2n', time);
+          }
+        }, deathMelody, '2n');
+
+        this.activeNodes.push(deathSeq);
+
+        Tone.Transport.bpm.value = 50;
+        deathSeq.start(0);
+        deathSeq.loop = false;
+        Tone.Transport.start();
+      }
+
+      toggleMute() {
+        this.muted = !this.muted;
+        if (this.muted) {
+          this.stopAllTracks();
+        } else if (this.currentTrack) {
+          const track = this.currentTrack;
+          this.currentTrack = null;
+          this.switchTrack(track);
+        }
+        return this.muted;
+      }
+
+      setMuted(muted) {
+        if (this.muted !== muted) {
+          this.toggleMute();
+        }
+      }
+    }
+
+    const musicManager = new MusicManager();
+
+    // ============= GAME DATA =============
+
+    const STARTERS = {
+      cindrath: {
+        id: 'cindrath',
+        name: 'Cindrath',
+        type: 'fire',
+        maxHp: 45,
+        maxStamina: 20,
+        moves: [
+          { name: 'Ember Slash', cost: 6, damage: 12, priority: false },
+          { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
+          { name: 'Guard', cost: 2, damage: 0, effect: 'guard' },
+          { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
+        ]
+      },
+      marshveil: {
+        id: 'marshveil',
+        name: 'Marshveil',
+        type: 'water',
+        maxHp: 50,
+        maxStamina: 18,
+        moves: [
+          { name: 'Tide Crash', cost: 7, damage: 14, priority: false },
+          { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
+          { name: 'Guard', cost: 2, damage: 0, effect: 'guard' },
+          { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
+        ]
+      },
+      thornwick: {
+        id: 'thornwick',
+        name: 'Thornwick',
+        type: 'grass',
+        maxHp: 40,
+        maxStamina: 24,
+        moves: [
+          { name: 'Vine Lash', cost: 5, damage: 10, priority: false },
+          { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
+          { name: 'Guard', cost: 2, damage: 0, effect: 'guard' },
+          { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
+        ]
+      }
+    };
+
+    const WILD_CREATURES = {
+      wildCindrath: {
+        id: 'wildCindrath',
+        name: 'Wild Cindrath',
+        type: 'fire',
+        maxHp: 30,
+        maxStamina: 15,
+        souls: 12,
+        moves: [
+          { name: 'Ember Slash', cost: 6, damage: 12, priority: false },
+          { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
+          { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
+        ]
+      },
+      wildMarshveil: {
+        id: 'wildMarshveil',
+        name: 'Wild Marshveil',
+        type: 'water',
+        maxHp: 30,
+        maxStamina: 15,
+        souls: 12,
+        moves: [
+          { name: 'Tide Crash', cost: 7, damage: 14, priority: false },
+          { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
+          { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
+        ]
+      },
+      wildThornwick: {
+        id: 'wildThornwick',
+        name: 'Wild Thornwick',
+        type: 'grass',
+        maxHp: 30,
+        maxStamina: 15,
+        souls: 12,
+        moves: [
+          { name: 'Vine Lash', cost: 5, damage: 10, priority: false },
+          { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
+          { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
+        ]
+      }
+    };
+
+    const BOSS = {
+      obsidianHound: {
+        id: 'obsidianHound',
+        name: 'Obsidian Hound',
+        type: 'fire',
+        maxHp: 60,
+        maxStamina: 22,
+        souls: 100,
+        moves: [
+          { name: 'Ember Slash', cost: 6, damage: 12, priority: false },
+          { name: 'Flame Wall', cost: 8, damage: 10, effect: 'burn' },
+          { name: 'Guard', cost: 2, damage: 0, effect: 'guard' }
+        ],
+        phase2Moves: [
+          { name: 'Ember Slash', cost: 6, damage: 12, priority: false },
+          { name: 'Flame Wall', cost: 8, damage: 10, effect: 'burn' },
+          { name: 'Desperation Fang', cost: 10, damage: 20, effect: 'recoil', recoilDamage: 5 },
+          { name: 'Guard', cost: 2, damage: 0, effect: 'guard' }
+        ]
+      }
+    };
+
+    const TYPE_CHART = {
+      fire: { fire: 1, water: 0.5, grass: 1.5 },
+      water: { fire: 1.5, water: 1, grass: 0.5 },
+      grass: { fire: 0.5, water: 1.5, grass: 1 }
+    };
+
+    const SCAR_TYPES = [
+      { id: 'fractured', name: 'Fractured', effect: 'maxHp', value: -5, description: '-5 max HP' },
+      { id: 'hesitant', name: 'Hesitant', effect: 'maxStamina', value: -2, description: '-2 max Stamina' },
+      { id: 'flinching', name: 'Flinching', effect: 'noPriority', description: 'Quick Strike no longer goes first' }
+    ];
+
+    const ASHEN_PATH = [
+      ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
+      ['W', 'B', 'P', 'G', 'G', 'P', 'P', 'W'],
+      ['W', 'P', 'W', 'W', 'G', 'W', 'P', 'W'],
+      ['W', 'P', 'P', 'P', 'P', 'P', 'G', 'W'],
+      ['W', 'W', 'W', 'W', 'P', 'W', 'P', 'W'],
+      ['W', 'W', 'W', 'W', 'X', 'W', 'W', 'W']
+    ];
+
+    const FALLEN_KEEP = [
+      ['W', 'W', 'W', 'W', 'W', 'W'],
+      ['W', 'P', 'P', 'P', 'P', 'W'],
+      ['W', 'P', 'W', 'W', 'P', 'W'],
+      ['W', 'P', 'W', 'P', 'P', 'W'],
+      ['W', 'P', 'P', 'P', 'W', 'W'],
+      ['W', 'W', 'W', 'P', 'W', 'W'],
+      ['W', 'K', 'P', 'P', 'P', 'W'],
+      ['W', 'W', 'E', 'W', 'W', 'W']
+    ];
+
+    // ============= GBC COLOR PALETTE =============
+    const GBC = {
+      bg: '#0f0f1a',
+      bgLight: '#1a1a2e',
+      bgPanel: '#16213e',
+      border: '#4a5568',
+      borderLight: '#718096',
+      text: '#e8e8e8',
+      textDim: '#a0aec0',
+      gold: '#f6e05e',
+      red: '#fc8181',
+      green: '#68d391',
+      blue: '#63b3ed',
+      fire: '#f6ad55',
+      water: '#4299e1',
+      grass: '#48bb78',
+      // Tile colors
+      wallDark: '#1a1a2e',
+      wallMid: '#2d3748',
+      wallLight: '#4a5568',
+      pathDark: '#744210',
+      pathMid: '#975a16',
+      pathLight: '#b7791f',
+      grassDark: '#276749',
+      grassMid: '#38a169',
+      grassLight: '#48bb78',
+    };
+
+    // ============= PIXEL ART SPRITES (CSS) =============
+
+    // Player sprite facing different directions (16x16 scaled up)
+    const PlayerSprite = ({ direction = 'down' }) => {
+      const px = 3; // pixel size (3 = 48px total)
+
+      // Base colors
+      const skin = '#f6d5a8';
+      const hair = '#4a3728';
+      const shirt = '#c53030';
+      const pants = '#2d3748';
+      const outline = '#1a1a2e';
+
+      const sprites = {
+        down: (
+          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+            {/* Hair */}
+            <rect x={5*px} y={1*px} width={6*px} height={3*px} fill={hair}/>
+            <rect x={4*px} y={2*px} width={1*px} height={2*px} fill={hair}/>
+            <rect x={11*px} y={2*px} width={1*px} height={2*px} fill={hair}/>
+            {/* Face */}
+            <rect x={5*px} y={4*px} width={6*px} height={4*px} fill={skin}/>
+            {/* Eyes */}
+            <rect x={6*px} y={5*px} width={1*px} height={2*px} fill={outline}/>
+            <rect x={9*px} y={5*px} width={1*px} height={2*px} fill={outline}/>
+            {/* Body/Shirt */}
+            <rect x={4*px} y={8*px} width={8*px} height={4*px} fill={shirt}/>
+            <rect x={3*px} y={8*px} width={1*px} height={3*px} fill={shirt}/>
+            <rect x={12*px} y={8*px} width={1*px} height={3*px} fill={shirt}/>
+            {/* Pants */}
+            <rect x={5*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <rect x={9*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            {/* Feet */}
+            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={hair}/>
+            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={hair}/>
+          </svg>
+        ),
+        up: (
+          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+            {/* Hair (back view) */}
+            <rect x={5*px} y={1*px} width={6*px} height={4*px} fill={hair}/>
+            <rect x={4*px} y={2*px} width={1*px} height={3*px} fill={hair}/>
+            <rect x={11*px} y={2*px} width={1*px} height={3*px} fill={hair}/>
+            {/* Neck */}
+            <rect x={6*px} y={5*px} width={4*px} height={3*px} fill={skin}/>
+            {/* Body/Shirt */}
+            <rect x={4*px} y={8*px} width={8*px} height={4*px} fill={shirt}/>
+            <rect x={3*px} y={8*px} width={1*px} height={3*px} fill={shirt}/>
+            <rect x={12*px} y={8*px} width={1*px} height={3*px} fill={shirt}/>
+            {/* Pants */}
+            <rect x={5*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <rect x={9*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            {/* Feet */}
+            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={hair}/>
+            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={hair}/>
+          </svg>
+        ),
+        left: (
+          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+            {/* Hair */}
+            <rect x={6*px} y={1*px} width={5*px} height={3*px} fill={hair}/>
+            <rect x={5*px} y={2*px} width={1*px} height={3*px} fill={hair}/>
+            {/* Face */}
+            <rect x={6*px} y={4*px} width={4*px} height={4*px} fill={skin}/>
+            {/* Eye */}
+            <rect x={6*px} y={5*px} width={1*px} height={2*px} fill={outline}/>
+            {/* Body */}
+            <rect x={5*px} y={8*px} width={6*px} height={4*px} fill={shirt}/>
+            <rect x={4*px} y={9*px} width={1*px} height={2*px} fill={skin}/>
+            {/* Pants */}
+            <rect x={6*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <rect x={9*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <rect x={6*px} y={15*px} width={2*px} height={1*px} fill={hair}/>
+            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={hair}/>
+          </svg>
+        ),
+        right: (
+          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+            {/* Hair */}
+            <rect x={5*px} y={1*px} width={5*px} height={3*px} fill={hair}/>
+            <rect x={10*px} y={2*px} width={1*px} height={3*px} fill={hair}/>
+            {/* Face */}
+            <rect x={6*px} y={4*px} width={4*px} height={4*px} fill={skin}/>
+            {/* Eye */}
+            <rect x={9*px} y={5*px} width={1*px} height={2*px} fill={outline}/>
+            {/* Body */}
+            <rect x={5*px} y={8*px} width={6*px} height={4*px} fill={shirt}/>
+            <rect x={11*px} y={9*px} width={1*px} height={2*px} fill={skin}/>
+            {/* Pants */}
+            <rect x={5*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <rect x={8*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={hair}/>
+            <rect x={8*px} y={15*px} width={2*px} height={1*px} fill={hair}/>
+          </svg>
+        )
+      };
+
+      return sprites[direction] || sprites.down;
+    };
+
+    // Creature sprites
+    const CreatureSprite = ({ type, size = 48, isEnemy = false }) => {
+      const px = size / 16;
+
+      const sprites = {
+        fire: ( // Cindrath - flame creature
+          <svg width={size} height={size} style={{ imageRendering: 'pixelated' }}>
+            {/* Body */}
+            <rect x={4*px} y={8*px} width={8*px} height={6*px} fill="#c53030"/>
+            <rect x={5*px} y={7*px} width={6*px} height={1*px} fill="#c53030"/>
+            {/* Inner glow */}
+            <rect x={5*px} y={9*px} width={6*px} height={4*px} fill="#ed8936"/>
+            <rect x={6*px} y={10*px} width={4*px} height={2*px} fill="#f6e05e"/>
+            {/* Eyes */}
+            <rect x={5*px} y={9*px} width={2*px} height={2*px} fill="#1a1a2e"/>
+            <rect x={9*px} y={9*px} width={2*px} height={2*px} fill="#1a1a2e"/>
+            {/* Flames on head */}
+            <rect x={6*px} y={4*px} width={1*px} height={3*px} fill="#ed8936"/>
+            <rect x={8*px} y={3*px} width={1*px} height={4*px} fill="#f6ad55"/>
+            <rect x={9*px} y={5*px} width={1*px} height={2*px} fill="#ed8936"/>
+            <rect x={7*px} y={2*px} width={2*px} height={2*px} fill="#f6e05e"/>
+            {/* Feet */}
+            <rect x={4*px} y={14*px} width={2*px} height={2*px} fill="#742a2a"/>
+            <rect x={10*px} y={14*px} width={2*px} height={2*px} fill="#742a2a"/>
+          </svg>
+        ),
+        water: ( // Marshveil - water creature
+          <svg width={size} height={size} style={{ imageRendering: 'pixelated' }}>
+            {/* Body - rounded blob */}
+            <rect x={3*px} y={6*px} width={10*px} height={8*px} fill="#2b6cb0"/>
+            <rect x={4*px} y={5*px} width={8*px} height={1*px} fill="#2b6cb0"/>
+            <rect x={4*px} y={14*px} width={8*px} height={1*px} fill="#2b6cb0"/>
+            {/* Inner shine */}
+            <rect x={4*px} y={7*px} width={8*px} height={6*px} fill="#4299e1"/>
+            <rect x={5*px} y={8*px} width={4*px} height={3*px} fill="#63b3ed"/>
+            {/* Eyes */}
+            <rect x={5*px} y={8*px} width={2*px} height={3*px} fill="#1a1a2e"/>
+            <rect x={9*px} y={8*px} width={2*px} height={3*px} fill="#1a1a2e"/>
+            <rect x={5*px} y={8*px} width={1*px} height={1*px} fill="#e8e8e8"/>
+            <rect x={9*px} y={8*px} width={1*px} height={1*px} fill="#e8e8e8"/>
+            {/* Fins/frills */}
+            <rect x={1*px} y={8*px} width={2*px} height={4*px} fill="#4299e1"/>
+            <rect x={13*px} y={8*px} width={2*px} height={4*px} fill="#4299e1"/>
+            {/* Water drops */}
+            <rect x={7*px} y={3*px} width={2*px} height={2*px} fill="#90cdf4"/>
+          </svg>
+        ),
+        grass: ( // Thornwick - plant creature
+          <svg width={size} height={size} style={{ imageRendering: 'pixelated' }}>
+            {/* Body */}
+            <rect x={4*px} y={8*px} width={8*px} height={6*px} fill="#276749"/>
+            <rect x={5*px} y={7*px} width={6*px} height={1*px} fill="#276749"/>
+            {/* Inner */}
+            <rect x={5*px} y={9*px} width={6*px} height={4*px} fill="#38a169"/>
+            {/* Eyes */}
+            <rect x={5*px} y={9*px} width={2*px} height={2*px} fill="#c53030"/>
+            <rect x={9*px} y={9*px} width={2*px} height={2*px} fill="#c53030"/>
+            {/* Leaves/thorns on top */}
+            <rect x={5*px} y={4*px} width={2*px} height={3*px} fill="#48bb78"/>
+            <rect x={7*px} y={2*px} width={2*px} height={5*px} fill="#68d391"/>
+            <rect x={9*px} y={4*px} width={2*px} height={3*px} fill="#48bb78"/>
+            {/* Thorns */}
+            <rect x={3*px} y={10*px} width={1*px} height={2*px} fill="#68d391"/>
+            <rect x={12*px} y={10*px} width={1*px} height={2*px} fill="#68d391"/>
+            {/* Roots/feet */}
+            <rect x={4*px} y={14*px} width={2*px} height={2*px} fill="#1c4532"/>
+            <rect x={10*px} y={14*px} width={2*px} height={2*px} fill="#1c4532"/>
+          </svg>
+        ),
+        boss: ( // Obsidian Hound
+          <svg width={size} height={size} style={{ imageRendering: 'pixelated' }}>
+            {/* Body */}
+            <rect x={2*px} y={8*px} width={12*px} height={5*px} fill="#1a1a2e"/>
+            <rect x={3*px} y={7*px} width={10*px} height={1*px} fill="#1a1a2e"/>
+            {/* Head */}
+            <rect x={10*px} y={4*px} width={5*px} height={5*px} fill="#2d3748"/>
+            <rect x={11*px} y={3*px} width={3*px} height={1*px} fill="#2d3748"/>
+            {/* Ears */}
+            <rect x={11*px} y={1*px} width={1*px} height={2*px} fill="#2d3748"/>
+            <rect x={14*px} y={1*px} width={1*px} height={2*px} fill="#2d3748"/>
+            {/* Eyes - glowing */}
+            <rect x={11*px} y={5*px} width={2*px} height={2*px} fill="#f56565"/>
+            <rect x={12*px} y={5*px} width={1*px} height={1*px} fill="#feb2b2"/>
+            {/* Snout */}
+            <rect x={14*px} y={6*px} width={2*px} height={2*px} fill="#4a5568"/>
+            {/* Legs */}
+            <rect x={3*px} y={13*px} width={2*px} height={3*px} fill="#1a1a2e"/>
+            <rect x={6*px} y={13*px} width={2*px} height={3*px} fill="#1a1a2e"/>
+            <rect x={9*px} y={13*px} width={2*px} height={3*px} fill="#1a1a2e"/>
+            <rect x={12*px} y={13*px} width={2*px} height={3*px} fill="#1a1a2e"/>
+            {/* Fire markings */}
+            <rect x={4*px} y={9*px} width={1*px} height={2*px} fill="#ed8936"/>
+            <rect x={7*px} y={8*px} width={1*px} height={3*px} fill="#f6ad55"/>
+            {/* Tail */}
+            <rect x={0*px} y={7*px} width={2*px} height={2*px} fill="#2d3748"/>
+          </svg>
+        )
+      };
+
+      return sprites[type] || sprites.fire;
+    };
+
+    // Tile components
+    const GrassTile = () => (
+      <div style={{
+        width: '100%',
+        height: '100%',
+        backgroundColor: GBC.grassDark,
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Grass blades pattern */}
+        <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
+          <rect x="6" y="16" width="3" height="12" fill={GBC.grassMid}/>
+          <rect x="6" y="13" width="3" height="3" fill={GBC.grassLight}/>
+          <rect x="16" y="20" width="3" height="14" fill={GBC.grassMid}/>
+          <rect x="16" y="17" width="3" height="3" fill={GBC.grassLight}/>
+          <rect x="28" y="14" width="3" height="16" fill={GBC.grassMid}/>
+          <rect x="28" y="11" width="3" height="3" fill={GBC.grassLight}/>
+          <rect x="40" y="18" width="3" height="12" fill={GBC.grassMid}/>
+          <rect x="40" y="15" width="3" height="3" fill={GBC.grassLight}/>
+          <rect x="50" y="16" width="3" height="14" fill={GBC.grassMid}/>
+          <rect x="50" y="13" width="3" height="3" fill={GBC.grassLight}/>
+          <rect x="11" y="34" width="3" height="12" fill={GBC.grassMid}/>
+          <rect x="22" y="38" width="3" height="12" fill={GBC.grassMid}/>
+          <rect x="34" y="32" width="3" height="14" fill={GBC.grassMid}/>
+          <rect x="45" y="36" width="3" height="14" fill={GBC.grassMid}/>
+        </svg>
+      </div>
+    );
+
+    const PathTile = () => (
+      <div style={{
+        width: '100%',
+        height: '100%',
+        backgroundColor: GBC.pathMid,
+        position: 'relative'
+      }}>
+        <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
+          {/* Stone/dirt texture */}
+          <rect x="3" y="5" width="12" height="6" fill={GBC.pathLight}/>
+          <rect x="22" y="3" width="14" height="8" fill={GBC.pathDark}/>
+          <rect x="44" y="8" width="9" height="6" fill={GBC.pathLight}/>
+          <rect x="8" y="22" width="16" height="7" fill={GBC.pathDark}/>
+          <rect x="34" y="20" width="12" height="8" fill={GBC.pathLight}/>
+          <rect x="5" y="40" width="9" height="6" fill={GBC.pathLight}/>
+          <rect x="20" y="42" width="14" height="6" fill={GBC.pathDark}/>
+          <rect x="42" y="38" width="11" height="8" fill={GBC.pathDark}/>
+        </svg>
+      </div>
+    );
+
+    const WallTile = () => (
+      <div style={{
+        width: '100%',
+        height: '100%',
+        backgroundColor: GBC.wallDark,
+        position: 'relative'
+      }}>
+        <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
+          {/* Brick pattern */}
+          <rect x="0" y="0" width="26" height="13" fill={GBC.wallMid} stroke={GBC.wallDark} strokeWidth="1"/>
+          <rect x="28" y="0" width="28" height="13" fill={GBC.wallMid} stroke={GBC.wallDark} strokeWidth="1"/>
+          <rect x="0" y="14" width="14" height="13" fill={GBC.wallLight} stroke={GBC.wallDark} strokeWidth="1"/>
+          <rect x="16" y="14" width="26" height="13" fill={GBC.wallMid} stroke={GBC.wallDark} strokeWidth="1"/>
+          <rect x="44" y="14" width="12" height="13" fill={GBC.wallLight} stroke={GBC.wallDark} strokeWidth="1"/>
+          <rect x="0" y="28" width="22" height="13" fill={GBC.wallMid} stroke={GBC.wallDark} strokeWidth="1"/>
+          <rect x="24" y="28" width="32" height="13" fill={GBC.wallLight} stroke={GBC.wallDark} strokeWidth="1"/>
+          <rect x="0" y="42" width="12" height="14" fill={GBC.wallLight} stroke={GBC.wallDark} strokeWidth="1"/>
+          <rect x="14" y="42" width="26" height="14" fill={GBC.wallMid} stroke={GBC.wallDark} strokeWidth="1"/>
+          <rect x="42" y="42" width="14" height="14" fill={GBC.wallMid} stroke={GBC.wallDark} strokeWidth="1"/>
+        </svg>
+      </div>
+    );
+
+    const BonfireTile = () => (
+      <div style={{
+        width: '100%',
+        height: '100%',
+        backgroundColor: GBC.pathDark,
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        {/* Fire base */}
+        <div style={{
+          position: 'absolute',
+          bottom: '6px',
+          width: '32px',
+          height: '10px',
+          backgroundColor: '#4a3728',
+          borderRadius: '2px'
+        }}/>
+        {/* Animated flames */}
+        <svg width="44" height="44" style={{ animation: 'flicker 0.5s infinite', position: 'relative', zIndex: 1 }}>
+          {/* Outer flame */}
+          <rect x="10" y="22" width="24" height="16" fill="#ed8936"/>
+          <rect x="13" y="16" width="18" height="8" fill="#f6ad55"/>
+          <rect x="16" y="10" width="12" height="8" fill="#f6e05e"/>
+          <rect x="19" y="4" width="6" height="8" fill="#faf089"/>
+          {/* Inner bright core */}
+          <rect x="16" y="26" width="12" height="8" fill="#faf089"/>
+          <rect x="19" y="20" width="6" height="8" fill="#fffff0"/>
+        </svg>
+        {/* Embers */}
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          left: '16px',
+          width: '5px',
+          height: '5px',
+          backgroundColor: '#f6e05e',
+          animation: 'ember 1s infinite',
+          animationDelay: '0s'
+        }}/>
+        <div style={{
+          position: 'absolute',
+          top: '12px',
+          right: '18px',
+          width: '4px',
+          height: '4px',
+          backgroundColor: '#ed8936',
+          animation: 'ember 1.2s infinite',
+          animationDelay: '0.3s'
+        }}/>
+      </div>
+    );
+
+    const GateTile = ({ isKeep = false }) => (
+      <div style={{
+        width: '100%',
+        height: '100%',
+        backgroundColor: isKeep ? GBC.wallMid : GBC.pathMid,
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <svg width="50" height="50" style={{ imageRendering: 'pixelated' }}>
+          {/* Torii gate / dungeon entrance */}
+          {/* Pillars */}
+          <rect x="6" y="12" width="6" height="38" fill="#742a2a"/>
+          <rect x="38" y="12" width="6" height="38" fill="#742a2a"/>
+          {/* Top beam */}
+          <rect x="3" y="6" width="44" height="6" fill="#9b2c2c"/>
+          <rect x="0" y="3" width="50" height="5" fill="#c53030"/>
+          {/* Cross beam */}
+          <rect x="6" y="16" width="38" height="4" fill="#742a2a"/>
+          {/* Entrance darkness */}
+          <rect x="14" y="22" width="22" height="28" fill="#0f0f1a"/>
+        </svg>
+      </div>
+    );
+
+    const BossRoomTile = () => (
+      <div style={{
+        width: '100%',
+        height: '100%',
+        backgroundColor: '#1a0a0a',
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <svg width="50" height="50" style={{ imageRendering: 'pixelated' }}>
+          {/* Skull */}
+          <rect x="13" y="10" width="24" height="20" fill="#e8e8e8"/>
+          <rect x="10" y="13" width="3" height="14" fill="#e8e8e8"/>
+          <rect x="37" y="13" width="3" height="14" fill="#e8e8e8"/>
+          {/* Eye sockets */}
+          <rect x="16" y="16" width="6" height="7" fill="#1a0a0a"/>
+          <rect x="28" y="16" width="6" height="7" fill="#1a0a0a"/>
+          {/* Red glow in eyes */}
+          <rect x="18" y="18" width="3" height="3" fill="#c53030"/>
+          <rect x="30" y="18" width="3" height="3" fill="#c53030"/>
+          {/* Nose */}
+          <rect x="22" y="25" width="6" height="4" fill="#1a0a0a"/>
+          {/* Teeth */}
+          <rect x="16" y="30" width="18" height="6" fill="#e8e8e8"/>
+          <rect x="19" y="30" width="3" height="6" fill="#1a0a0a"/>
+          <rect x="25" y="30" width="3" height="6" fill="#1a0a0a"/>
+          <rect x="31" y="30" width="3" height="6" fill="#1a0a0a"/>
+          {/* Jaw */}
+          <rect x="13" y="36" width="24" height="6" fill="#d4d4d4"/>
+        </svg>
+      </div>
+    );
+
+    const styles = {
+      container: {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '10px',
+        backgroundColor: GBC.bg,
+        color: GBC.text,
+        minHeight: '100vh',
+        padding: '8px',
+        boxSizing: 'border-box',
+        imageRendering: 'pixelated'
+      },
+      header: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '8px 12px',
+        backgroundColor: GBC.bgPanel,
+        border: `3px solid ${GBC.border}`,
+        borderRadius: '0',
+        marginBottom: '8px',
+        boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
+      },
+      souls: {
+        color: GBC.gold,
+        textShadow: '1px 1px 0 #744210'
+      },
+      mapContainer: {
+        display: 'flex',
+        justifyContent: 'center',
+        marginBottom: '8px'
+      },
+      grid: {
+        display: 'grid',
+        gap: '0px',
+        backgroundColor: GBC.wallDark,
+        padding: '4px',
+        border: `4px solid ${GBC.border}`,
+        boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14, 0 4px 8px rgba(0,0,0,0.5)`
+      },
+      tile: {
+        width: '56px',
+        height: '56px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        overflow: 'hidden'
+      },
+      teamStatus: {
+        backgroundColor: GBC.bgPanel,
+        padding: '8px',
+        border: `3px solid ${GBC.border}`,
+        boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
+      },
+      creatureStatus: {
+        marginBottom: '6px',
+        padding: '6px',
+        backgroundColor: GBC.bgLight,
+        border: `2px solid ${GBC.border}`
+      },
+      hpBar: {
+        height: '10px',
+        backgroundColor: GBC.wallDark,
+        marginTop: '4px',
+        position: 'relative',
+        border: `2px solid ${GBC.border}`,
+        boxShadow: 'inset 1px 1px 0 #0a0a14'
+      },
+      hpFill: {
+        height: '100%',
+        transition: 'width 0.2s',
+        imageRendering: 'pixelated'
+      },
+      staminaBar: {
+        height: '8px',
+        backgroundColor: GBC.wallDark,
+        marginTop: '4px',
+        border: `2px solid ${GBC.border}`,
+        boxShadow: 'inset 1px 1px 0 #0a0a14'
+      },
+      staminaFill: {
+        height: '100%',
+        backgroundColor: GBC.blue,
+        transition: 'width 0.2s'
+      },
+      battleContainer: {
+        padding: '8px',
+        backgroundColor: GBC.bg
+      },
+      battleCreature: {
+        padding: '10px',
+        backgroundColor: GBC.bgPanel,
+        border: `3px solid ${GBC.border}`,
+        marginBottom: '8px',
+        boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
+      },
+      battleAnimation: {
+        height: '120px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: GBC.bgLight,
+        margin: '8px 0',
+        border: `3px solid ${GBC.border}`,
+        fontSize: '9px',
+        textAlign: 'center',
+        padding: '8px',
+        boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
+      },
+      moveButtons: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '6px',
+        marginTop: '8px'
+      },
+      moveButton: {
+        padding: '10px 8px',
+        backgroundColor: GBC.bgPanel,
+        border: `3px solid ${GBC.border}`,
+        color: GBC.text,
+        cursor: 'pointer',
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '8px',
+        textAlign: 'left',
+        boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`,
+        transition: 'transform 0.1s'
+      },
+      moveButtonDisabled: {
+        opacity: 0.4,
+        cursor: 'not-allowed'
+      },
+      starterSelect: {
+        textAlign: 'center',
+        padding: '30px 15px'
+      },
+      starterCard: {
+        display: 'inline-block',
+        width: '150px',
+        padding: '15px 10px',
+        margin: '8px',
+        backgroundColor: GBC.bgPanel,
+        border: `4px solid ${GBC.border}`,
+        cursor: 'pointer',
+        verticalAlign: 'top',
+        boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`,
+        transition: 'transform 0.1s'
+      },
+      scar: {
+        display: 'inline-block',
+        padding: '2px 4px',
+        backgroundColor: '#3d1515',
+        color: GBC.red,
+        fontSize: '7px',
+        marginLeft: '3px',
+        border: '2px solid #5a2020'
+      },
+      status: {
+        display: 'inline-block',
+        padding: '2px 4px',
+        fontSize: '7px',
+        marginLeft: '3px'
+      },
+      winded: {
+        backgroundColor: '#3d3215',
+        color: GBC.gold,
+        border: '2px solid #5a4a20'
+      },
+      burn: {
+        backgroundColor: '#3d2015',
+        color: '#f6ad55',
+        border: '2px solid #5a3020'
+      },
+      victory: {
+        textAlign: 'center',
+        padding: '40px 15px',
+        backgroundColor: '#0a1a0a',
+        border: `4px solid ${GBC.green}`,
+        margin: '20px',
+        boxShadow: `inset -3px -3px 0 #1a3a1a, inset 3px 3px 0 #051005`
+      },
+      gameOver: {
+        textAlign: 'center',
+        padding: '40px 15px',
+        backgroundColor: '#1a0a0a',
+        border: `4px solid ${GBC.red}`,
+        margin: '20px',
+        boxShadow: `inset -3px -3px 0 #3a1a1a, inset 3px 3px 0 #100505`
+      },
+      button: {
+        padding: '12px 24px',
+        backgroundColor: GBC.bgPanel,
+        border: `4px solid ${GBC.border}`,
+        color: GBC.text,
+        cursor: 'pointer',
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '10px',
+        marginTop: '16px',
+        boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
+      },
+      typeIcon: {
+        fontSize: '20px'
+      },
+      log: {
+        backgroundColor: GBC.bgLight,
+        padding: '8px',
+        marginTop: '8px',
+        border: `3px solid ${GBC.border}`,
+        maxHeight: '70px',
+        overflowY: 'auto',
+        fontSize: '8px',
+        boxShadow: `inset 2px 2px 0 #0a0a14`
+      },
+      muteButton: {
+        position: 'fixed',
+        top: '8px',
+        right: '8px',
+        width: '36px',
+        height: '36px',
+        backgroundColor: GBC.bgPanel,
+        border: `3px solid ${GBC.border}`,
+        borderRadius: '0',
+        color: GBC.textDim,
+        cursor: 'pointer',
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '14px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
+      },
+      creatureSprite: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: '8px'
+      },
+      battleSpriteArea: {
+        display: 'flex',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        padding: '10px',
+        backgroundColor: GBC.grassDark,
+        border: `3px solid ${GBC.border}`,
+        marginBottom: '8px',
+        minHeight: '100px'
+      },
+      bindButton: {
+        padding: '10px 8px',
+        backgroundColor: '#2a1a3a',
+        border: `3px solid #6b46c1`,
+        color: '#d6bcfa',
+        cursor: 'pointer',
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '8px',
+        textAlign: 'center',
+        boxShadow: `inset -2px -2px 0 #805ad5, inset 2px 2px 0 #1a0a2e`,
+        gridColumn: 'span 2'
+      },
+      bindButtonDisabled: {
+        backgroundColor: '#1a1a2a',
+        borderColor: '#4a4a6a',
+        color: '#6a6a8a',
+        cursor: 'not-allowed'
+      },
+      bonfireMenu: {
+        backgroundColor: GBC.bgPanel,
+        border: `3px solid ${GBC.border}`,
+        padding: '10px',
+        marginTop: '8px'
+      },
+      bonfireOption: {
+        padding: '8px',
+        marginBottom: '6px',
+        backgroundColor: GBC.bgLight,
+        border: `2px solid ${GBC.border}`,
+        cursor: 'pointer',
+        fontSize: '8px'
+      }
+    };
+
+    const getTypeColor = (type) => {
+      switch (type) {
+        case 'fire': return GBC.fire;
+        case 'water': return GBC.water;
+        case 'grass': return GBC.grass;
+        default: return GBC.textDim;
+      }
+    };
+
+    const getTypeIcon = (type) => {
+      switch (type) {
+        case 'fire': return '🔥';
+        case 'water': return '💧';
+        case 'grass': return '🌿';
+        default: return '⚪';
+      }
+    };
+
+    const calculateDamage = (move, attacker, defender, attackerCreature, defenderCreature) => {
+      if (move.damage === 0) return 0;
+      let damage = move.damage;
+      const effectiveness = TYPE_CHART[attackerCreature.type][defenderCreature.type];
+      damage = Math.floor(damage * effectiveness);
+
+      if (defender.isGuarding) {
+        damage = Math.floor(damage * 0.5);
+      }
+
+      if (attacker.winded) {
+        damage = Math.floor(damage * 1.25);
+      }
+
+      if (attacker.scars && attacker.scars.length >= 3) {
+        damage = Math.floor(damage * 0.75);
+      }
+
+      return Math.max(1, damage);
+    };
+
+    const MAX_TEAM_SIZE = 3;
+    const BIND_COST = 20;
+
+    const getRandomWild = () => {
+      const wilds = Object.values(WILD_CREATURES);
+      const baseCreature = wilds[Math.floor(Math.random() * wilds.length)];
+
+      // Add stat variance: +/- 5 HP, +/- 2 stamina
+      const hpVariance = Math.floor(Math.random() * 11) - 5; // -5 to +5
+      const staminaVariance = Math.floor(Math.random() * 5) - 2; // -2 to +2
+
+      const creature = {
+        ...baseCreature,
+        maxHp: Math.max(20, baseCreature.maxHp + hpVariance),
+        maxStamina: Math.max(10, baseCreature.maxStamina + staminaVariance),
+        scars: []
+      };
+
+      // 10% chance of pre-scarred creature
+      if (Math.random() < 0.1) {
+        const scar = getRandomScar();
+        creature.scars = [scar];
+        creature.preScarred = true;
+      }
+
+      return creature;
+    };
+
+    const getCaptureChance = (currentHp, maxHp) => {
+      const hpPercent = (currentHp / maxHp) * 100;
+      if (hpPercent < 10) return 90;
+      if (hpPercent < 25) return 60;
+      if (hpPercent <= 50) return 30;
+      return 10;
+    };
+
+    const getRandomScar = () => {
+      return SCAR_TYPES[Math.floor(Math.random() * SCAR_TYPES.length)];
+    };
+
+    const applyScars = (creature, baseData) => {
+      let maxHp = baseData.maxHp;
+      let maxStamina = baseData.maxStamina;
+      let hasFlinching = false;
+
+      if (creature.scars) {
+        creature.scars.forEach(scar => {
+          if (scar.effect === 'maxHp') maxHp += scar.value;
+          if (scar.effect === 'maxStamina') maxStamina += scar.value;
+          if (scar.effect === 'noPriority') hasFlinching = true;
+        });
+      }
+
+      if (creature.scars && creature.scars.length >= 3) {
+        maxHp = Math.floor(maxHp * 0.75);
+        maxStamina = Math.floor(maxStamina * 0.75);
+      }
+
+      return { maxHp: Math.max(1, maxHp), maxStamina: Math.max(1, maxStamina), hasFlinching };
+    };
+
+    const initialState = {
+      screen: 'starter',
+      currentMap: 'ashenPath',
+      playerPos: { x: 1, y: 1 },
+      playerDir: 'down',
+      team: [],
+      activeCreatureIndex: 0,
+      souls: 0,
+      bankedSouls: 0,
+      droppedSouls: null,
+      enemy: null,
+      enemyCreature: null,
+      battleLog: [],
+      turnPhase: 'player',
+      shortcutUnlocked: false,
+      bossDefeated: false,
+      bossPhase: 1,
+      arenaEffect: null,
+      grassEncounters: [
+        { x: 3, y: 1, active: true },
+        { x: 4, y: 1, active: true },
+        { x: 4, y: 2, active: true },
+        { x: 6, y: 3, active: true }
+      ],
+      lastBonfire: { map: 'ashenPath', pos: { x: 1, y: 1 } },
+      bonfireMenuOpen: false
+    };
+
+    function handleCreatureFaint(state, team, enemy, log) {
+      const activeCreature = team[state.activeCreatureIndex];
+      const scar = getRandomScar();
+
+      activeCreature.hp = 0;
+      activeCreature.scars = [...(activeCreature.scars || []), scar];
+
+      log.push(`${activeCreature.name} has fallen!`);
+      log.push(`${activeCreature.name} gained scar: ${scar.name} (${scar.description})`);
+
+      if (activeCreature.scars.length >= 3) {
+        log.push(`${activeCreature.name} has become Hollowed...`);
+      }
+
+      team[state.activeCreatureIndex] = activeCreature;
+
+      const availableIndex = team.findIndex((c, i) => i !== state.activeCreatureIndex && c.hp > 0);
+
+      if (availableIndex === -1) {
+        const droppedSouls = state.souls > 0 ? {
+          map: state.currentMap,
+          pos: { ...state.playerPos },
+          amount: state.souls
+        } : state.droppedSouls;
+
+        return {
+          ...state,
+          screen: 'gameOver',
+          team,
+          enemy,
+          battleLog: log,
+          souls: 0,
+          droppedSouls
+        };
+      }
+
+      return {
+        ...state,
+        team,
+        enemy,
+        battleLog: log,
+        activeCreatureIndex: availableIndex,
+        turnPhase: 'player'
+      };
+    }
+
+    function gameReducer(state, action) {
+      switch (action.type) {
+        case 'SELECT_STARTER': {
+          const starterData = STARTERS[action.starter];
+          const newCreature = {
+            ...starterData,
+            hp: starterData.maxHp,
+            stamina: starterData.maxStamina,
+            scars: [],
+            winded: false,
+            isGuarding: false,
+            burnTurns: 0
+          };
+          return {
+            ...state,
+            screen: 'exploration',
+            team: [newCreature]
+          };
+        }
+
+        case 'MOVE_PLAYER': {
+          const map = state.currentMap === 'ashenPath' ? ASHEN_PATH : FALLEN_KEEP;
+          const newX = state.playerPos.x + action.dx;
+          const newY = state.playerPos.y + action.dy;
+
+          // Determine direction
+          let dir = state.playerDir;
+          if (action.dy < 0) dir = 'up';
+          else if (action.dy > 0) dir = 'down';
+          else if (action.dx < 0) dir = 'left';
+          else if (action.dx > 0) dir = 'right';
+
+          if (newY < 0 || newY >= map.length || newX < 0 || newX >= map[0].length) {
+            return { ...state, playerDir: dir };
+          }
+
+          const tile = map[newY][newX];
+
+          if (tile === 'W') return { ...state, playerDir: dir };
+
+          let newState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false };
+
+          if (tile === 'G' && state.currentMap === 'ashenPath') {
+            const encounter = state.grassEncounters.find(
+              e => e.x === newX && e.y === newY && e.active
+            );
+            if (encounter && Math.random() < 0.6) {
+              const wildData = getRandomWild();
+              // Apply scar penalties if pre-scarred
+              let actualMaxHp = wildData.maxHp;
+              let actualMaxStamina = wildData.maxStamina;
+              if (wildData.scars) {
+                wildData.scars.forEach(scar => {
+                  if (scar.effect === 'maxHp') actualMaxHp = Math.max(15, actualMaxHp + scar.value);
+                  if (scar.effect === 'maxStamina') actualMaxStamina = Math.max(8, actualMaxStamina + scar.value);
+                });
+              }
+              newState = {
+                ...newState,
+                screen: 'battle',
+                enemy: {
+                  ...wildData,
+                  maxHp: actualMaxHp,
+                  maxStamina: actualMaxStamina,
+                  hp: actualMaxHp,
+                  stamina: wildData.maxStamina,
+                  winded: false,
+                  isGuarding: false
+                },
+                enemyCreature: wildData,
+                battleLog: [`A ${wildData.name} appeared!`],
+                turnPhase: 'player',
+                currentEncounter: { x: newX, y: newY }
+              };
+            }
+          }
+
+          if (tile === 'X') {
+            newState = {
+              ...newState,
+              currentMap: 'fallenKeep',
+              playerPos: { x: 2, y: 7 }
+            };
+          }
+
+          if (tile === 'E' && state.currentMap === 'fallenKeep') {
+            newState = {
+              ...newState,
+              currentMap: 'ashenPath',
+              playerPos: { x: 4, y: 4 }
+            };
+          }
+
+          if (tile === 'K' && !state.bossDefeated) {
+            const bossData = BOSS.obsidianHound;
+            newState = {
+              ...newState,
+              screen: 'battle',
+              enemy: {
+                ...bossData,
+                hp: bossData.maxHp,
+                stamina: bossData.maxStamina,
+                winded: false,
+                isGuarding: false
+              },
+              enemyCreature: bossData,
+              battleLog: ['Keeper Varek blocks your path!', '"Another challenger... They all fall the same."'],
+              turnPhase: 'player',
+              bossPhase: 1,
+              arenaEffect: null,
+              isBossFight: true
+            };
+          }
+
+          if (state.droppedSouls &&
+              state.droppedSouls.map === state.currentMap &&
+              state.droppedSouls.pos.x === newX &&
+              state.droppedSouls.pos.y === newY) {
+            newState = {
+              ...newState,
+              souls: state.souls + state.droppedSouls.amount,
+              droppedSouls: null,
+              battleLog: [`Recovered ${state.droppedSouls.amount} souls!`]
+            };
+          }
+
+          if (state.currentMap === 'fallenKeep' && newY <= 3) {
+            newState.shortcutUnlocked = true;
+          }
+
+          return newState;
+        }
+
+        case 'INTERACT_BONFIRE': {
+          // Toggle bonfire menu
+          return {
+            ...state,
+            bonfireMenuOpen: !state.bonfireMenuOpen
+          };
+        }
+
+        case 'REST_AT_BONFIRE': {
+          const team = state.team.map(creature => {
+            const baseData = STARTERS[creature.id];
+            const { maxHp, maxStamina } = applyScars(creature, baseData);
+            return {
+              ...creature,
+              hp: creature.hp === 0 ? 1 : maxHp,
+              stamina: maxStamina,
+              winded: false,
+              burnTurns: 0
+            };
+          });
+
+          const grassEncounters = state.grassEncounters.map(e => ({ ...e, active: true }));
+
+          return {
+            ...state,
+            team,
+            grassEncounters,
+            bankedSouls: state.bankedSouls + state.souls,
+            souls: 0,
+            lastBonfire: { map: state.currentMap, pos: { ...state.playerPos } },
+            bonfireMenuOpen: false
+          };
+        }
+
+        case 'SWITCH_ACTIVE_AT_BONFIRE': {
+          // Can only switch to creatures with HP > 0
+          const targetCreature = state.team[action.index];
+          if (!targetCreature || targetCreature.hp <= 0) {
+            return state;
+          }
+          return {
+            ...state,
+            activeCreatureIndex: action.index,
+            bonfireMenuOpen: false
+          };
+        }
+
+        case 'CLOSE_BONFIRE_MENU': {
+          return {
+            ...state,
+            bonfireMenuOpen: false
+          };
+        }
+
+        case 'SELECT_MOVE': {
+          const activeCreature = state.team[state.activeCreatureIndex];
+          const move = action.move;
+
+          if (move.cost > activeCreature.stamina) return state;
+
+          let newTeam = [...state.team];
+          let newEnemy = { ...state.enemy };
+          let log = [...state.battleLog];
+          let turnPhase = 'enemy';
+
+          if (move.effect === 'rest') {
+            newTeam[state.activeCreatureIndex] = {
+              ...activeCreature,
+              stamina: Math.min(activeCreature.stamina + 8 + 4,
+                applyScars(activeCreature, STARTERS[activeCreature.id]).maxStamina),
+              winded: false,
+              isGuarding: false
+            };
+            log.push(`${activeCreature.name} rests and recovers stamina.`);
+            return { ...state, team: newTeam, battleLog: log, turnPhase };
+          }
+
+          if (move.effect === 'guard') {
+            newTeam[state.activeCreatureIndex] = {
+              ...activeCreature,
+              stamina: activeCreature.stamina - move.cost,
+              isGuarding: true
+            };
+            log.push(`${activeCreature.name} takes a defensive stance.`);
+
+            if (activeCreature.stamina - move.cost < 5) {
+              newTeam[state.activeCreatureIndex].winded = true;
+              log.push(`${activeCreature.name} is winded!`);
+            }
+
+            return { ...state, team: newTeam, battleLog: log, turnPhase };
+          }
+
+          const damage = calculateDamage(move, activeCreature, newEnemy,
+            STARTERS[activeCreature.id], state.enemyCreature);
+
+          newEnemy.hp = Math.max(0, newEnemy.hp - damage);
+          newEnemy.isGuarding = false;
+
+          const effectiveness = TYPE_CHART[STARTERS[activeCreature.id].type][state.enemyCreature.type];
+          let effectText = '';
+          if (effectiveness > 1) effectText = " It's super effective!";
+          if (effectiveness < 1) effectText = " It's not very effective...";
+
+          log.push(`${activeCreature.name} used ${move.name}! ${damage} damage.${effectText}`);
+
+          if (move.effect === 'burn') {
+            newTeam[state.activeCreatureIndex] = {
+              ...activeCreature,
+              burnTurns: 2
+            };
+            log.push(`${activeCreature.name} is burning!`);
+          }
+
+          newTeam[state.activeCreatureIndex] = {
+            ...newTeam[state.activeCreatureIndex],
+            stamina: activeCreature.stamina - move.cost,
+            isGuarding: false
+          };
+
+          if (newTeam[state.activeCreatureIndex].stamina < 5) {
+            newTeam[state.activeCreatureIndex].winded = true;
+            log.push(`${activeCreature.name} is winded!`);
+          }
+
+          if (state.isBossFight && state.bossPhase === 1 &&
+              newEnemy.hp <= state.enemyCreature.maxHp * 0.3 && newEnemy.hp > 0) {
+            newEnemy.hp += 20;
+            log.push('"You fight like the ones before. They all fell too."');
+            log.push('Obsidian Hound transforms! The arena ignites with scorched earth!');
+            return {
+              ...state,
+              team: newTeam,
+              enemy: newEnemy,
+              battleLog: log,
+              bossPhase: 2,
+              arenaEffect: 'scorchedEarth',
+              turnPhase
+            };
+          }
+
+          if (newEnemy.hp <= 0) {
+            const soulsEarned = state.enemyCreature.souls || 10;
+            log.push(`${state.enemyCreature.name} defeated! Gained ${soulsEarned} souls.`);
+
+            if (state.isBossFight) {
+              return {
+                ...state,
+                screen: 'victory',
+                souls: state.souls + soulsEarned,
+                bossDefeated: true,
+                team: newTeam,
+                battleLog: log
+              };
+            }
+
+            const grassEncounters = state.grassEncounters.map(e =>
+              e.x === state.currentEncounter?.x && e.y === state.currentEncounter?.y
+                ? { ...e, active: false }
+                : e
+            );
+
+            return {
+              ...state,
+              screen: 'exploration',
+              souls: state.souls + soulsEarned,
+              enemy: null,
+              enemyCreature: null,
+              team: newTeam,
+              battleLog: log,
+              grassEncounters
+            };
+          }
+
+          return { ...state, team: newTeam, enemy: newEnemy, battleLog: log, turnPhase };
+        }
+
+        case 'BIND_ATTEMPT': {
+          // Can't bind bosses
+          if (state.isBossFight) {
+            return { ...state, battleLog: [...state.battleLog, "Can't bind a boss!"] };
+          }
+
+          // Check if team is full
+          if (state.team.length >= MAX_TEAM_SIZE) {
+            return { ...state, battleLog: [...state.battleLog, "Team is full!"] };
+          }
+
+          // Check if can afford
+          if (state.souls < BIND_COST) {
+            return { ...state, battleLog: [...state.battleLog, "Not enough souls!"] };
+          }
+
+          let log = [...state.battleLog];
+          const captureChance = getCaptureChance(state.enemy.hp, state.enemy.maxHp);
+          const roll = Math.random() * 100;
+
+          log.push(`Attempting soul bind... (${captureChance}% chance)`);
+
+          // Deduct souls regardless of outcome
+          const newSouls = state.souls - BIND_COST;
+
+          if (roll < captureChance) {
+            // SUCCESS! Creature joins team
+            const capturedCreature = {
+              id: state.enemyCreature.id.replace('wild', '').toLowerCase(),
+              name: state.enemyCreature.name.replace('Wild ', ''),
+              type: state.enemyCreature.type,
+              maxHp: state.enemy.maxHp,
+              maxStamina: state.enemy.maxStamina,
+              hp: state.enemy.hp,
+              stamina: state.enemy.stamina,
+              scars: state.enemy.scars || [],
+              winded: false,
+              isGuarding: false,
+              burnTurns: 0,
+              moves: STARTERS[state.enemyCreature.type === 'fire' ? 'cindrath' :
+                            state.enemyCreature.type === 'water' ? 'marshveil' : 'thornwick'].moves
+            };
+
+            // Fix the id to match STARTERS
+            if (state.enemyCreature.type === 'fire') capturedCreature.id = 'cindrath';
+            else if (state.enemyCreature.type === 'water') capturedCreature.id = 'marshveil';
+            else capturedCreature.id = 'thornwick';
+
+            log.push(`Success! ${capturedCreature.name} joined your team!`);
+
+            const grassEncounters = state.grassEncounters.map(e =>
+              e.x === state.currentEncounter?.x && e.y === state.currentEncounter?.y
+                ? { ...e, active: false }
+                : e
+            );
+
+            return {
+              ...state,
+              screen: 'exploration',
+              team: [...state.team, capturedCreature],
+              souls: newSouls,
+              enemy: null,
+              enemyCreature: null,
+              battleLog: log,
+              grassEncounters
+            };
+          } else {
+            // FAILED - enemy gets a free attack
+            log.push("The binding failed! The creature breaks free!");
+
+            // Enemy retaliates
+            return {
+              ...state,
+              souls: newSouls,
+              battleLog: log,
+              turnPhase: 'enemy'
+            };
+          }
+        }
+
+        case 'ENEMY_TURN': {
+          let newTeam = [...state.team];
+          let newEnemy = { ...state.enemy };
+          let log = [...state.battleLog];
+          let activeCreature = newTeam[state.activeCreatureIndex];
+          const activeBase = STARTERS[activeCreature.id];
+          const { maxHp, maxStamina } = applyScars(activeCreature, activeBase);
+
+          activeCreature = {
+            ...activeCreature,
+            stamina: Math.min(activeCreature.stamina + 4, maxStamina)
+          };
+
+          if (activeCreature.burnTurns > 0) {
+            activeCreature.hp = Math.max(0, activeCreature.hp - 3);
+            activeCreature.burnTurns--;
+            log.push(`${activeCreature.name} takes 3 burn damage!`);
+          }
+
+          if (state.arenaEffect === 'scorchedEarth' && activeBase.type !== 'fire') {
+            activeCreature.hp = Math.max(0, activeCreature.hp - 2);
+            log.push(`Scorched Earth burns ${activeCreature.name} for 2 damage!`);
+          }
+
+          newTeam[state.activeCreatureIndex] = activeCreature;
+
+          if (activeCreature.hp <= 0) {
+            return handleCreatureFaint(state, newTeam, newEnemy, log);
+          }
+
+          newEnemy.stamina = Math.min(newEnemy.stamina + 4, state.enemyCreature.maxStamina);
+          newEnemy.winded = false;
+
+          let availableMoves = (state.bossPhase === 2 ?
+            BOSS.obsidianHound.phase2Moves : state.enemyCreature.moves)
+            .filter(m => m.cost <= newEnemy.stamina);
+
+          if (availableMoves.length === 0) {
+            availableMoves = [{ name: 'Rest', cost: 0, damage: 0, effect: 'rest' }];
+          }
+
+          let selectedMove;
+          if (state.isBossFight) {
+            const playerHpPercent = activeCreature.hp / maxHp;
+            if (state.bossPhase === 2 && playerHpPercent < 0.4) {
+              const despFang = availableMoves.find(m => m.name === 'Desperation Fang');
+              if (despFang) selectedMove = despFang;
+            }
+            if (!selectedMove && playerHpPercent > 0.7) {
+              const flameWall = availableMoves.find(m => m.name === 'Flame Wall');
+              if (flameWall) selectedMove = flameWall;
+            }
+          }
+
+          if (!selectedMove) {
+            const attackMoves = availableMoves.filter(m => m.damage > 0);
+            selectedMove = attackMoves.length > 0
+              ? attackMoves[Math.floor(Math.random() * attackMoves.length)]
+              : availableMoves[0];
+          }
+
+          if (selectedMove.effect === 'rest') {
+            newEnemy.stamina = Math.min(newEnemy.stamina + 8, state.enemyCreature.maxStamina);
+            log.push(`${state.enemyCreature.name} rests.`);
+          } else if (selectedMove.effect === 'guard') {
+            newEnemy.isGuarding = true;
+            newEnemy.stamina -= selectedMove.cost;
+            log.push(`${state.enemyCreature.name} guards.`);
+          } else {
+            const damage = calculateDamage(selectedMove, newEnemy, activeCreature,
+              state.enemyCreature, activeBase);
+
+            activeCreature.hp = Math.max(0, activeCreature.hp - damage);
+            activeCreature.isGuarding = false;
+            newEnemy.stamina -= selectedMove.cost;
+
+            log.push(`${state.enemyCreature.name} used ${selectedMove.name}! ${damage} damage.`);
+
+            if (selectedMove.effect === 'burn' && activeCreature.burnTurns === 0) {
+              activeCreature.burnTurns = 2;
+              log.push(`${activeCreature.name} is burning!`);
+            }
+
+            if (selectedMove.effect === 'recoil') {
+              newEnemy.hp = Math.max(0, newEnemy.hp - selectedMove.recoilDamage);
+              log.push(`${state.enemyCreature.name} takes ${selectedMove.recoilDamage} recoil!`);
+            }
+
+            if (newEnemy.stamina < 5) {
+              newEnemy.winded = true;
+              log.push(`${state.enemyCreature.name} is winded!`);
+            }
+          }
+
+          newTeam[state.activeCreatureIndex] = activeCreature;
+
+          if (newEnemy.hp <= 0) {
+            const soulsEarned = state.enemyCreature.souls || 10;
+            log.push(`${state.enemyCreature.name} defeated! Gained ${soulsEarned} souls.`);
+
+            if (state.isBossFight) {
+              return {
+                ...state,
+                screen: 'victory',
+                souls: state.souls + soulsEarned,
+                bossDefeated: true,
+                team: newTeam,
+                battleLog: log
+              };
+            }
+
+            return {
+              ...state,
+              screen: 'exploration',
+              souls: state.souls + soulsEarned,
+              enemy: null,
+              team: newTeam,
+              battleLog: log
+            };
+          }
+
+          if (activeCreature.hp <= 0) {
+            return handleCreatureFaint(state, newTeam, newEnemy, log);
+          }
+
+          return {
+            ...state,
+            team: newTeam,
+            enemy: newEnemy,
+            battleLog: log,
+            turnPhase: 'player'
+          };
+        }
+
+        case 'SWITCH_CREATURE': {
+          if (state.team[action.index].hp <= 0) return state;
+          return {
+            ...state,
+            activeCreatureIndex: action.index,
+            battleLog: [...state.battleLog, `Go, ${state.team[action.index].name}!`]
+          };
+        }
+
+        case 'RESPAWN': {
+          const team = state.team.map(creature => {
+            const baseData = STARTERS[creature.id];
+            const { maxHp, maxStamina } = applyScars(creature, baseData);
+            return {
+              ...creature,
+              hp: creature.hp === 0 ? 1 : Math.max(creature.hp, 1),
+              stamina: maxStamina,
+              winded: false,
+              burnTurns: 0,
+              isGuarding: false
+            };
+          });
+
+          return {
+            ...state,
+            screen: 'exploration',
+            currentMap: state.lastBonfire.map,
+            playerPos: { ...state.lastBonfire.pos },
+            team,
+            activeCreatureIndex: team.findIndex(c => c.hp > 0) || 0,
+            enemy: null,
+            enemyCreature: null,
+            battleLog: [],
+            turnPhase: 'player',
+            bossPhase: 1,
+            arenaEffect: null,
+            isBossFight: false
+          };
+        }
+
+        case 'RESTART': {
+          return initialState;
+        }
+
+        default:
+          return state;
+      }
+    }
+
+    function StarterSelect({ dispatch }) {
+      return (
+        <div style={styles.starterSelect}>
+          <h1 style={{ color: GBC.textDim, marginBottom: '8px', fontSize: '16px' }}>POKE SOULS</h1>
+          <p style={{ color: GBC.text, marginBottom: '20px', fontSize: '9px' }}>Choose your survivor</p>
+          <div>
+            {Object.values(STARTERS).map(starter => (
+              <div
+                key={starter.id}
+                style={styles.starterCard}
+                onClick={() => dispatch({ type: 'SELECT_STARTER', starter: starter.id })}
+                onMouseOver={e => e.currentTarget.style.borderColor = getTypeColor(starter.type)}
+                onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+              >
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+                  <CreatureSprite type={starter.type} size={48} />
+                </div>
+                <div style={{ margin: '8px 0 4px', color: GBC.text, fontSize: '10px' }}>{starter.name}</div>
+                <div style={{ fontSize: '8px', color: getTypeColor(starter.type), margin: '4px 0' }}>
+                  {starter.type.toUpperCase()}
+                </div>
+                <div style={{ fontSize: '7px', color: GBC.textDim }}>
+                  HP {starter.maxHp}
+                </div>
+                <div style={{ fontSize: '7px', color: GBC.textDim }}>
+                  STA {starter.maxStamina}
+                </div>
+                <div style={{ fontSize: '7px', color: getTypeColor(starter.type), marginTop: '6px' }}>
+                  {starter.moves[0].name}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function Exploration({ state, dispatch }) {
+      const map = state.currentMap === 'ashenPath' ? ASHEN_PATH : FALLEN_KEEP;
+      const mapName = state.currentMap === 'ashenPath' ? 'Ashen Path' : 'Fallen Keep';
+
+      const handleKeyDown = useCallback((e) => {
+        const key = e.key.toLowerCase();
+        let dx = 0, dy = 0;
+
+        if (key === 'arrowup' || key === 'w') dy = -1;
+        else if (key === 'arrowdown' || key === 's') dy = 1;
+        else if (key === 'arrowleft' || key === 'a') dx = -1;
+        else if (key === 'arrowright' || key === 'd') dx = 1;
+        else if (key === 'e' || key === 'enter') {
+          const tile = map[state.playerPos.y][state.playerPos.x];
+          if (tile === 'B') {
+            dispatch({ type: 'INTERACT_BONFIRE' });
+          }
+          return;
+        }
+
+        if (dx !== 0 || dy !== 0) {
+          dispatch({ type: 'MOVE_PLAYER', dx, dy });
+        }
+      }, [dispatch, map, state.playerPos]);
+
+      useEffect(() => {
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+      }, [handleKeyDown]);
+
+      const currentTile = map[state.playerPos.y][state.playerPos.x];
+
+      // Render tile background
+      const renderTileBackground = (tile) => {
+        switch(tile) {
+          case 'W': return <WallTile />;
+          case 'P': return <PathTile />;
+          case 'G': return <GrassTile />;
+          case 'B': return <BonfireTile />;
+          case 'X': return <GateTile />;
+          case 'E': return <GateTile isKeep={true} />;
+          case 'K': return <BossRoomTile />;
+          default: return <PathTile />;
+        }
+      };
+
+      return (
+        <div>
+          <div style={styles.header}>
+            <span style={styles.souls}>SOULS {state.souls}</span>
+            <span style={{ color: GBC.textDim }}>{mapName}</span>
+            <span style={{ color: GBC.textDim, fontSize: '8px' }}>TEAM {state.team.length}/{MAX_TEAM_SIZE}</span>
+          </div>
+
+          <div style={styles.mapContainer}>
+            <div style={{
+              ...styles.grid,
+              gridTemplateColumns: `repeat(${map[0].length}, 56px)`
+            }}>
+              {map.map((row, y) =>
+                row.map((tile, x) => {
+                  const isPlayer = x === state.playerPos.x && y === state.playerPos.y;
+                  const hasSouls = state.droppedSouls &&
+                    state.droppedSouls.map === state.currentMap &&
+                    state.droppedSouls.pos.x === x &&
+                    state.droppedSouls.pos.y === y;
+
+                  return (
+                    <div
+                      key={`${x}-${y}`}
+                      style={styles.tile}
+                    >
+                      {renderTileBackground(tile)}
+                      {isPlayer && (
+                        <div style={{ position: 'absolute', zIndex: 10 }}>
+                          <PlayerSprite direction={state.playerDir} />
+                        </div>
+                      )}
+                      {hasSouls && !isPlayer && (
+                        <div style={{
+                          position: 'absolute',
+                          zIndex: 5,
+                          width: '24px',
+                          height: '24px',
+                          backgroundColor: GBC.gold,
+                          border: '3px solid #744210',
+                          animation: 'flicker 1s infinite'
+                        }} />
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {currentTile === 'B' && !state.bonfireMenuOpen && (
+            <div style={{
+              textAlign: 'center',
+              color: GBC.gold,
+              marginBottom: '8px',
+              padding: '6px',
+              backgroundColor: GBC.bgPanel,
+              border: `2px solid ${GBC.border}`
+            }}>
+              Press E to rest at bonfire
+            </div>
+          )}
+
+          {state.bonfireMenuOpen && (
+            <div style={styles.bonfireMenu}>
+              <div style={{ color: GBC.gold, marginBottom: '8px', fontSize: '9px' }}>BONFIRE</div>
+
+              <div
+                style={styles.bonfireOption}
+                onClick={() => dispatch({ type: 'REST_AT_BONFIRE' })}
+                onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+                onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+              >
+                REST - Heal all, bank souls, respawn enemies
+              </div>
+
+              {state.team.length > 1 && (
+                <div style={{ marginTop: '8px' }}>
+                  <div style={{ color: GBC.textDim, marginBottom: '6px', fontSize: '7px' }}>SWITCH ACTIVE:</div>
+                  {state.team.map((creature, i) => {
+                    const isActive = i === state.activeCreatureIndex;
+                    const baseData = STARTERS[creature.id];
+                    const { maxHp } = applyScars(creature, baseData);
+                    const isAlive = creature.hp > 0;
+
+                    return (
+                      <div
+                        key={i}
+                        style={{
+                          ...styles.bonfireOption,
+                          opacity: isAlive ? 1 : 0.5,
+                          cursor: isAlive && !isActive ? 'pointer' : 'default',
+                          borderColor: isActive ? getTypeColor(creature.type) : GBC.border
+                        }}
+                        onClick={() => {
+                          if (isAlive && !isActive) {
+                            dispatch({ type: 'SWITCH_ACTIVE_AT_BONFIRE', index: i });
+                          }
+                        }}
+                      >
+                        <span style={{ color: getTypeColor(creature.type) }}>{getTypeIcon(creature.type)}</span>
+                        {' '}{creature.name} - {creature.hp}/{maxHp} HP
+                        {isActive && <span style={{ color: GBC.gold, marginLeft: '6px' }}>(ACTIVE)</span>}
+                        {!isAlive && <span style={{ color: GBC.red, marginLeft: '6px' }}>(FAINTED)</span>}
+                        {creature.scars?.length > 0 && (
+                          <span style={{ color: GBC.red, marginLeft: '6px' }}>({creature.scars.length} scars)</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div
+                style={{ ...styles.bonfireOption, marginTop: '8px', color: GBC.textDim }}
+                onClick={() => dispatch({ type: 'CLOSE_BONFIRE_MENU' })}
+              >
+                LEAVE
+              </div>
+            </div>
+          )}
+
+          <TeamStatus team={state.team} activeIndex={state.activeCreatureIndex} bankedSouls={state.bankedSouls} />
+
+          <div style={{
+            padding: '6px 8px',
+            backgroundColor: GBC.bgPanel,
+            marginTop: '8px',
+            fontSize: '7px',
+            color: GBC.textDim,
+            border: `2px solid ${GBC.border}`
+          }}>
+            WASD: Move | E: Rest
+          </div>
+        </div>
+      );
+    }
+
+    function TeamStatus({ team, activeIndex, bankedSouls }) {
+      return (
+        <div style={styles.teamStatus}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', margin: '0 0 6px' }}>
+            <span style={{ color: GBC.textDim, fontSize: '8px' }}>TEAM</span>
+            {bankedSouls !== undefined && (
+              <span style={{ color: GBC.gold, fontSize: '7px' }}>BANKED: {bankedSouls}</span>
+            )}
+          </div>
+          {team.map((creature, i) => {
+            const baseData = STARTERS[creature.id];
+            const { maxHp, maxStamina } = applyScars(creature, baseData);
+            const hpPercent = (creature.hp / maxHp) * 100;
+            const staminaPercent = (creature.stamina / maxStamina) * 100;
+            const isActive = i === activeIndex;
+            const isHollowed = creature.scars && creature.scars.length >= 3;
+
+            return (
+              <div
+                key={i}
+                style={{
+                  ...styles.creatureStatus,
+                  borderColor: isActive ? getTypeColor(creature.type) : GBC.border,
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <div style={styles.creatureSprite}>
+                  <CreatureSprite type={creature.type} size={32} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                    <span style={{ fontSize: '8px' }}>
+                      {creature.name}
+                      {isHollowed && <span style={styles.scar}>HOLLOW</span>}
+                      {creature.winded && <span style={{ ...styles.status, ...styles.winded }}>WIND</span>}
+                      {creature.burnTurns > 0 && (
+                        <span style={{ ...styles.status, ...styles.burn }}>BURN</span>
+                      )}
+                    </span>
+                    <span style={{ fontSize: '8px', color: GBC.textDim }}>
+                      {creature.hp}/{maxHp}
+                    </span>
+                  </div>
+                  <div style={styles.hpBar}>
+                    <div style={{
+                    ...styles.hpFill,
+                    width: `${hpPercent}%`,
+                    backgroundColor: hpPercent > 50 ? '#4a4' : hpPercent > 25 ? '#aa4' : '#a44'
+                  }} />
+                </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
+                    <span style={{ fontSize: '7px', color: GBC.textDim }}>
+                      STA {creature.stamina}/{maxStamina}
+                    </span>
+                    {creature.scars && creature.scars.length > 0 && (
+                      <span>
+                        {creature.scars.slice(0, 2).map((scar, j) => (
+                          <span key={j} style={styles.scar}>{scar.name.slice(0, 4)}</span>
+                        ))}
+                        {creature.scars.length > 2 && <span style={styles.scar}>+{creature.scars.length - 2}</span>}
+                      </span>
+                    )}
+                  </div>
+                  <div style={styles.staminaBar}>
+                    <div style={{
+                      ...styles.staminaFill,
+                      width: `${staminaPercent}%`
+                    }} />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    function Battle({ state, dispatch }) {
+      const activeCreature = state.team[state.activeCreatureIndex];
+      const activeBase = STARTERS[activeCreature.id];
+      const { maxHp, maxStamina, hasFlinching } = applyScars(activeCreature, activeBase);
+
+      const enemyHpPercent = (state.enemy.hp / state.enemyCreature.maxHp) * 100;
+      const playerHpPercent = (activeCreature.hp / maxHp) * 100;
+
+      useEffect(() => {
+        if (state.turnPhase === 'enemy') {
+          const timer = setTimeout(() => {
+            dispatch({ type: 'ENEMY_TURN' });
+          }, 1000);
+          return () => clearTimeout(timer);
+        }
+      }, [state.turnPhase, dispatch]);
+
+      const getMoveWithPriority = (move) => {
+        if (move.priority && hasFlinching) {
+          return { ...move, priority: false };
+        }
+        return move;
+      };
+
+      const enemyType = state.isBossFight ? 'boss' : state.enemyCreature.type;
+
+      return (
+        <div style={styles.battleContainer}>
+          <div style={styles.header}>
+            <span style={styles.souls}>SOULS {state.souls}</span>
+            <span style={{ color: state.isBossFight ? GBC.red : GBC.textDim, fontSize: '9px' }}>
+              {state.isBossFight ? 'BOSS' : 'BATTLE'}
+            </span>
+          </div>
+
+          {state.arenaEffect === 'scorchedEarth' && (
+            <div style={{
+              textAlign: 'center',
+              padding: '6px',
+              backgroundColor: '#2a1510',
+              color: GBC.fire,
+              marginBottom: '8px',
+              border: `2px solid ${GBC.fire}`,
+              fontSize: '8px',
+              animation: 'flicker 0.5s infinite'
+            }}>
+              SCORCHED EARTH - 2 DMG/TURN
+            </div>
+          )}
+
+          {/* Battle sprite arena */}
+          <div style={styles.battleSpriteArea}>
+            <div style={{ textAlign: 'center' }}>
+              <CreatureSprite type={activeCreature.type} size={48} />
+              <div style={{ fontSize: '7px', color: GBC.text, marginTop: '4px' }}>{activeCreature.name}</div>
+            </div>
+            <div style={{ fontSize: '16px', color: GBC.textDim }}>VS</div>
+            <div style={{ textAlign: 'center' }}>
+              <CreatureSprite type={enemyType} size={state.isBossFight ? 56 : 48} isEnemy={true} />
+              <div style={{ fontSize: '7px', color: GBC.text, marginTop: '4px' }}>{state.enemyCreature.name}</div>
+            </div>
+          </div>
+
+          {/* Enemy stats */}
+          <div style={styles.battleCreature}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <span style={{ fontSize: '8px' }}>
+                {state.enemyCreature.name}
+                {state.bossPhase === 2 && <span style={{ color: GBC.red, marginLeft: '4px' }}>P2</span>}
+              </span>
+              <span style={{ fontSize: '8px', color: GBC.textDim }}>
+                {state.enemy.hp}/{state.enemyCreature.maxHp}
+              </span>
+            </div>
+            <div style={styles.hpBar}>
+              <div style={{
+                ...styles.hpFill,
+                width: `${enemyHpPercent}%`,
+                backgroundColor: GBC.red
+              }} />
+            </div>
+            <div style={{ fontSize: '7px', color: GBC.textDim, marginTop: '3px' }}>
+              STA {state.enemy.stamina}/{state.enemyCreature.maxStamina}
+              {state.enemy.winded && <span style={{ ...styles.status, ...styles.winded }}>WIND</span>}
+              {state.enemy.isGuarding && <span style={{ ...styles.status, backgroundColor: '#1a2a3a', border: `1px solid ${GBC.blue}`, color: GBC.blue }}>GRD</span>}
+            </div>
+          </div>
+
+          {/* Battle log */}
+          <div style={styles.battleAnimation}>
+            {state.battleLog.slice(-2).map((log, i) => (
+              <div key={i} style={{ marginBottom: '4px' }}>{log}</div>
+            ))}
+          </div>
+
+          {/* Player stats */}
+          <div style={styles.battleCreature}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <span style={{ fontSize: '8px' }}>
+                {activeCreature.name}
+                {activeCreature.winded && <span style={{ ...styles.status, ...styles.winded }}>WIND</span>}
+                {activeCreature.burnTurns > 0 && <span style={{ ...styles.status, ...styles.burn }}>BURN</span>}
+                {activeCreature.isGuarding && <span style={{ ...styles.status, backgroundColor: '#1a2a3a', border: `1px solid ${GBC.blue}`, color: GBC.blue }}>GRD</span>}
+              </span>
+              <span style={{ fontSize: '8px', color: GBC.textDim }}>
+                {activeCreature.hp}/{maxHp}
+              </span>
+            </div>
+            <div style={styles.hpBar}>
+              <div style={{
+                ...styles.hpFill,
+                width: `${playerHpPercent}%`,
+                backgroundColor: playerHpPercent > 50 ? GBC.green : playerHpPercent > 25 ? GBC.gold : GBC.red
+              }} />
+            </div>
+            <div style={{ fontSize: '7px', color: GBC.textDim, marginTop: '3px' }}>
+              STA {activeCreature.stamina}/{maxStamina}
+              {activeCreature.scars && activeCreature.scars.length > 0 && (
+                <span style={{ marginLeft: '6px' }}>
+                  {activeCreature.scars.slice(0, 2).map((scar, j) => (
+                    <span key={j} style={styles.scar}>{scar.name.slice(0, 4)}</span>
+                  ))}
+                </span>
+              )}
+            </div>
+            <div style={styles.staminaBar}>
+              <div style={{
+                ...styles.staminaFill,
+                width: `${(activeCreature.stamina / maxStamina) * 100}%`
+              }} />
+            </div>
+          </div>
+
+          {/* Move buttons */}
+          <div style={styles.moveButtons}>
+            {activeBase.moves.map((move, i) => {
+              const adjustedMove = getMoveWithPriority(move);
+              const canUse = adjustedMove.cost <= activeCreature.stamina && state.turnPhase === 'player';
+
+              return (
+                <button
+                  key={i}
+                  style={{
+                    ...styles.moveButton,
+                    ...(canUse ? {} : styles.moveButtonDisabled)
+                  }}
+                  disabled={!canUse}
+                  onClick={() => dispatch({ type: 'SELECT_MOVE', move: adjustedMove })}
+                >
+                  <div>{adjustedMove.name}</div>
+                  <div style={{ fontSize: '7px', color: GBC.textDim, marginTop: '3px' }}>
+                    {adjustedMove.cost}SP
+                    {adjustedMove.damage > 0 ? ` ${adjustedMove.damage}DMG` : ` ${adjustedMove.effect?.toUpperCase()}`}
+                    {adjustedMove.priority && !hasFlinching && ' PRI'}
+                  </div>
+                </button>
+              );
+            })}
+
+            {/* Bind button - only for wild creatures, not bosses */}
+            {!state.isBossFight && (() => {
+              const canBind = state.souls >= BIND_COST &&
+                              state.team.length < MAX_TEAM_SIZE &&
+                              state.turnPhase === 'player';
+              const captureChance = getCaptureChance(state.enemy.hp, state.enemy.maxHp);
+
+              return (
+                <button
+                  style={{
+                    ...styles.bindButton,
+                    ...(canBind ? {} : styles.bindButtonDisabled)
+                  }}
+                  disabled={!canBind}
+                  onClick={() => dispatch({ type: 'BIND_ATTEMPT' })}
+                  title={`${captureChance}% capture chance`}
+                >
+                  <div>SOUL BIND ({BIND_COST} souls)</div>
+                  <div style={{ fontSize: '7px', marginTop: '3px' }}>
+                    {state.team.length >= MAX_TEAM_SIZE ? 'TEAM FULL' :
+                     state.souls < BIND_COST ? `NEED ${BIND_COST - state.souls} MORE SOULS` :
+                     `${captureChance}% CHANCE`}
+                  </div>
+                </button>
+              );
+            })()}
+          </div>
+
+          {state.team.length > 1 && (
+            <div style={{ marginTop: '8px' }}>
+              <div style={{ fontSize: '7px', color: GBC.textDim, marginBottom: '4px' }}>SWITCH:</div>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {state.team.map((creature, i) => {
+                  if (i === state.activeCreatureIndex) return null;
+                  const base = STARTERS[creature.id];
+                  const stats = applyScars(creature, base);
+                  return (
+                    <button
+                      key={i}
+                      style={{
+                        ...styles.moveButton,
+                        flex: 1,
+                        opacity: creature.hp <= 0 ? 0.5 : 1
+                      }}
+                      disabled={creature.hp <= 0 || state.turnPhase !== 'player'}
+                      onClick={() => dispatch({ type: 'SWITCH_CREATURE', index: i })}
+                    >
+                      {getTypeIcon(creature.type)} {creature.name} ({creature.hp}/{stats.maxHp})
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div style={styles.log}>
+            {state.battleLog.map((log, i) => (
+              <div key={i} style={{ marginBottom: '2px' }}>{log}</div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function Victory({ state, dispatch }) {
+      const totalScars = state.team.reduce((sum, c) => sum + (c.scars?.length || 0), 0);
+      const survivingCreatures = state.team.filter(c => c.hp > 0).length;
+
+      return (
+        <div style={styles.victory}>
+          <div style={{ fontSize: '14px', color: GBC.green, marginBottom: '12px' }}>VICTORY</div>
+          <div style={{ fontSize: '9px', color: GBC.text }}>Keeper Varek Defeated</div>
+
+          <div style={{ margin: '20px 0', textAlign: 'left', display: 'inline-block' }}>
+            <p style={{ color: GBC.gold, marginBottom: '8px', fontSize: '9px' }}>
+              SOULS +{BOSS.obsidianHound.souls}
+            </p>
+            <p style={{ color: GBC.red, marginBottom: '8px', fontSize: '9px' }}>
+              SCARS: {totalScars}
+            </p>
+            <p style={{ color: GBC.green, marginBottom: '8px', fontSize: '9px' }}>
+              ALIVE: {survivingCreatures}/{state.team.length}
+            </p>
+            <p style={{ color: GBC.textDim, marginBottom: '8px', fontSize: '9px' }}>
+              TOTAL: {state.souls + state.bankedSouls}
+            </p>
+          </div>
+
+          <p style={{ color: GBC.textDim, fontSize: '8px', marginTop: '20px' }}>
+            "The path ahead grows darker."
+          </p>
+
+          <button
+            style={styles.button}
+            onClick={() => dispatch({ type: 'RESTART' })}
+          >
+            NEW JOURNEY
+          </button>
+        </div>
+      );
+    }
+
+    function GameOver({ state, dispatch }) {
+      return (
+        <div style={styles.gameOver}>
+          <div style={{ fontSize: '14px', color: GBC.red, marginBottom: '16px' }}>YOU DIED</div>
+
+          {state.droppedSouls && (
+            <p style={{ color: GBC.gold, marginBottom: '16px', fontSize: '9px' }}>
+              {state.droppedSouls.amount} souls dropped
+            </p>
+          )}
+
+          <p style={{ color: GBC.textDim, marginBottom: '20px', fontSize: '8px' }}>
+            Scarred but not broken.
+          </p>
+
+          <button
+            style={styles.button}
+            onClick={() => dispatch({ type: 'RESPAWN' })}
+          >
+            RETURN
+          </button>
+        </div>
+      );
+    }
+
+    function MuteButton({ muted, onToggle }) {
+      return (
+        <button
+          style={styles.muteButton}
+          onClick={onToggle}
+          title={muted ? 'Unmute' : 'Mute'}
+        >
+          {muted ? '🔇' : '🔊'}
+        </button>
+      );
+    }
+
+    function PokeSouls() {
+      const [state, dispatch] = useReducer(gameReducer, initialState);
+      const [muted, setMuted] = useState(true); // Start muted, user clicks to enable
+      const [audioStarted, setAudioStarted] = useState(false);
+      const prevBonfireRef = useRef(null);
+
+      // Determine which track should play
+      const getTrackForState = useCallback(() => {
+        if (state.screen === 'starter') return null;
+        if (state.screen === 'victory') return 'victory';
+        if (state.screen === 'gameOver') return 'gameOver';
+        if (state.screen === 'battle') {
+          if (state.isBossFight && state.bossPhase === 2) return 'bossPhase2';
+          return 'battle';
+        }
+        if (state.screen === 'exploration') {
+          // Check if at bonfire
+          const map = state.currentMap === 'ashenPath' ? ASHEN_PATH : FALLEN_KEEP;
+          const tile = map[state.playerPos.y]?.[state.playerPos.x];
+          if (tile === 'B') return 'bonfire';
+          return 'exploration';
+        }
+        return null;
+      }, [state.screen, state.isBossFight, state.bossPhase, state.currentMap, state.playerPos]);
+
+      // Handle music transitions
+      useEffect(() => {
+        if (!audioStarted || muted) return;
+
+        const track = getTrackForState();
+        if (track) {
+          musicManager.switchTrack(track);
+        }
+      }, [getTrackForState, audioStarted, muted]);
+
+      // Handle mute toggle
+      const handleToggleMute = async () => {
+        if (!audioStarted) {
+          await musicManager.init();
+          setAudioStarted(true);
+          setMuted(false);
+          const track = getTrackForState();
+          if (track) {
+            musicManager.switchTrack(track);
+          }
+        } else {
+          const newMuted = musicManager.toggleMute();
+          setMuted(newMuted);
+        }
+      };
+
+      return (
+        <div style={styles.container}>
+          <MuteButton muted={muted} onToggle={handleToggleMute} />
+
+          {state.screen === 'starter' && (
+            <StarterSelect dispatch={dispatch} />
+          )}
+          {state.screen === 'exploration' && (
+            <Exploration state={state} dispatch={dispatch} />
+          )}
+          {state.screen === 'battle' && (
+            <Battle state={state} dispatch={dispatch} />
+          )}
+          {state.screen === 'victory' && (
+            <Victory state={state} dispatch={dispatch} />
+          )}
+          {state.screen === 'gameOver' && (
+            <GameOver state={state} dispatch={dispatch} />
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<PokeSouls />);
+  </script>
+</body>
+</html>
