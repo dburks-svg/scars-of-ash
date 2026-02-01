@@ -445,4 +445,4 @@ Inspired by classic handheld era games:
 ## Credits
 
 Created by **BBADAHS Games**
-*"The flame remembers."*
+*🍺🔥 We build games that break you. 🔥🍺*
