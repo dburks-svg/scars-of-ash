@@ -12,6 +12,8 @@ A help overlay appears on first launch with all game mechanics. Click the **?** 
 
 ## Controls
 
+### Exploration
+
 | Key | Action |
 |-----|--------|
 | W / Arrow Up | Move up |
@@ -23,7 +25,61 @@ A help overlay appears on first launch with all game mechanics. Click the **?** 
 | ESC | Pause menu |
 | ? button | Show help overlay |
 
+### Battle
+
+| Key | Action |
+|-----|--------|
+| 1-4 | Select move (shown on buttons) |
+| B | Soul Bind attempt |
+| Tab | Cycle through team members |
+
 Click buttons in battle to select moves.
+
+## Features
+
+### Sound Effects
+Procedural chiptune effects powered by Tone.js:
+- Hit sounds scale with damage (light/medium/heavy)
+- Critical hit ascending arpeggio
+- Creature faint descending tones
+- Soul bind whoosh and success/fail sounds
+- Status effect sounds (burn/poison/chill)
+- Victory fanfare and death music
+
+### Combat Juice
+- **Damage numbers** float and fade above creatures
+- **Screen shake** on heavy hits (15+ damage)
+- **Critical flash** on type-effective attacks
+- **HP bar pulse** when health is low
+- **Stamina warnings** with color changes
+
+### Status Effects
+
+| Status | Inflicted By | Effect | Duration |
+|--------|--------------|--------|----------|
+| Burn | Fire moves | 3 damage/turn | 2 turns |
+| Poison | Grass moves (Vine Lash) | 2 damage/turn | 3 turns |
+| Chill | Water moves (Tide Crash) | 25% chance to skip turn | 2 turns |
+
+### Creature Nicknames
+After capturing a creature, you can give it a nickname. Names appear in battle logs and menus, making the experience more personal.
+
+### Pre-Battle Preview
+When encountering wild creatures in grass:
+- See the creature's type before engaging
+- Choose to **FIGHT** or **FLEE**
+- Fleeing marks that grass as "alerted" - can't flee twice from the same spot
+
+### Run Statistics
+Access from the title screen's **STATS** button:
+- Total runs, deaths, and scars
+- Clears by difficulty with best times
+- Creatures captured
+- Achievements:
+  - **Unscarred** - Beat the game with 0 scars
+  - **Collector** - Capture all 5 creature types
+  - **True Hollow** - Defeat the Hollow Warden on Broken
+  - **Speedrunner** - Clear in under 20 minutes
 
 ## Difficulty Levels
 
@@ -56,7 +112,7 @@ Choose your fate at the start of each run:
 - All Hollowed settings plus:
 - No bonfire healing (save only)
 - One scar = Hollowed status
-- Boss has no phase transition pause
+- Boss has no phase transition HP recovery
 - **PERMADEATH**: Save deleted on wipe
 
 The difficulty icon appears in the top-left corner during gameplay.
@@ -77,9 +133,10 @@ The difficulty icon appears in the top-left corner during gameplay.
 
 ### What's Saved
 - Current map and position
-- Team creatures (HP, stamina, scars)
+- Team creatures (HP, stamina, scars, nicknames)
 - Souls (carried and banked)
 - Boss defeated status
+- Hollow Warden defeated status
 - Dropped souls location
 - Play time
 
@@ -99,50 +156,70 @@ Press **ESC** or click the **gear icon** to pause:
 *"The bonfire wars ended long ago. Binders and their companions fell, one by one. The creatures that survived... changed. Now they wander the ashen paths, feral and scarred."*
 
 ### Environmental Storytelling
-Press **X** to examine points of interest:
+Press **X** to examine points of interest across all maps:
+
+**Ashen Path:**
 - Old signposts pointing to places that no longer exist
 - Collapsed Healer's Sanctuary signs faded to gray
+- Abandoned packs from those who didn't escape
+- Scorched trees burned for purification
+
+**Fallen Keep:**
 - Scratched warnings about the keeper
 - Broken Soul Spheres, dozens of them
+- The Keeper's cold quarters
+- A trophy wall with unfinished names
+
+**The Hollow Deep:**
+- Shattered altars where light faded
+- Hollow roots drinking remaining light
+- Echoes of keepers past
+- The final gate between endings and beginnings
 
 ### Keeper Varek
-The boss has expanded dialogue:
+The first boss has expanded dialogue:
 - **Phase 1**: *"Another walks the ash. I was a guardian once. Now I am a door."*
 - **Phase 2**: *"You fight like the ones before... Let me show you why they stopped coming."*
 - **On Death**: *"Rest now. The bonfire remembers you."*
 
-### Victory Ending
-Defeating Varek reveals his final words about the endless cycle, and a gate opens to whatever lies beyond.
+### The Hollow Warden
+The post-game boss:
+- **Phase 1**: *"You carry his flame. But flames die in the deep."*
+- **Phase 2**: *"Light and dark... Let me show you what happens when they merge."*
+- **Victory**: *"The cycle continues. You have walked through shadow and emerged."*
 
 ## Game Systems
 
 ### Creatures
 
-Choose from three starters, each with a unique type:
+Choose from three starters, with two more available in the post-game:
 
 | Creature | Type | HP | Stamina | Signature Move |
 |----------|------|-----|---------|----------------|
 | Cindrath | Fire | 45 | 20 | Ember Slash (12 DMG) |
-| Marshveil | Water | 50 | 18 | Tide Crash (14 DMG) |
-| Thornwick | Grass | 40 | 24 | Vine Lash (10 DMG) |
+| Marshveil | Water | 50 | 18 | Tide Crash (14 DMG, can chill) |
+| Thornwick | Grass | 40 | 24 | Vine Lash (10 DMG, can poison) |
+| Umbravine | Dark | 42 | 22 | Shadow Lash (12 DMG) |
+| Solrath | Light | 48 | 18 | Radiant Burst (11 DMG) |
 
-### Wild vs Boss Balance
+**Dark/Light creatures only appear in The Hollow Deep.**
 
-Wild creatures deal **25% less damage** than their tamed counterparts (on Scarred difficulty):
+### Special Moves
 
-| Wild Move | Damage |
-|-----------|--------|
-| Ember Slash | 9 |
-| Tide Crash | 10 |
-| Vine Lash | 8 |
-| Quick Strike | 4 |
+| Creature | Unique Move | Effect |
+|----------|-------------|--------|
+| Umbravine | Void Drain | 8 DMG, drains 4 stamina, heals 4 HP |
+| Solrath | Purifying Light | Removes all status effects, heals 10 HP |
 
-### Type Effectiveness
+### Type Effectiveness (5x5 Chart)
 
-- Fire > Grass (1.5x damage)
-- Grass > Water (1.5x damage)
-- Water > Fire (1.5x damage)
-- Reverse matchups deal 0.5x damage
+|  | Fire | Water | Grass | Dark | Light |
+|--|------|-------|-------|------|-------|
+| **Fire** | 1.0 | 0.5 | 1.5 | 1.0 | 0.5 |
+| **Water** | 1.5 | 1.0 | 0.5 | 1.0 | 1.0 |
+| **Grass** | 0.5 | 1.5 | 1.0 | 0.5 | 1.0 |
+| **Dark** | 1.0 | 1.0 | 1.5 | 1.0 | 1.5 |
+| **Light** | 1.5 | 1.0 | 1.0 | 0.5 | 1.0 |
 
 ### Stamina System
 
@@ -170,10 +247,10 @@ Capture wild creatures to build your team:
   - At or below 50% HP: 30% chance
   - Above 50% HP: 10% chance
 - Difficulty modifies capture chance (+20% Ashen, -20% Hollowed/Broken)
-- **On Success**: Creature joins your team with current HP and any scars
+- **On Success**: Creature joins your team with current HP and any scars; you can name it
 - **On Failure**: Lose the souls, enemy attacks
 
-Wild creatures have stat variance (+/- 5 HP, +/- 2 stamina) and a 10% chance to already have a scar.
+Wild creatures have stat variance (+/- 5 HP, +/- 2 stamina) and a 10% chance to already have a scar. Deep creatures have +5 HP, +2 Stamina base and 20% pre-scar chance.
 
 ### Scarring System
 
@@ -194,9 +271,10 @@ Scars are permanent (except on Ashen difficulty where they heal at bonfires).
 ### Souls Economy
 
 - Defeat wild creatures: +12 souls
-- Defeat the boss: +100 souls
+- Defeat Keeper Varek: +100 souls
+- Defeat Hollow Warden: +200 souls
 - **Death**: Drop souls at death location (amount varies by difficulty)
-- **Recovery**: Return to the spot to reclaim dropped souls
+- **Recovery**: Return to the spot to reclaim dropped souls (now with visible SOULS label)
 - **Banking**: Rest at a bonfire to bank souls safely
 
 Banked souls are safe (except on Hollowed/Broken difficulty).
@@ -235,26 +313,58 @@ W P W W P W
 W P W P P W
 W P P P W W
 W W W P W W
-W K P P P W    K = Boss room
+W K P P P W    K = Boss room (Hollow Deep entrance after victory)
 W W E W W W    E = Exit to Ashen Path
 ```
 
-## Boss Fight: Keeper Varek
+### The Hollow Deep (Post-Game)
+Unlocks after defeating Keeper Varek. Contains Dark and Light type creatures.
+
+```
+W W W W W W W W
+W P P P G P P W    E = Entrance (from Fallen Keep)
+W P W W W W P W    G = Grass (Dark/Light encounters)
+W P W B W P P W    B = Bonfire
+W P P P P W G W    K = Hollow Warden
+W W W P W W P W    P = Path
+W K P P P P P W    W = Wall
+W W W E W W W W
+```
+
+## Boss Fights
+
+### Keeper Varek (Obsidian Hound)
 
 *"Another walks the ash. Another seeks the flame beyond."*
 
 The Obsidian Hound guards the keep. A two-phase fight:
 
-### Phase 1
+#### Phase 1
 - HP: 60 (75 on Hollowed/Broken)
 - Moves: Ember Slash, Flame Wall (burn), Guard
 - Trigger Phase 2 at 30% HP
 
-### Phase 2
+#### Phase 2
 - Gains +20 HP (none on Broken)
 - **Scorched Earth**: Arena deals 2 damage per turn to non-Fire types
 - New move: **Desperation Fang** (20 damage, 5 recoil)
 - More aggressive AI targets low-HP players
+
+### The Hollow Warden (Post-Game Boss)
+
+*"You carry his flame. But flames die in the deep."*
+
+A corrupted guardian that merges light and dark. Harder than Varek.
+
+#### Phase 1 (Dark type)
+- HP: 70 (87 on Hollowed/Broken)
+- Moves: Shadow Lash, Void Grasp (drains 4 stamina), Guard
+- Trigger Phase 2 at 30% HP
+
+#### Phase 2 (Dark/Light hybrid)
+- Gains +25 HP (none on Broken)
+- **Fractured Aura**: Arena deals 2 damage per turn to non-Dark and non-Light types
+- New moves: **Shattered Light** (14 damage), **Desperate Void** (18 damage, 6 recoil)
 
 ## Audio
 
@@ -266,16 +376,35 @@ Click the speaker icon to toggle chiptune music:
 - **Boss Phase 2**: Frantic chromatic tension, dissonant harmonies
 - **Victory/Game Over**: Somber resolution
 
+Sound effects include:
+- Hit sounds (light/medium/heavy based on damage)
+- Critical hit arpeggio
+- Status effect sounds (burn/poison/chill)
+- Soul bind attempt and result sounds
+- Bonfire crackling
+- Menu clicks
+
 Music is muted by default. Click to enable.
 
 ## Visual Style
 
 Inspired by classic handheld era games:
-- 56x56 pixel tiles
+- 56x56 pixel tiles (scales on larger screens)
 - Pixel art sprites (player, creatures, environment)
 - Press Start 2P font
 - GBC color palette
 - Animated bonfires with flickering flames
+- Floating damage numbers
+- Screen shake on heavy hits
+- Status effect badges
+
+## Accessibility
+
+- **Keyboard controls** for all battle actions (1-4, B, Tab)
+- **Focus rings** visible on keyboard navigation
+- **Type icons** displayed alongside type names
+- **Color-coded status effects** with text labels
+- **Stamina warnings** with visual and color indicators
 
 ## UI Elements
 
@@ -283,6 +412,7 @@ Inspired by classic handheld era games:
 - **Gear button** (top right): Opens pause menu
 - **? button** (top right): Opens help overlay
 - **Speaker button** (top right): Toggle chiptune music on/off
+- **STATS button** (title screen): View run statistics and achievements
 
 ## Technical Details
 
@@ -290,7 +420,7 @@ Inspired by classic handheld era games:
 - **Audio**: Tone.js for procedural chiptune synthesis
 - **Rendering**: Inline SVG for pixel art sprites
 - **State Management**: useReducer for game state
-- **Storage**: localStorage for saves and preferences
+- **Storage**: localStorage for saves, preferences, and statistics
 - **Single File**: Everything in index.html, no build required
 
 ## Tips
@@ -305,6 +435,10 @@ Inspired by classic handheld era games:
 8. **Examine everything** - The world has stories to tell
 9. **Save at bonfires** - Auto-save protects your progress
 10. **Choose your difficulty** - No shame in Ashen mode
+11. **Check the type preview** - You can flee encounters once
+12. **Use keyboard shortcuts** - 1-4 for moves, B for bind
+13. **Name your creatures** - Makes the journey more personal
+14. **Explore The Hollow Deep** - Dark/Light types await post-game
 
 ## Credits
 
