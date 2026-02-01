@@ -1697,6 +1697,76 @@
         fontFamily: '"Press Start 2P", monospace',
         zIndex: 1500,
         boxShadow: `0 0 20px rgba(246, 224, 94, 0.3)`
+      },
+      difficultySelect: {
+        textAlign: 'center',
+        padding: '20px 15px'
+      },
+      difficultyTitle: {
+        color: GBC.textDim,
+        fontSize: '12px',
+        marginBottom: '20px',
+        letterSpacing: '2px'
+      },
+      difficultyCard: {
+        display: 'block',
+        width: '100%',
+        maxWidth: '300px',
+        margin: '0 auto 12px',
+        padding: '12px 16px',
+        backgroundColor: GBC.bgPanel,
+        border: `3px solid ${GBC.border}`,
+        cursor: 'pointer',
+        textAlign: 'left',
+        boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`,
+        transition: 'border-color 0.1s'
+      },
+      difficultyHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        marginBottom: '6px'
+      },
+      difficultyIcon: {
+        fontSize: '14px',
+        marginRight: '8px'
+      },
+      difficultyName: {
+        color: GBC.text,
+        fontSize: '9px',
+        marginRight: '8px'
+      },
+      difficultySubtitle: {
+        color: GBC.textDim,
+        fontSize: '7px'
+      },
+      difficultyDesc: {
+        color: GBC.textDim,
+        fontSize: '7px',
+        fontStyle: 'italic',
+        marginBottom: '8px'
+      },
+      difficultyDetails: {
+        color: GBC.textDim,
+        fontSize: '6px',
+        lineHeight: '1.6'
+      },
+      difficultyIndicator: {
+        position: 'fixed',
+        top: '8px',
+        left: '8px',
+        backgroundColor: GBC.bgPanel,
+        border: `2px solid ${GBC.border}`,
+        padding: '6px 10px',
+        fontSize: '10px',
+        fontFamily: '"Press Start 2P", monospace',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px'
+      },
+      difficultyIndicatorName: {
+        fontSize: '7px',
+        color: GBC.textDim
       }
     };
 
@@ -1718,7 +1788,7 @@
       }
     };
 
-    const calculateDamage = (move, attacker, defender, attackerCreature, defenderCreature) => {
+    const calculateDamage = (move, attacker, defender, attackerCreature, defenderCreature, difficultyMult = 1.0) => {
       if (move.damage === 0) return 0;
       let damage = move.damage;
       const effectiveness = TYPE_CHART[attackerCreature.type][defenderCreature.type];
@@ -1735,6 +1805,9 @@
       if (attacker.scars && attacker.scars.length >= 3) {
         damage = Math.floor(damage * 0.75);
       }
+
+      // Apply difficulty multiplier for enemy attacks
+      damage = Math.floor(damage * difficultyMult);
 
       return Math.max(1, damage);
     };
@@ -1767,19 +1840,32 @@
       return creature;
     };
 
-    const getCaptureChance = (currentHp, maxHp) => {
+    const getCaptureChance = (currentHp, maxHp, captureBonus = 0) => {
       const hpPercent = (currentHp / maxHp) * 100;
-      if (hpPercent < 10) return 90;
-      if (hpPercent < 25) return 60;
-      if (hpPercent <= 50) return 30;
-      return 10;
+      let chance;
+      if (hpPercent < 10) chance = 90;
+      else if (hpPercent < 25) chance = 60;
+      else if (hpPercent <= 50) chance = 30;
+      else chance = 10;
+      // Apply difficulty capture bonus (capped at 5-95%)
+      return Math.max(5, Math.min(95, chance + captureBonus));
     };
 
-    const getRandomScar = () => {
-      return SCAR_TYPES[Math.floor(Math.random() * SCAR_TYPES.length)];
+    const getRandomScar = (difficulty) => {
+      const baseScar = SCAR_TYPES[Math.floor(Math.random() * SCAR_TYPES.length)];
+      // Apply difficulty-specific penalties
+      if (difficulty && difficulty.scarPenalties) {
+        if (baseScar.effect === 'maxHp') {
+          return { ...baseScar, value: difficulty.scarPenalties.hp, description: `${difficulty.scarPenalties.hp} max HP` };
+        }
+        if (baseScar.effect === 'maxStamina') {
+          return { ...baseScar, value: difficulty.scarPenalties.stamina, description: `${difficulty.scarPenalties.stamina} max Stamina` };
+        }
+      }
+      return baseScar;
     };
 
-    const applyScars = (creature, baseData) => {
+    const applyScars = (creature, baseData, hollowedThreshold = 3) => {
       let maxHp = baseData.maxHp;
       let maxStamina = baseData.maxStamina;
       let hasFlinching = false;
@@ -1792,7 +1878,7 @@
         });
       }
 
-      if (creature.scars && creature.scars.length >= 3) {
+      if (creature.scars && creature.scars.length >= hollowedThreshold) {
         maxHp = Math.floor(maxHp * 0.75);
         maxStamina = Math.floor(maxStamina * 0.75);
       }
@@ -1894,6 +1980,90 @@
       ]
     };
 
+    // ============= DIFFICULTY SYSTEM =============
+    const DIFFICULTIES = {
+      ashen: {
+        id: 'ashen',
+        name: 'ASHEN',
+        icon: '🔥',
+        subtitle: 'Easy',
+        description: 'For those who wish to explore.',
+        wildDamageMult: 0.5,
+        bossDamageMult: 0.75,
+        scarsHealAtBonfire: true,
+        soulDropPercent: 0.5,
+        dropBankedSouls: false,
+        captureBonus: 20,
+        bossHpMult: 1.0,
+        hollowedThreshold: 3,
+        bonfireHeals: true,
+        permadeath: false,
+        bossPhaseTransition: true,
+        scarPenalties: { hp: -5, stamina: -2 }
+      },
+      scarred: {
+        id: 'scarred',
+        name: 'SCARRED',
+        icon: '💀',
+        subtitle: 'Normal',
+        description: 'The path as intended.',
+        wildDamageMult: 0.75,
+        bossDamageMult: 1.0,
+        scarsHealAtBonfire: false,
+        soulDropPercent: 1.0,
+        dropBankedSouls: false,
+        captureBonus: 0,
+        bossHpMult: 1.0,
+        hollowedThreshold: 3,
+        bonfireHeals: true,
+        permadeath: false,
+        bossPhaseTransition: true,
+        scarPenalties: { hp: -5, stamina: -2 }
+      },
+      hollowed: {
+        id: 'hollowed',
+        name: 'HOLLOWED',
+        icon: '👁',
+        subtitle: 'Hard',
+        description: 'For those who seek true suffering.',
+        wildDamageMult: 1.0,
+        bossDamageMult: 1.0,
+        scarsHealAtBonfire: false,
+        soulDropPercent: 1.0,
+        dropBankedSouls: true,
+        captureBonus: -20,
+        bossHpMult: 1.25,
+        hollowedThreshold: 3,
+        bonfireHeals: true,
+        permadeath: false,
+        bossPhaseTransition: true,
+        scarPenalties: { hp: -7, stamina: -3 }
+      },
+      broken: {
+        id: 'broken',
+        name: 'BROKEN',
+        icon: '☠',
+        subtitle: 'Nightmare',
+        description: 'You will not survive.',
+        wildDamageMult: 1.0,
+        bossDamageMult: 1.0,
+        scarsHealAtBonfire: false,
+        soulDropPercent: 1.0,
+        dropBankedSouls: true,
+        captureBonus: -20,
+        bossHpMult: 1.25,
+        hollowedThreshold: 1,
+        bonfireHeals: false,
+        permadeath: true,
+        bossPhaseTransition: false,
+        scarPenalties: { hp: -7, stamina: -3 }
+      }
+    };
+
+    const getDifficulty = (state) => {
+      return DIFFICULTIES[state.difficulty] || DIFFICULTIES.scarred;
+    };
+
     // ============= SAVE SYSTEM =============
     const SAVE_KEY = 'pokeSoulsSaveData';
 
@@ -1913,6 +2083,7 @@
         lastBonfire: state.lastBonfire,
         hasSeenPrologue: state.hasSeenPrologue,
         playTime: state.playTime,
+        difficulty: state.difficulty,
         savedAt: Date.now()
       };
     };
@@ -1962,7 +2133,8 @@
     };
 
     const initialState = {
-      screen: 'starter',
+      screen: 'difficulty',
+      difficulty: 'scarred',
       currentMap: 'ashenPath',
       playerPos: { x: 1, y: 1 },
       playerDir: 'down',
@@ -1994,8 +2166,9 @@
     };
 
     function handleCreatureFaint(state, team, enemy, log) {
+      const difficulty = getDifficulty(state);
       const activeCreature = team[state.activeCreatureIndex];
-      const scar = getRandomScar();
+      const scar = getRandomScar(difficulty);
 
       activeCreature.hp = 0;
       activeCreature.scars = [...(activeCreature.scars || []), scar];
@@ -2003,7 +2176,7 @@
       log.push(`${activeCreature.name} has fallen!`);
       log.push(`${activeCreature.name} gained scar: ${scar.name} (${scar.description})`);
 
-      if (activeCreature.scars.length >= 3) {
+      if (activeCreature.scars.length >= difficulty.hollowedThreshold) {
         log.push(`${activeCreature.name} has become Hollowed...`);
       }
 
@@ -2012,10 +2185,16 @@
       const availableIndex = team.findIndex((c, i) => i !== state.activeCreatureIndex && c.hp > 0);
 
       if (availableIndex === -1) {
-        const droppedSouls = state.souls > 0 ? {
+        // Calculate souls to drop based on difficulty
+        let soulsToDrop = Math.floor(state.souls * difficulty.soulDropPercent);
+        if (difficulty.dropBankedSouls) {
+          soulsToDrop += state.bankedSouls;
+        }
+
+        const droppedSouls = soulsToDrop > 0 ? {
           map: state.currentMap,
           pos: { ...state.playerPos },
-          amount: state.souls
+          amount: soulsToDrop
         } : state.droppedSouls;
 
         // Add boss death dialogue if dying to boss
@@ -2030,6 +2209,7 @@
           enemy,
           battleLog: log,
           souls: 0,
+          bankedSouls: difficulty.dropBankedSouls ? 0 : state.bankedSouls,
           droppedSouls,
           diedToBoss: state.isBossFight
         };
@@ -2047,6 +2227,14 @@
 
     function gameReducer(state, action) {
       switch (action.type) {
+        case 'SELECT_DIFFICULTY': {
+          return {
+            ...state,
+            difficulty: action.difficulty,
+            screen: 'starter'
+          };
+        }
+
         case 'SELECT_STARTER': {
           const starterData = STARTERS[action.starter];
           const newCreature = {
@@ -2169,17 +2357,20 @@
 
           if (tile === 'K' && !state.bossDefeated) {
             const bossData = BOSS.obsidianHound;
+            const difficulty = getDifficulty(state);
+            const bossMaxHp = Math.floor(bossData.maxHp * difficulty.bossHpMult);
             newState = {
               ...newState,
               screen: 'battle',
               enemy: {
                 ...bossData,
-                hp: bossData.maxHp,
+                maxHp: bossMaxHp,
+                hp: bossMaxHp,
                 stamina: bossData.maxStamina,
                 winded: false,
                 isGuarding: false
               },
-              enemyCreature: bossData,
+              enemyCreature: { ...bossData, maxHp: bossMaxHp },
               battleLog: [
                 'Keeper Varek blocks your path!',
                 ...BOSS_DIALOGUE.intro
@@ -2219,11 +2410,29 @@
         }
 
         case 'REST_AT_BONFIRE': {
+          const difficulty = getDifficulty(state);
+
           const team = state.team.map(creature => {
             const baseData = STARTERS[creature.id];
-            const { maxHp, maxStamina } = applyScars(creature, baseData);
+            // Clear scars on Ashen difficulty
+            const scars = difficulty.scarsHealAtBonfire ? [] : creature.scars;
+            const creatureWithScars = { ...creature, scars };
+            const { maxHp, maxStamina } = applyScars(creatureWithScars, baseData, difficulty.hollowedThreshold);
+
+            // Broken difficulty: bonfire doesn't heal HP
+            if (!difficulty.bonfireHeals) {
+              return {
+                ...creature,
+                scars,
+                stamina: maxStamina,
+                winded: false,
+                burnTurns: 0
+              };
+            }
+
             return {
               ...creature,
+              scars,
               hp: creature.hp === 0 ? 1 : maxHp,
               stamina: maxStamina,
               winded: false,
@@ -2233,6 +2442,10 @@
 
           const grassEncounters = state.grassEncounters.map(e => ({ ...e, active: true }));
 
+          const saveMessage = difficulty.bonfireHeals
+            ? 'Bonfire lit. Progress saved.'
+            : 'Bonfire lit. Progress saved. No healing.';
+
           const newState = {
             ...state,
             team,
@@ -2241,7 +2454,7 @@
             souls: 0,
             lastBonfire: { map: state.currentMap, pos: { ...state.playerPos } },
             bonfireMenuOpen: false,
-            saveNotification: 'Bonfire lit. Progress saved.'
+            saveNotification: saveMessage
           };
 
           // Auto-save when resting
@@ -2350,7 +2563,11 @@
 
           if (state.isBossFight && state.bossPhase === 1 &&
               newEnemy.hp <= state.enemyCreature.maxHp * 0.3 && newEnemy.hp > 0) {
-            newEnemy.hp += 20;
+            const difficulty = getDifficulty(state);
+            // Broken difficulty: no phase transition pause (boss still transforms but no HP recovery)
+            if (difficulty.bossPhaseTransition) {
+              newEnemy.hp += 20;
+            }
             BOSS_DIALOGUE.phase2.forEach(line => log.push(line));
             log.push('Obsidian Hound transforms! The arena ignites with scorched earth!');
             return {
@@ -2417,7 +2634,8 @@
           }
 
           let log = [...state.battleLog];
-          const captureChance = getCaptureChance(state.enemy.hp, state.enemy.maxHp);
+          const difficulty = getDifficulty(state);
+          const captureChance = getCaptureChance(state.enemy.hp, state.enemy.maxHp, difficulty.captureBonus);
           const roll = Math.random() * 100;
 
           log.push(`Attempting soul bind... (${captureChance}% chance)`);
@@ -2486,7 +2704,8 @@
           let log = [...state.battleLog];
           let activeCreature = newTeam[state.activeCreatureIndex];
           const activeBase = STARTERS[activeCreature.id];
-          const { maxHp, maxStamina } = applyScars(activeCreature, activeBase);
+          const enemyDifficulty = getDifficulty(state);
+          const { maxHp, maxStamina } = applyScars(activeCreature, activeBase, enemyDifficulty.hollowedThreshold);
 
           activeCreature = {
             ...activeCreature,
@@ -2549,8 +2768,10 @@
             newEnemy.stamina -= selectedMove.cost;
             log.push(`${state.enemyCreature.name} guards.`);
           } else {
+            const difficulty = getDifficulty(state);
+            const damageMult = state.isBossFight ? difficulty.bossDamageMult : difficulty.wildDamageMult;
             const damage = calculateDamage(selectedMove, newEnemy, activeCreature,
-              state.enemyCreature, activeBase);
+              state.enemyCreature, activeBase, damageMult);
 
             activeCreature.hp = Math.max(0, activeCreature.hp - damage);
             activeCreature.isGuarding = false;
@@ -2624,9 +2845,10 @@
         }
 
         case 'RESPAWN': {
+          const respawnDifficulty = getDifficulty(state);
           const team = state.team.map(creature => {
             const baseData = STARTERS[creature.id];
-            const { maxHp, maxStamina } = applyScars(creature, baseData);
+            const { maxHp, maxStamina } = applyScars(creature, baseData, respawnDifficulty.hollowedThreshold);
             return {
               ...creature,
               hp: creature.hp === 0 ? 1 : Math.max(creature.hp, 1),
@@ -2688,6 +2910,7 @@
           return {
             ...initialState,
             screen: 'exploration',
+            difficulty: saveData.difficulty || 'scarred',
             currentMap: saveData.currentMap,
             playerPos: saveData.playerPos,
             playerDir: saveData.playerDir,
@@ -2721,6 +2944,79 @@
         default:
           return state;
       }
+    }
+
+    function DifficultySelect({ dispatch }) {
+      const difficultyInfo = {
+        ashen: [
+          '• Wild damage reduced 50%',
+          '• Scars heal at bonfire',
+          '• Souls only drop 50% on death',
+          '• Capture chance +20%'
+        ],
+        scarred: [
+          '• Standard damage (wild -25%)',
+          '• Permanent scars',
+          '• Full soul drop on death',
+          '• Standard capture rates'
+        ],
+        hollowed: [
+          '• Full damage from all enemies',
+          '• Worse scar penalties (-7 HP, -3 STA)',
+          '• Drop ALL souls including banked',
+          '• Capture chance -20%',
+          '• Boss has 25% more HP'
+        ],
+        broken: [
+          '• All Hollowed settings plus:',
+          '• No bonfire healing (save only)',
+          '• One scar = Hollowed status',
+          '• Boss has no phase pause',
+          '• PERMADEATH: Save deleted on wipe'
+        ]
+      };
+
+      return (
+        <div style={styles.difficultySelect}>
+          <h1 style={{ color: GBC.textDim, marginBottom: '4px', fontSize: '16px' }}>POKE SOULS</h1>
+          <div style={styles.difficultyTitle}>CHOOSE YOUR FATE</div>
+
+          {Object.values(DIFFICULTIES).map(diff => (
+            <div
+              key={diff.id}
+              style={styles.difficultyCard}
+              onClick={() => dispatch({ type: 'SELECT_DIFFICULTY', difficulty: diff.id })}
+              onMouseOver={e => {
+                const colors = { ashen: GBC.gold, scarred: GBC.textDim, hollowed: GBC.red, broken: '#8b0000' };
+                e.currentTarget.style.borderColor = colors[diff.id] || GBC.border;
+              }}
+              onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+            >
+              <div style={styles.difficultyHeader}>
+                <span style={styles.difficultyIcon}>{diff.icon}</span>
+                <span style={styles.difficultyName}>{diff.name}</span>
+                <span style={styles.difficultySubtitle}>({diff.subtitle})</span>
+              </div>
+              <div style={styles.difficultyDesc}>"{diff.description}"</div>
+              <div style={styles.difficultyDetails}>
+                {difficultyInfo[diff.id].map((line, i) => (
+                  <div key={i}>{line}</div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    function DifficultyIndicator({ difficulty }) {
+      const diff = DIFFICULTIES[difficulty] || DIFFICULTIES.scarred;
+      return (
+        <div style={styles.difficultyIndicator}>
+          <span>{diff.icon}</span>
+          <span style={styles.difficultyIndicatorName}>{diff.name}</span>
+        </div>
+      );
     }
 
     function StarterSelect({ dispatch }) {
@@ -3231,7 +3527,8 @@
               const canBind = state.souls >= BIND_COST &&
                               state.team.length < MAX_TEAM_SIZE &&
                               state.turnPhase === 'player';
-              const captureChance = getCaptureChance(state.enemy.hp, state.enemy.maxHp);
+              const difficulty = getDifficulty(state);
+              const captureChance = getCaptureChance(state.enemy.hp, state.enemy.maxHp, difficulty.captureBonus);
 
               return (
                 <button
@@ -3354,9 +3651,31 @@
     }
 
     function GameOver({ state, dispatch }) {
+      const difficulty = getDifficulty(state);
+      const isPermadeath = difficulty.permadeath;
+
+      // Delete save on permadeath
+      useEffect(() => {
+        if (isPermadeath) {
+          deleteSaveData();
+        }
+      }, [isPermadeath]);
+
       return (
         <div style={styles.gameOver}>
           <div style={{ fontSize: '14px', color: GBC.red, marginBottom: '16px' }}>YOU DIED</div>
+
+          {isPermadeath && (
+            <div style={{
+              marginBottom: '16px',
+              padding: '10px',
+              backgroundColor: 'rgba(252, 129, 129, 0.1)',
+              border: `2px solid ${GBC.red}`
+            }}>
+              <p style={{ color: GBC.red, fontSize: '8px', marginBottom: '4px' }}>PERMADEATH</p>
+              <p style={{ color: GBC.textDim, fontSize: '7px' }}>Your save has been erased.</p>
+            </div>
+          )}
 
           {state.diedToBoss && (
             <div style={{ marginBottom: '16px' }}>
@@ -3368,21 +3687,21 @@
             </div>
           )}
 
-          {state.droppedSouls && (
+          {state.droppedSouls && !isPermadeath && (
             <p style={{ color: GBC.gold, marginBottom: '16px', fontSize: '9px' }}>
               {state.droppedSouls.amount} souls dropped
             </p>
           )}
 
           <p style={{ color: GBC.textDim, marginBottom: '20px', fontSize: '8px' }}>
-            Scarred but not broken.
+            {isPermadeath ? 'Broken beyond repair.' : 'Scarred but not broken.'}
           </p>
 
           <button
             style={styles.button}
-            onClick={() => dispatch({ type: 'RESPAWN' })}
+            onClick={() => dispatch({ type: isPermadeath ? 'RESTART' : 'RESPAWN' })}
           >
-            RETURN
+            {isPermadeath ? 'NEW GAME' : 'RETURN'}
           </button>
         </div>
       );
@@ -3545,10 +3864,16 @@
       const totalScars = saveData.team.reduce((sum, c) => sum + (c.scars?.length || 0), 0);
       const leadCreature = saveData.team[saveData.activeCreatureIndex] || saveData.team[0];
       const mapName = saveData.currentMap === 'ashenPath' ? 'Ashen Path' : 'Fallen Keep';
+      const diff = DIFFICULTIES[saveData.difficulty] || DIFFICULTIES.scarred;
 
       return (
         <div style={styles.saveSlot}>
-          <div style={styles.saveSlotTitle}>SAVED JOURNEY</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div style={styles.saveSlotTitle}>SAVED JOURNEY</div>
+            <div style={{ fontSize: '10px' }}>
+              {diff.icon} <span style={{ fontSize: '7px', color: GBC.textDim }}>{diff.name}</span>
+            </div>
+          </div>
           <div style={styles.saveSlotStat}>
             Lead: {leadCreature?.name || 'Unknown'} ({saveData.team.length} creature{saveData.team.length > 1 ? 's' : ''})
           </div>
@@ -3836,7 +4161,7 @@
 
       // Compute the desired track based on game state
       const desiredTrack = (() => {
-        if (state.screen === 'starter') return null;
+        if (state.screen === 'difficulty' || state.screen === 'starter') return null;
         if (state.screen === 'prologue') return 'bonfire';
         if (state.screen === 'victory') return 'victory';
         if (state.screen === 'credits') return 'bonfire';
@@ -3949,7 +4274,7 @@
       }
 
       // Show load screen if save exists and we're at starter screen
-      if (existingSave && state.screen === 'starter') {
+      if (existingSave && state.screen === 'difficulty') {
         return (
           <div style={styles.container}>
             <LoadScreen
@@ -4006,6 +4331,14 @@
             />
           )}
 
+          {/* Difficulty indicator during gameplay */}
+          {(state.screen === 'exploration' || state.screen === 'battle') && (
+            <DifficultyIndicator difficulty={state.difficulty} />
+          )}
+
+          {state.screen === 'difficulty' && (
+            <DifficultySelect dispatch={dispatch} />
+          )}
           {state.screen === 'starter' && (
             <StarterSelect dispatch={dispatch} />
           )}
