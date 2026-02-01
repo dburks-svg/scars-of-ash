@@ -1,4 +1,4 @@
-\# Ashbound
+\# Scars of Ash
 
 *The flame remembers.*
 
