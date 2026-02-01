@@ -4,7 +4,7 @@
 
 A browser-based game that fuses creature collecting with Dark Souls-inspired mechanics. Cute monsters. Grim consequences.
 
-**[Play Now](https://ashbound.vercel.app)**
+**[Play Now](https://scars-of-ash.vercel.app)**
 
 ## How to Play
 
