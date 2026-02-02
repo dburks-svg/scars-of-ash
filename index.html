@@ -936,60 +936,195 @@
     // ============= SPRITE SYSTEM =============
 
     // Sprite manifest for PNG sprite loading with SVG fallbacks
+    // Now supports animation frames as arrays
     const SPRITE_MANIFEST = {
       creatures: {
         fire: {
-          base: 'assets/sprites/creatures/cindrath/base.png',
-          hollowed: 'assets/sprites/creatures/cindrath/hollowed.png'
+          base: {
+            idle: [
+              'assets/sprites/creatures/cindrath/base_idle_0.png',
+              'assets/sprites/creatures/cindrath/base_idle_1.png',
+              'assets/sprites/creatures/cindrath/base_idle_2.png',
+              'assets/sprites/creatures/cindrath/base_idle_3.png'
+            ]
+          },
+          hollowed: {
+            idle: [
+              'assets/sprites/creatures/cindrath/hollowed_idle_0.png',
+              'assets/sprites/creatures/cindrath/hollowed_idle_1.png',
+              'assets/sprites/creatures/cindrath/hollowed_idle_2.png',
+              'assets/sprites/creatures/cindrath/hollowed_idle_3.png'
+            ]
+          }
         },
         water: {
-          base: 'assets/sprites/creatures/marshveil/base.png',
-          hollowed: 'assets/sprites/creatures/marshveil/hollowed.png'
+          base: {
+            idle: [
+              'assets/sprites/creatures/marshveil/base_idle_0.png',
+              'assets/sprites/creatures/marshveil/base_idle_1.png',
+              'assets/sprites/creatures/marshveil/base_idle_2.png',
+              'assets/sprites/creatures/marshveil/base_idle_3.png'
+            ]
+          },
+          hollowed: {
+            idle: [
+              'assets/sprites/creatures/marshveil/hollowed_idle_0.png',
+              'assets/sprites/creatures/marshveil/hollowed_idle_1.png',
+              'assets/sprites/creatures/marshveil/hollowed_idle_2.png',
+              'assets/sprites/creatures/marshveil/hollowed_idle_3.png'
+            ]
+          }
         },
         grass: {
-          base: 'assets/sprites/creatures/thornwick/base.png',
-          hollowed: 'assets/sprites/creatures/thornwick/hollowed.png'
+          base: {
+            idle: [
+              'assets/sprites/creatures/thornwick/base_idle_0.png',
+              'assets/sprites/creatures/thornwick/base_idle_1.png',
+              'assets/sprites/creatures/thornwick/base_idle_2.png',
+              'assets/sprites/creatures/thornwick/base_idle_3.png'
+            ]
+          },
+          hollowed: {
+            idle: [
+              'assets/sprites/creatures/thornwick/hollowed_idle_0.png',
+              'assets/sprites/creatures/thornwick/hollowed_idle_1.png',
+              'assets/sprites/creatures/thornwick/hollowed_idle_2.png',
+              'assets/sprites/creatures/thornwick/hollowed_idle_3.png'
+            ]
+          }
         },
         dark: {
-          base: 'assets/sprites/creatures/umbravine/base.png',
-          hollowed: 'assets/sprites/creatures/umbravine/hollowed.png'
+          base: {
+            idle: [
+              'assets/sprites/creatures/umbravine/base_idle_0.png',
+              'assets/sprites/creatures/umbravine/base_idle_1.png',
+              'assets/sprites/creatures/umbravine/base_idle_2.png',
+              'assets/sprites/creatures/umbravine/base_idle_3.png'
+            ]
+          },
+          hollowed: {
+            idle: [
+              'assets/sprites/creatures/umbravine/hollowed_idle_0.png',
+              'assets/sprites/creatures/umbravine/hollowed_idle_1.png',
+              'assets/sprites/creatures/umbravine/hollowed_idle_2.png',
+              'assets/sprites/creatures/umbravine/hollowed_idle_3.png'
+            ]
+          }
         },
         light: {
-          base: 'assets/sprites/creatures/solrath/base.png',
-          hollowed: 'assets/sprites/creatures/solrath/hollowed.png'
+          base: {
+            idle: [
+              'assets/sprites/creatures/solrath/base_idle_0.png',
+              'assets/sprites/creatures/solrath/base_idle_1.png',
+              'assets/sprites/creatures/solrath/base_idle_2.png',
+              'assets/sprites/creatures/solrath/base_idle_3.png'
+            ]
+          },
+          hollowed: {
+            idle: [
+              'assets/sprites/creatures/solrath/hollowed_idle_0.png',
+              'assets/sprites/creatures/solrath/hollowed_idle_1.png',
+              'assets/sprites/creatures/solrath/hollowed_idle_2.png',
+              'assets/sprites/creatures/solrath/hollowed_idle_3.png'
+            ]
+          }
         },
         boss: {
-          phase1: 'assets/sprites/bosses/obsidian-hound/phase1.png',
-          phase2: 'assets/sprites/bosses/obsidian-hound/phase2.png'
+          phase1: {
+            idle: [
+              'assets/sprites/bosses/obsidian-hound/phase1_idle_0.png',
+              'assets/sprites/bosses/obsidian-hound/phase1_idle_1.png',
+              'assets/sprites/bosses/obsidian-hound/phase1_idle_2.png',
+              'assets/sprites/bosses/obsidian-hound/phase1_idle_3.png'
+            ]
+          },
+          phase2: {
+            idle: [
+              'assets/sprites/bosses/obsidian-hound/phase2_idle_0.png',
+              'assets/sprites/bosses/obsidian-hound/phase2_idle_1.png',
+              'assets/sprites/bosses/obsidian-hound/phase2_idle_2.png',
+              'assets/sprites/bosses/obsidian-hound/phase2_idle_3.png'
+            ]
+          }
         },
         hollowWarden: {
-          phase1: 'assets/sprites/bosses/hollow-warden/phase1.png',
-          phase2: 'assets/sprites/bosses/hollow-warden/phase2.png'
+          phase1: {
+            idle: [
+              'assets/sprites/bosses/hollow-warden/phase1_idle_0.png',
+              'assets/sprites/bosses/hollow-warden/phase1_idle_1.png',
+              'assets/sprites/bosses/hollow-warden/phase1_idle_2.png',
+              'assets/sprites/bosses/hollow-warden/phase1_idle_3.png'
+            ]
+          },
+          phase2: {
+            idle: [
+              'assets/sprites/bosses/hollow-warden/phase2_idle_0.png',
+              'assets/sprites/bosses/hollow-warden/phase2_idle_1.png',
+              'assets/sprites/bosses/hollow-warden/phase2_idle_2.png',
+              'assets/sprites/bosses/hollow-warden/phase2_idle_3.png'
+            ]
+          }
         }
       },
       player: {
         male: {
-          down: 'assets/sprites/player/male/down.png',
-          up: 'assets/sprites/player/male/up.png',
-          left: 'assets/sprites/player/male/left.png',
-          right: 'assets/sprites/player/male/right.png'
+          down: {
+            idle: ['assets/sprites/player/male/down_idle_0.png', 'assets/sprites/player/male/down_idle_1.png'],
+            walk: ['assets/sprites/player/male/down_walk_0.png', 'assets/sprites/player/male/down_walk_1.png', 'assets/sprites/player/male/down_walk_2.png', 'assets/sprites/player/male/down_walk_3.png']
+          },
+          up: {
+            idle: ['assets/sprites/player/male/up_idle_0.png', 'assets/sprites/player/male/up_idle_1.png'],
+            walk: ['assets/sprites/player/male/up_walk_0.png', 'assets/sprites/player/male/up_walk_1.png', 'assets/sprites/player/male/up_walk_2.png', 'assets/sprites/player/male/up_walk_3.png']
+          },
+          left: {
+            idle: ['assets/sprites/player/male/left_idle_0.png', 'assets/sprites/player/male/left_idle_1.png'],
+            walk: ['assets/sprites/player/male/left_walk_0.png', 'assets/sprites/player/male/left_walk_1.png', 'assets/sprites/player/male/left_walk_2.png', 'assets/sprites/player/male/left_walk_3.png']
+          },
+          right: {
+            idle: ['assets/sprites/player/male/right_idle_0.png', 'assets/sprites/player/male/right_idle_1.png'],
+            walk: ['assets/sprites/player/male/right_walk_0.png', 'assets/sprites/player/male/right_walk_1.png', 'assets/sprites/player/male/right_walk_2.png', 'assets/sprites/player/male/right_walk_3.png']
+          }
         },
         female: {
-          down: 'assets/sprites/player/female/down.png',
-          up: 'assets/sprites/player/female/up.png',
-          left: 'assets/sprites/player/female/left.png',
-          right: 'assets/sprites/player/female/right.png'
+          down: {
+            idle: ['assets/sprites/player/female/down_idle_0.png', 'assets/sprites/player/female/down_idle_1.png'],
+            walk: ['assets/sprites/player/female/down_walk_0.png', 'assets/sprites/player/female/down_walk_1.png', 'assets/sprites/player/female/down_walk_2.png', 'assets/sprites/player/female/down_walk_3.png']
+          },
+          up: {
+            idle: ['assets/sprites/player/female/up_idle_0.png', 'assets/sprites/player/female/up_idle_1.png'],
+            walk: ['assets/sprites/player/female/up_walk_0.png', 'assets/sprites/player/female/up_walk_1.png', 'assets/sprites/player/female/up_walk_2.png', 'assets/sprites/player/female/up_walk_3.png']
+          },
+          left: {
+            idle: ['assets/sprites/player/female/left_idle_0.png', 'assets/sprites/player/female/left_idle_1.png'],
+            walk: ['assets/sprites/player/female/left_walk_0.png', 'assets/sprites/player/female/left_walk_1.png', 'assets/sprites/player/female/left_walk_2.png', 'assets/sprites/player/female/left_walk_3.png']
+          },
+          right: {
+            idle: ['assets/sprites/player/female/right_idle_0.png', 'assets/sprites/player/female/right_idle_1.png'],
+            walk: ['assets/sprites/player/female/right_walk_0.png', 'assets/sprites/player/female/right_walk_1.png', 'assets/sprites/player/female/right_walk_2.png', 'assets/sprites/player/female/right_walk_3.png']
+          }
         },
         other: {
-          down: 'assets/sprites/player/other/down.png',
-          up: 'assets/sprites/player/other/up.png',
-          left: 'assets/sprites/player/other/left.png',
-          right: 'assets/sprites/player/other/right.png'
+          down: {
+            idle: ['assets/sprites/player/other/down_idle_0.png', 'assets/sprites/player/other/down_idle_1.png'],
+            walk: ['assets/sprites/player/other/down_walk_0.png', 'assets/sprites/player/other/down_walk_1.png', 'assets/sprites/player/other/down_walk_2.png', 'assets/sprites/player/other/down_walk_3.png']
+          },
+          up: {
+            idle: ['assets/sprites/player/other/up_idle_0.png', 'assets/sprites/player/other/up_idle_1.png'],
+            walk: ['assets/sprites/player/other/up_walk_0.png', 'assets/sprites/player/other/up_walk_1.png', 'assets/sprites/player/other/up_walk_2.png', 'assets/sprites/player/other/up_walk_3.png']
+          },
+          left: {
+            idle: ['assets/sprites/player/other/left_idle_0.png', 'assets/sprites/player/other/left_idle_1.png'],
+            walk: ['assets/sprites/player/other/left_walk_0.png', 'assets/sprites/player/other/left_walk_1.png', 'assets/sprites/player/other/left_walk_2.png', 'assets/sprites/player/other/left_walk_3.png']
+          },
+          right: {
+            idle: ['assets/sprites/player/other/right_idle_0.png', 'assets/sprites/player/other/right_idle_1.png'],
+            walk: ['assets/sprites/player/other/right_walk_0.png', 'assets/sprites/player/other/right_walk_1.png', 'assets/sprites/player/other/right_walk_2.png', 'assets/sprites/player/other/right_walk_3.png']
+          }
         }
       }
     };
 
-    // Cache for preloaded sprite images
+    // Cache for preloaded sprite images (now stores arrays of frames)
     const preloadedSprites = {
       creatures: {},
       player: { male: {}, female: {}, other: {} },
@@ -1008,29 +1143,43 @@
           });
         };
 
+        // Load an array of frames, returns array of Image objects (null for failed loads)
+        const loadFrameArray = async (srcArray) => {
+          const results = await Promise.all(srcArray.map(src => loadImage(src)));
+          const loadedFrames = results.filter(r => r.loaded).map(r => r.img);
+          // Return array only if at least first frame loaded
+          return loadedFrames.length > 0 ? loadedFrames : null;
+        };
+
         const promises = [];
 
-        // Load creature sprites
-        Object.entries(SPRITE_MANIFEST.creatures).forEach(([type, paths]) => {
+        // Load creature sprites (now with frame arrays)
+        Object.entries(SPRITE_MANIFEST.creatures).forEach(([type, variants]) => {
           preloadedSprites.creatures[type] = {};
-          Object.entries(paths).forEach(([variant, src]) => {
-            promises.push(
-              loadImage(src).then(result => {
-                preloadedSprites.creatures[type][variant] = result.loaded ? result.img : null;
-              })
-            );
+          Object.entries(variants).forEach(([variant, animations]) => {
+            preloadedSprites.creatures[type][variant] = {};
+            Object.entries(animations).forEach(([animType, srcArray]) => {
+              promises.push(
+                loadFrameArray(srcArray).then(frames => {
+                  preloadedSprites.creatures[type][variant][animType] = frames;
+                })
+              );
+            });
           });
         });
 
-        // Load player sprites (by appearance then direction)
+        // Load player sprites (by appearance, direction, then animation type)
         Object.entries(SPRITE_MANIFEST.player).forEach(([appearance, directions]) => {
           preloadedSprites.player[appearance] = {};
-          Object.entries(directions).forEach(([direction, src]) => {
-            promises.push(
-              loadImage(src).then(result => {
-                preloadedSprites.player[appearance][direction] = result.loaded ? result.img : null;
-              })
-            );
+          Object.entries(directions).forEach(([direction, animations]) => {
+            preloadedSprites.player[appearance][direction] = {};
+            Object.entries(animations).forEach(([animType, srcArray]) => {
+              promises.push(
+                loadFrameArray(srcArray).then(frames => {
+                  preloadedSprites.player[appearance][direction][animType] = frames;
+                })
+              );
+            });
           });
         });
 
@@ -1038,10 +1187,14 @@
           preloadedSprites.loaded = true;
           console.log('Sprites preloaded:', {
             creatures: Object.keys(preloadedSprites.creatures).filter(t =>
-              Object.values(preloadedSprites.creatures[t]).some(v => v !== null)
+              Object.values(preloadedSprites.creatures[t]).some(v =>
+                v && Object.values(v).some(frames => frames !== null)
+              )
             ),
             player: Object.keys(preloadedSprites.player).filter(appearance =>
-              Object.values(preloadedSprites.player[appearance] || {}).some(v => v !== null)
+              Object.values(preloadedSprites.player[appearance] || {}).some(dir =>
+                dir && Object.values(dir).some(frames => frames !== null)
+              )
             )
           });
           resolve();
@@ -1049,16 +1202,16 @@
       });
     };
 
-    // Check if a sprite is available
-    const hasSpriteLoaded = (category, type, variant = 'base') => {
+    // Check if a sprite animation is available
+    const hasSpriteLoaded = (category, type, variant = 'base', animType = 'idle') => {
       if (category === 'creature') {
-        return preloadedSprites.creatures[type]?.[variant] !== null &&
-               preloadedSprites.creatures[type]?.[variant] !== undefined;
+        const frames = preloadedSprites.creatures[type]?.[variant]?.[animType];
+        return frames !== null && frames !== undefined && frames.length > 0;
       }
       if (category === 'player') {
-        // type = appearance, variant = direction
-        return preloadedSprites.player[type]?.[variant] !== null &&
-               preloadedSprites.player[type]?.[variant] !== undefined;
+        // type = appearance, variant = direction, animType = 'idle' or 'walk'
+        const frames = preloadedSprites.player[type]?.[variant]?.[animType];
+        return frames !== null && frames !== undefined && frames.length > 0;
       }
       return false;
     };
@@ -1359,6 +1512,46 @@
       }
     };
 
+    // AnimatedSprite component - cycles through animation frames
+    const AnimatedSprite = ({
+      frames,           // Array of preloaded Image objects
+      frameRate = 150,  // ms per frame (150 for idle, 100 for walk)
+      size = 48,
+      flip = false,
+      filter = 'none',
+      playing = true
+    }) => {
+      const [frameIndex, setFrameIndex] = React.useState(0);
+
+      React.useEffect(() => {
+        if (!playing || !frames || frames.length <= 1) return;
+        const interval = setInterval(() => {
+          setFrameIndex(i => (i + 1) % frames.length);
+        }, frameRate);
+        return () => clearInterval(interval);
+      }, [frames, frameRate, playing]);
+
+      if (!frames || frames.length === 0) {
+        return null;
+      }
+
+      const currentFrame = frames[frameIndex % frames.length];
+
+      return (
+        <img
+          src={currentFrame.src}
+          alt="sprite"
+          width={size}
+          height={size}
+          style={{
+            imageRendering: 'pixelated',
+            transform: flip ? 'scaleX(-1)' : 'none',
+            filter: filter
+          }}
+        />
+      );
+    };
+
     // Player sprite facing different directions (16x16 scaled up) - SVG fallback version
     // Each appearance has a distinct silhouette
     const FallbackPlayerSprite = ({ direction = 'down', appearance = 'other' }) => {
@@ -1632,25 +1825,25 @@
     };
 
     // Main player sprite component - uses PNG if available, falls back to SVG
-    const PlayerSprite = ({ direction = 'down', appearance = 'other' }) => {
-      const spriteImg = preloadedSprites.player[appearance]?.[direction];
+    // Now supports animations: idle (2 frames at 150ms) and walk (4 frames at 100ms)
+    const PlayerSprite = ({ direction = 'down', appearance = 'other', isMoving = false }) => {
+      const animType = isMoving ? 'walk' : 'idle';
+      const frameRate = isMoving ? 100 : 150;
+      const frames = preloadedSprites.player[appearance]?.[direction]?.[animType];
 
-      // If PNG sprite is available, render it
-      if (spriteImg) {
+      // If PNG sprite frames are available, render animated sprite
+      if (frames && frames.length > 0) {
         return (
-          <img
-            src={spriteImg.src}
-            alt={`player-${appearance}-${direction}`}
-            width={48}
-            height={48}
-            style={{
-              imageRendering: 'pixelated'
-            }}
+          <AnimatedSprite
+            frames={frames}
+            frameRate={frameRate}
+            size={48}
+            playing={true}
           />
         );
       }
 
-      // Fall back to SVG sprite
+      // Fall back to SVG sprite (no animation)
       return <FallbackPlayerSprite direction={direction} appearance={appearance} />;
     };
 
@@ -1833,44 +2026,42 @@
     };
 
     // Main creature sprite component - uses PNG if available, falls back to SVG
+    // Now supports 4-frame idle animations
     const CreatureSprite = ({ type, size = 48, isEnemy = false, scarCount = 0, isHollowed = false, bossPhase = 1 }) => {
       // Determine which sprite variant to use
       const useHollowed = isHollowed || scarCount >= SCAR_THRESHOLD_HOLLOWED;
 
-      // Check if we have a PNG sprite loaded for this type
+      // Check if we have PNG sprite frames loaded for this type
       const isBossType = type === 'boss' || type === 'hollowWarden';
-      let spriteImg = null;
+      let frames = null;
 
       if (isBossType) {
         const phaseKey = bossPhase === 2 ? 'phase2' : 'phase1';
-        spriteImg = preloadedSprites.creatures[type]?.[phaseKey];
+        frames = preloadedSprites.creatures[type]?.[phaseKey]?.idle;
       } else {
         const variant = useHollowed ? 'hollowed' : 'base';
-        spriteImg = preloadedSprites.creatures[type]?.[variant];
+        frames = preloadedSprites.creatures[type]?.[variant]?.idle;
         // Fall back to base if hollowed not available
-        if (!spriteImg && useHollowed) {
-          spriteImg = preloadedSprites.creatures[type]?.base;
+        if (!frames && useHollowed) {
+          frames = preloadedSprites.creatures[type]?.base?.idle;
         }
       }
 
-      // If PNG sprite is available, render it
-      if (spriteImg) {
+      // If PNG sprite frames are available, render animated sprite
+      if (frames && frames.length > 0) {
         return (
-          <img
-            src={spriteImg.src}
-            alt={type}
-            width={size}
-            height={size}
-            style={{
-              imageRendering: 'pixelated',
-              transform: isEnemy ? 'scaleX(-1)' : 'none',
-              filter: useHollowed && !isBossType ? 'saturate(0.5) brightness(0.8)' : 'none'
-            }}
+          <AnimatedSprite
+            frames={frames}
+            frameRate={150}
+            size={size}
+            flip={isEnemy}
+            filter={useHollowed && !isBossType ? 'saturate(0.5) brightness(0.8)' : 'none'}
+            playing={true}
           />
         );
       }
 
-      // Fall back to SVG sprite
+      // Fall back to SVG sprite (no animation)
       return <FallbackCreatureSprite type={type} size={size} isEnemy={isEnemy} />;
     };
 
@@ -4857,7 +5048,7 @@
                   justifyContent: 'center',
                   marginBottom: 'var(--spacing-sm)'
                 }}>
-                  <FallbackPlayerSprite direction="down" appearance={opt.id} />
+                  <PlayerSprite direction="down" appearance={opt.id} />
                 </div>
                 <div style={{
                   color: appearance === opt.id ? GBC.gold : GBC.text,
@@ -4939,6 +5130,38 @@
       const map = state.currentMap === 'ashenPath' ? ASHEN_PATH : state.currentMap === 'hollowDeep' ? HOLLOW_DEEP : FALLEN_KEEP;
       const mapName = state.currentMap === 'ashenPath' ? 'Ashen Path' : state.currentMap === 'hollowDeep' ? 'The Hollow Deep' : 'Fallen Keep';
       const ghost = loadGhost(); // Load once for ghost marker display
+
+      // Track movement for walk animation
+      const [isMoving, setIsMoving] = useState(false);
+      const prevPosRef = useRef({ x: state.playerPos.x, y: state.playerPos.y });
+      const moveTimeoutRef = useRef(null);
+
+      // Detect when player position changes and trigger walk animation
+      useEffect(() => {
+        const posChanged = prevPosRef.current.x !== state.playerPos.x ||
+                          prevPosRef.current.y !== state.playerPos.y;
+
+        if (posChanged) {
+          setIsMoving(true);
+          prevPosRef.current = { x: state.playerPos.x, y: state.playerPos.y };
+
+          // Clear any existing timeout
+          if (moveTimeoutRef.current) {
+            clearTimeout(moveTimeoutRef.current);
+          }
+
+          // Stop moving animation after 200ms of no movement
+          moveTimeoutRef.current = setTimeout(() => {
+            setIsMoving(false);
+          }, 200);
+        }
+
+        return () => {
+          if (moveTimeoutRef.current) {
+            clearTimeout(moveTimeoutRef.current);
+          }
+        };
+      }, [state.playerPos.x, state.playerPos.y]);
 
       const handleKeyDown = useCallback((e) => {
         const key = e.key.toLowerCase();
@@ -5079,7 +5302,7 @@
                       {renderTileBackground(tile)}
                       {isPlayer && (
                         <div style={{ position: 'absolute', zIndex: 10 }}>
-                          <PlayerSprite direction={state.playerDir} appearance={state.playerAppearance || 'other'} />
+                          <PlayerSprite direction={state.playerDir} appearance={state.playerAppearance || 'other'} isMoving={isMoving} />
                         </div>
                       )}
                       {hasSouls && !isPlayer && (
@@ -6614,7 +6837,7 @@
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-xs)' }}>
                     <div style={{ width: '24px', height: '24px', overflow: 'hidden', flexShrink: 0 }}>
                       <div style={{ transform: 'scale(0.5)', transformOrigin: 'top left' }}>
-                        <FallbackPlayerSprite direction="down" appearance={entry.playerAppearance || 'other'} />
+                        <PlayerSprite direction="down" appearance={entry.playerAppearance || 'other'} />
                       </div>
                     </div>
                     <div style={{ color: GBC.red, fontSize: 'var(--font-sm)' }}>{entry.playerName}</div>
@@ -6722,7 +6945,7 @@
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
               <div style={{ width: '16px', height: '16px', overflow: 'hidden' }}>
                 <div style={{ transform: 'scale(0.333)', transformOrigin: 'top left' }}>
-                  <FallbackPlayerSprite direction="down" appearance={saveData.playerAppearance || 'other'} />
+                  <PlayerSprite direction="down" appearance={saveData.playerAppearance || 'other'} />
                 </div>
               </div>
               <div style={styles.saveSlotTitle}>{playerName.toUpperCase()}'S JOURNEY</div>
@@ -6773,7 +6996,7 @@
               }}>
                 <div style={{ width: '24px', height: '24px', overflow: 'hidden', flexShrink: 0 }}>
                   <div style={{ transform: 'scale(0.5)', transformOrigin: 'top left' }}>
-                    <FallbackPlayerSprite direction="down" appearance={state.playerAppearance || 'other'} />
+                    <PlayerSprite direction="down" appearance={state.playerAppearance || 'other'} />
                   </div>
                 </div>
                 <div style={{ textAlign: 'left' }}>

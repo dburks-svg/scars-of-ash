@@ -134,6 +134,42 @@ const PLAYER_APPEARANCES = {
 
 const PLAYER_DIRECTIONS = ['down', 'up', 'left', 'right'];
 
+// Animation frame counts
+const ANIMATION_FRAMES = {
+  player: {
+    idle: 2,   // 2 frames for idle breathing animation
+    walk: 4    // 4 frames for walk cycle
+  },
+  creature: {
+    idle: 4    // 4 frames for idle animation
+  },
+  boss: {
+    idle: 4    // 4 frames for boss idle animation
+  }
+};
+
+// Frame variation prompts for walk cycles
+const WALK_FRAME_PROMPTS = {
+  0: 'standing ready position, weight centered',
+  1: 'left foot stepping forward, mid-stride',
+  2: 'both feet together, weight shifting',
+  3: 'right foot stepping forward, mid-stride'
+};
+
+// Frame variation prompts for idle animations
+const IDLE_FRAME_PROMPTS = {
+  0: 'neutral pose, breathing in',
+  1: 'slight movement, breathing out'
+};
+
+// Frame variation for creature/boss idle
+const CREATURE_IDLE_PROMPTS = {
+  0: 'idle pose frame 1, subtle movement',
+  1: 'idle pose frame 2, slight shift',
+  2: 'idle pose frame 3, breathing motion',
+  3: 'idle pose frame 4, returning to start'
+};
+
 // Output directories
 const OUTPUT_BASE = path.join(__dirname, '..', 'assets', 'sprites');
 const CREATURE_DIR = path.join(OUTPUT_BASE, 'creatures');
@@ -262,31 +298,38 @@ async function generateCreatureSprites() {
     const creatureDir = path.join(CREATURE_DIR, id);
     ensureDir(creatureDir);
 
-    // Generate base sprite
+    // Generate base sprite animation frames
     console.log(`Generating ${id} (${creature.type})...`);
-    const baseSprite = await generateSprite(creature.prompt, creature.palette, 32, 32);
+    for (let frame = 0; frame < ANIMATION_FRAMES.creature.idle; frame++) {
+      const framePrompt = `${creature.prompt}, ${CREATURE_IDLE_PROMPTS[frame]}`;
+      console.log(`  Generating base idle frame ${frame}...`);
+      const baseSprite = await generateSprite(framePrompt, creature.palette, 32, 32);
 
-    if (baseSprite) {
-      const basePath = path.join(creatureDir, 'base.png');
-      fs.writeFileSync(basePath, baseSprite);
-      console.log(`  Saved: ${basePath}`);
+      if (baseSprite) {
+        const basePath = path.join(creatureDir, `base_idle_${frame}.png`);
+        fs.writeFileSync(basePath, baseSprite);
+        console.log(`    Saved: ${basePath}`);
+      }
+
+      await sleep(API_DELAY_MS);
     }
 
-    await sleep(API_DELAY_MS);
-
-    // Generate hollowed variant
-    console.log(`  Generating hollowed variant...`);
-    const hollowedPrompt = creature.prompt.replace('32x32 GBC pixel art', 'faded, scarred, worn, 32x32 GBC pixel art');
+    // Generate hollowed variant animation frames
+    console.log(`  Generating hollowed variant frames...`);
     const hollowedPalette = await generateHollowedVariant(null, creature.palette);
-    const hollowedSprite = await generateSprite(hollowedPrompt, hollowedPalette, 32, 32);
+    for (let frame = 0; frame < ANIMATION_FRAMES.creature.idle; frame++) {
+      const hollowedPrompt = creature.prompt.replace('32x32 GBC pixel art', 'faded, scarred, worn, 32x32 GBC pixel art') + `, ${CREATURE_IDLE_PROMPTS[frame]}`;
+      console.log(`  Generating hollowed idle frame ${frame}...`);
+      const hollowedSprite = await generateSprite(hollowedPrompt, hollowedPalette, 32, 32);
 
-    if (hollowedSprite) {
-      const hollowedPath = path.join(creatureDir, 'hollowed.png');
-      fs.writeFileSync(hollowedPath, hollowedSprite);
-      console.log(`  Saved: ${hollowedPath}`);
+      if (hollowedSprite) {
+        const hollowedPath = path.join(creatureDir, `hollowed_idle_${frame}.png`);
+        fs.writeFileSync(hollowedPath, hollowedSprite);
+        console.log(`    Saved: ${hollowedPath}`);
+      }
+
+      await sleep(API_DELAY_MS);
     }
-
-    await sleep(API_DELAY_MS);
   }
 }
 
@@ -297,29 +340,37 @@ async function generateBossSprites() {
     const bossDir = path.join(BOSS_DIR, id);
     ensureDir(bossDir);
 
-    // Generate phase 1
+    // Generate phase 1 animation frames
     console.log(`Generating ${id} phase 1...`);
-    const phase1Sprite = await generateSprite(boss.phase1.prompt, boss.phase1.palette, 32, 32);
+    for (let frame = 0; frame < ANIMATION_FRAMES.boss.idle; frame++) {
+      const framePrompt = `${boss.phase1.prompt}, ${CREATURE_IDLE_PROMPTS[frame]}`;
+      console.log(`  Generating phase 1 idle frame ${frame}...`);
+      const phase1Sprite = await generateSprite(framePrompt, boss.phase1.palette, 32, 32);
 
-    if (phase1Sprite) {
-      const phase1Path = path.join(bossDir, 'phase1.png');
-      fs.writeFileSync(phase1Path, phase1Sprite);
-      console.log(`  Saved: ${phase1Path}`);
+      if (phase1Sprite) {
+        const phase1Path = path.join(bossDir, `phase1_idle_${frame}.png`);
+        fs.writeFileSync(phase1Path, phase1Sprite);
+        console.log(`    Saved: ${phase1Path}`);
+      }
+
+      await sleep(API_DELAY_MS);
     }
 
-    await sleep(API_DELAY_MS);
-
-    // Generate phase 2
+    // Generate phase 2 animation frames
     console.log(`Generating ${id} phase 2...`);
-    const phase2Sprite = await generateSprite(boss.phase2.prompt, boss.phase2.palette, 32, 32);
+    for (let frame = 0; frame < ANIMATION_FRAMES.boss.idle; frame++) {
+      const framePrompt = `${boss.phase2.prompt}, ${CREATURE_IDLE_PROMPTS[frame]}`;
+      console.log(`  Generating phase 2 idle frame ${frame}...`);
+      const phase2Sprite = await generateSprite(framePrompt, boss.phase2.palette, 32, 32);
 
-    if (phase2Sprite) {
-      const phase2Path = path.join(bossDir, 'phase2.png');
-      fs.writeFileSync(phase2Path, phase2Sprite);
-      console.log(`  Saved: ${phase2Path}`);
+      if (phase2Sprite) {
+        const phase2Path = path.join(bossDir, `phase2_idle_${frame}.png`);
+        fs.writeFileSync(phase2Path, phase2Sprite);
+        console.log(`    Saved: ${phase2Path}`);
+      }
+
+      await sleep(API_DELAY_MS);
     }
-
-    await sleep(API_DELAY_MS);
   }
 }
 
@@ -333,16 +384,37 @@ async function generatePlayerSprites() {
     console.log(`\nGenerating ${appearance} appearance sprites...`);
 
     for (const direction of PLAYER_DIRECTIONS) {
-      console.log(`  Generating ${appearance} ${direction}...`);
-      const sprite = await generateSprite(config.prompts[direction], config.palette, 32, 32);
+      // Generate idle animation frames (2 frames)
+      console.log(`  Generating ${appearance} ${direction} idle frames...`);
+      for (let frame = 0; frame < ANIMATION_FRAMES.player.idle; frame++) {
+        const framePrompt = `${config.prompts[direction]}, ${IDLE_FRAME_PROMPTS[frame]}`;
+        console.log(`    Generating idle frame ${frame}...`);
+        const sprite = await generateSprite(framePrompt, config.palette, 32, 32);
 
-      if (sprite) {
-        const spritePath = path.join(appearanceDir, `${direction}.png`);
-        fs.writeFileSync(spritePath, sprite);
-        console.log(`    Saved: ${spritePath}`);
+        if (sprite) {
+          const spritePath = path.join(appearanceDir, `${direction}_idle_${frame}.png`);
+          fs.writeFileSync(spritePath, sprite);
+          console.log(`      Saved: ${spritePath}`);
+        }
+
+        await sleep(API_DELAY_MS);
       }
 
-      await sleep(API_DELAY_MS);
+      // Generate walk animation frames (4 frames)
+      console.log(`  Generating ${appearance} ${direction} walk frames...`);
+      for (let frame = 0; frame < ANIMATION_FRAMES.player.walk; frame++) {
+        const framePrompt = `${config.prompts[direction]}, ${WALK_FRAME_PROMPTS[frame]}, walking animation`;
+        console.log(`    Generating walk frame ${frame}...`);
+        const sprite = await generateSprite(framePrompt, config.palette, 32, 32);
+
+        if (sprite) {
+          const spritePath = path.join(appearanceDir, `${direction}_walk_${frame}.png`);
+          fs.writeFileSync(spritePath, sprite);
+          console.log(`      Saved: ${spritePath}`);
+        }
+
+        await sleep(API_DELAY_MS);
+      }
     }
   }
 }
