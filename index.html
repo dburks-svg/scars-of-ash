@@ -933,6 +933,121 @@
     // Helper function for playing sound effects
     const playSfx = (type, options) => sfxManager.play(type, options);
 
+    // ============= SPRITE SYSTEM =============
+
+    // Sprite manifest for PNG sprite loading with SVG fallbacks
+    const SPRITE_MANIFEST = {
+      creatures: {
+        fire: {
+          base: 'assets/sprites/creatures/cindrath/base.png',
+          hollowed: 'assets/sprites/creatures/cindrath/hollowed.png'
+        },
+        water: {
+          base: 'assets/sprites/creatures/marshveil/base.png',
+          hollowed: 'assets/sprites/creatures/marshveil/hollowed.png'
+        },
+        grass: {
+          base: 'assets/sprites/creatures/thornwick/base.png',
+          hollowed: 'assets/sprites/creatures/thornwick/hollowed.png'
+        },
+        dark: {
+          base: 'assets/sprites/creatures/umbravine/base.png',
+          hollowed: 'assets/sprites/creatures/umbravine/hollowed.png'
+        },
+        light: {
+          base: 'assets/sprites/creatures/solrath/base.png',
+          hollowed: 'assets/sprites/creatures/solrath/hollowed.png'
+        },
+        boss: {
+          phase1: 'assets/sprites/bosses/obsidian-hound/phase1.png',
+          phase2: 'assets/sprites/bosses/obsidian-hound/phase2.png'
+        },
+        hollowWarden: {
+          phase1: 'assets/sprites/bosses/hollow-warden/phase1.png',
+          phase2: 'assets/sprites/bosses/hollow-warden/phase2.png'
+        }
+      },
+      player: {
+        down: 'assets/sprites/player/down.png',
+        up: 'assets/sprites/player/up.png',
+        left: 'assets/sprites/player/left.png',
+        right: 'assets/sprites/player/right.png'
+      }
+    };
+
+    // Cache for preloaded sprite images
+    const preloadedSprites = {
+      creatures: {},
+      player: {},
+      loaded: false
+    };
+
+    // Preload all sprites and track which ones are available
+    const preloadSprites = () => {
+      return new Promise((resolve) => {
+        const loadImage = (src) => {
+          return new Promise((imgResolve) => {
+            const img = new Image();
+            img.onload = () => imgResolve({ src, loaded: true, img });
+            img.onerror = () => imgResolve({ src, loaded: false, img: null });
+            img.src = src;
+          });
+        };
+
+        const promises = [];
+
+        // Load creature sprites
+        Object.entries(SPRITE_MANIFEST.creatures).forEach(([type, paths]) => {
+          preloadedSprites.creatures[type] = {};
+          Object.entries(paths).forEach(([variant, src]) => {
+            promises.push(
+              loadImage(src).then(result => {
+                preloadedSprites.creatures[type][variant] = result.loaded ? result.img : null;
+              })
+            );
+          });
+        });
+
+        // Load player sprites
+        Object.entries(SPRITE_MANIFEST.player).forEach(([direction, src]) => {
+          promises.push(
+            loadImage(src).then(result => {
+              preloadedSprites.player[direction] = result.loaded ? result.img : null;
+            })
+          );
+        });
+
+        Promise.all(promises).then(() => {
+          preloadedSprites.loaded = true;
+          console.log('Sprites preloaded:', {
+            creatures: Object.keys(preloadedSprites.creatures).filter(t =>
+              Object.values(preloadedSprites.creatures[t]).some(v => v !== null)
+            ),
+            player: Object.keys(preloadedSprites.player).filter(d =>
+              preloadedSprites.player[d] !== null
+            )
+          });
+          resolve();
+        });
+      });
+    };
+
+    // Check if a sprite is available
+    const hasSpriteLoaded = (category, type, variant = 'base') => {
+      if (category === 'creature') {
+        return preloadedSprites.creatures[type]?.[variant] !== null &&
+               preloadedSprites.creatures[type]?.[variant] !== undefined;
+      }
+      if (category === 'player') {
+        return preloadedSprites.player[type] !== null &&
+               preloadedSprites.player[type] !== undefined;
+      }
+      return false;
+    };
+
+    // Scar threshold constants for sprite selection
+    const SCAR_THRESHOLD_HOLLOWED = 5;
+
     // ============= GAME DATA =============
 
     const STARTERS = {
@@ -1198,8 +1313,8 @@
 
     // ============= PIXEL ART SPRITES (CSS) =============
 
-    // Player sprite facing different directions (16x16 scaled up)
-    const PlayerSprite = ({ direction = 'down' }) => {
+    // Player sprite facing different directions (16x16 scaled up) - SVG fallback version
+    const FallbackPlayerSprite = ({ direction = 'down' }) => {
       const px = 3; // pixel size (3 = 48px total)
 
       // Base colors
@@ -1296,8 +1411,31 @@
       return sprites[direction] || sprites.down;
     };
 
-    // Creature sprites
-    const CreatureSprite = ({ type, size = 48, isEnemy = false }) => {
+    // Main player sprite component - uses PNG if available, falls back to SVG
+    const PlayerSprite = ({ direction = 'down' }) => {
+      const spriteImg = preloadedSprites.player[direction];
+
+      // If PNG sprite is available, render it
+      if (spriteImg) {
+        return (
+          <img
+            src={spriteImg.src}
+            alt={`player-${direction}`}
+            width={48}
+            height={48}
+            style={{
+              imageRendering: 'pixelated'
+            }}
+          />
+        );
+      }
+
+      // Fall back to SVG sprite
+      return <FallbackPlayerSprite direction={direction} />;
+    };
+
+    // Creature sprites - SVG fallback version
+    const FallbackCreatureSprite = ({ type, size = 48, isEnemy = false }) => {
       const px = size / 16;
 
       const sprites = {
@@ -1472,6 +1610,48 @@
       };
 
       return sprites[type] || sprites.fire;
+    };
+
+    // Main creature sprite component - uses PNG if available, falls back to SVG
+    const CreatureSprite = ({ type, size = 48, isEnemy = false, scarCount = 0, isHollowed = false, bossPhase = 1 }) => {
+      // Determine which sprite variant to use
+      const useHollowed = isHollowed || scarCount >= SCAR_THRESHOLD_HOLLOWED;
+
+      // Check if we have a PNG sprite loaded for this type
+      const isBossType = type === 'boss' || type === 'hollowWarden';
+      let spriteImg = null;
+
+      if (isBossType) {
+        const phaseKey = bossPhase === 2 ? 'phase2' : 'phase1';
+        spriteImg = preloadedSprites.creatures[type]?.[phaseKey];
+      } else {
+        const variant = useHollowed ? 'hollowed' : 'base';
+        spriteImg = preloadedSprites.creatures[type]?.[variant];
+        // Fall back to base if hollowed not available
+        if (!spriteImg && useHollowed) {
+          spriteImg = preloadedSprites.creatures[type]?.base;
+        }
+      }
+
+      // If PNG sprite is available, render it
+      if (spriteImg) {
+        return (
+          <img
+            src={spriteImg.src}
+            alt={type}
+            width={size}
+            height={size}
+            style={{
+              imageRendering: 'pixelated',
+              transform: isEnemy ? 'scaleX(-1)' : 'none',
+              filter: useHollowed && !isBossType ? 'saturate(0.5) brightness(0.8)' : 'none'
+            }}
+          />
+        );
+      }
+
+      // Fall back to SVG sprite
+      return <FallbackCreatureSprite type={type} size={size} isEnemy={isEnemy} />;
     };
 
     // Tile components
@@ -4713,7 +4893,7 @@
                 }}
               >
                 <div style={styles.creatureSprite}>
-                  <CreatureSprite type={creature.type} size={32} />
+                  <CreatureSprite type={creature.type} size={32} scarCount={creature.scars?.length || 0} isHollowed={isHollowed} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
@@ -4966,7 +5146,7 @@
             className={`${screenShake ? 'screen-shake' : ''} ${criticalFlash ? 'critical-flash' : ''}`}
           >
             <div style={{ textAlign: 'center', position: 'relative' }}>
-              <CreatureSprite type={activeCreature.type} size={48} />
+              <CreatureSprite type={activeCreature.type} size={48} scarCount={activeCreature.scars?.length || 0} />
               <div style={{ fontSize: 'var(--font-xs)', color: GBC.text, marginTop: 'var(--spacing-xs)' }}>
                 {activeCreature.nickname || activeCreature.name}
               </div>
@@ -4994,7 +5174,7 @@
               }}
               title={state.turnPhase === 'player' ? 'Tap to attack' : ''}
             >
-              <CreatureSprite type={enemyType} size={state.isBossFight ? 56 : 48} isEnemy={true} />
+              <CreatureSprite type={enemyType} size={state.isBossFight ? 56 : 48} isEnemy={true} bossPhase={state.bossPhase || 1} />
               <div style={{ fontSize: 'var(--font-xs)', color: GBC.text, marginTop: 'var(--spacing-xs)' }}>{state.enemyCreature.name}</div>
               {isTouchDevice() && state.turnPhase === 'player' && (
                 <div style={{ fontSize: 'var(--font-xs)', color: GBC.gold, marginTop: '2px' }}>TAP TO ATTACK</div>
@@ -5500,7 +5680,7 @@
             backgroundColor: 'rgba(245, 203, 92, 0.1)',
             border: `2px solid ${GBC.gold}`
           }}>
-            <CreatureSprite type={pendingCreature.type} size={32} />
+            <CreatureSprite type={pendingCreature.type} size={32} scarCount={pendingCreature.scars?.length || 0} />
             <div>
               <div style={{ color: GBC.gold, fontSize: 'var(--font-sm)' }}>
                 {getTypeIcon(pendingCreature.type)} {pendingCreature.name}
@@ -5534,7 +5714,7 @@
                 textAlign: 'center'
               }}>
                 <div style={{ marginBottom: 'var(--spacing-md)' }}>
-                  <CreatureSprite type={selectedCreature.type} size={48} />
+                  <CreatureSprite type={selectedCreature.type} size={48} scarCount={selectedCreature.scars?.length || 0} />
                 </div>
                 <div style={{ color: GBC.red, fontSize: 'var(--font-sm)', marginBottom: 'var(--spacing-sm)' }}>
                   Release {selectedCreature.nickname || selectedCreature.name} forever?
@@ -5591,7 +5771,7 @@
                     }}
                     onClick={() => handleSelect(i)}
                   >
-                    <CreatureSprite type={creature.type} size={32} />
+                    <CreatureSprite type={creature.type} size={32} scarCount={creature.scars?.length || 0} isHollowed={isHollowed} />
                     <div style={{ flex: 1 }}>
                       <div style={{ color: isHollowed ? GBC.textDim : GBC.text, fontSize: 'var(--font-sm)' }}>
                         {getTypeIcon(creature.type)} {creature.nickname || creature.name}
@@ -5664,7 +5844,7 @@
           alignItems: 'center'
         }}>
           <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-            <CreatureSprite type={creature.type} size={64} />
+            <CreatureSprite type={creature.type} size={64} scarCount={creature.scars?.length || 0} />
           </div>
 
           <div style={{ color: GBC.gold, fontSize: 'var(--font-md)', marginBottom: 'var(--spacing-sm)' }}>
@@ -6612,6 +6792,9 @@
         </div>
       );
     }
+
+    // Start preloading sprites in background (non-blocking)
+    preloadSprites().catch(err => console.warn('Sprite preload failed:', err));
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<ScarsOfAsh />);
