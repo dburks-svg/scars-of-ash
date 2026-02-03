@@ -331,26 +331,34 @@
       return spriteSet[direction] || spriteSet.down;
     };
 
-    // Main player sprite component - uses PNG if available, falls back to SVG
-    // Animations: idle (4fps = 250ms), walk (6fps = 166ms)
+    // Main player sprite component
+    // Idle: SVG fallback (always correct art, always static)
+    // Walk: PNG animation at 4fps, except north (SVG fallback due to art issues)
     const PlayerSprite = ({ direction = 'down', appearance = 'other', isMoving = false }) => {
-      const animType = isMoving ? 'walk' : 'idle';
-      const frameRate = isMoving ? 166 : 250;
-      const frames = preloadedSprites.player[appearance]?.[direction]?.[animType];
+      // When idle, use SVG (correct directional art, no cycling animation)
+      if (!isMoving) {
+        return <FallbackPlayerSprite direction={direction} appearance={appearance} />;
+      }
 
-      // If PNG sprite frames are available, render animated sprite
+      // North-walk PNGs have wrong proportions — use SVG fallback
+      if (direction === 'up') {
+        return <FallbackPlayerSprite direction={direction} appearance={appearance} />;
+      }
+
+      // When walking (south/east/west), use PNG walk animation
+      const frames = preloadedSprites.player[appearance]?.[direction]?.walk;
       if (frames && frames.length > 0) {
         return (
           <AnimatedSprite
             frames={frames}
-            frameRate={frameRate}
+            frameRate={250}
             size={48}
             playing={true}
           />
         );
       }
 
-      // Fall back to SVG sprite (no animation)
+      // PNG walk frames unavailable — SVG fallback
       return <FallbackPlayerSprite direction={direction} appearance={appearance} />;
     };
 
@@ -534,7 +542,7 @@
 
     // Main creature sprite component - uses PNG if available, falls back to SVG
     // Now supports 4-frame idle animations
-    const CreatureSprite = ({ type, size = 48, isEnemy = false, scarCount = 0, isHollowed = false, bossPhase = 1 }) => {
+    const CreatureSprite = ({ type, size = 48, isEnemy = false, scarCount = 0, isHollowed = false, bossPhase = 1, animated = true }) => {
       // Determine which sprite variant to use
       const useHollowed = isHollowed || scarCount >= SCAR_THRESHOLD_HOLLOWED;
 
@@ -564,7 +572,7 @@
             size={size}
             flip={isEnemy}
             filter={useHollowed && !isBossType ? 'saturate(0.5) brightness(0.8)' : 'none'}
-            playing={true}
+            playing={animated}
           />
         );
       }
@@ -2698,7 +2706,7 @@
                 onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
               >
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--spacing-sm)' }}>
-                  <CreatureSprite type={starter.type} size={48} />
+                  <CreatureSprite type={starter.type} size={48} animated={false} />
                 </div>
                 <div style={{ margin: 'var(--spacing-sm) 0 var(--spacing-xs)', color: GBC.text, fontSize: 'var(--font-base)' }}>{starter.name}</div>
                 <div style={{ fontSize: 'var(--font-sm)', color: getTypeColor(starter.type), margin: 'var(--spacing-xs) 0' }}>
