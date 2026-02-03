@@ -1589,8 +1589,6 @@
             ...state,
             team,
             grassEncounters,
-            bankedSouls: state.bankedSouls + state.souls,
-            souls: 0,
             lastBonfire: { map: state.currentMap, pos: { ...state.playerPos } },
             bonfireMenuOpen: false,
             withdrawMenuOpen: false,
@@ -1636,7 +1634,8 @@
         case 'TOGGLE_WITHDRAW_MENU': {
           return {
             ...state,
-            withdrawMenuOpen: !state.withdrawMenuOpen
+            withdrawMenuOpen: !state.withdrawMenuOpen,
+            depositMenuOpen: false
           };
         }
 
@@ -1646,8 +1645,7 @@
           const newState = {
             ...state,
             souls: state.souls + amount,
-            bankedSouls: state.bankedSouls - amount,
-            withdrawMenuOpen: false
+            bankedSouls: state.bankedSouls - amount
           };
           saveGame(newState);
           return newState;
@@ -1656,7 +1654,8 @@
         case 'TOGGLE_DEPOSIT_MENU': {
           return {
             ...state,
-            depositMenuOpen: !state.depositMenuOpen
+            depositMenuOpen: !state.depositMenuOpen,
+            withdrawMenuOpen: false
           };
         }
 
@@ -1666,8 +1665,7 @@
           const newState = {
             ...state,
             souls: state.souls - amount,
-            bankedSouls: state.bankedSouls + amount,
-            depositMenuOpen: false
+            bankedSouls: state.bankedSouls + amount
           };
           saveGame(newState);
           return newState;
@@ -2989,140 +2987,183 @@
             <div style={styles.bonfireMenu}>
               <div style={{ color: GBC.gold, marginBottom: 'var(--spacing-sm)', fontSize: 'var(--font-sm)' }}>BONFIRE</div>
 
-              <div
-                style={styles.bonfireOption}
-                onClick={() => { playSfx('bonfireRest'); dispatch({ type: 'REST_AT_BONFIRE' }); }}
-                onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
-                onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
-              >
-                REST - Heal all, bank souls, respawn enemies
-              </div>
-
-              {state.bankedSouls > 0 && (
-                <div>
+              {!state.depositMenuOpen && !state.withdrawMenuOpen && (
+                <React.Fragment>
                   <div
                     style={styles.bonfireOption}
-                    onClick={() => dispatch({ type: 'TOGGLE_WITHDRAW_MENU' })}
+                    onClick={() => { playSfx('bonfireRest'); dispatch({ type: 'REST_AT_BONFIRE' }); }}
                     onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
                     onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
                   >
-                    WITHDRAW - Take souls from bank ({state.bankedSouls} available)
+                    REST - Heal all, respawn enemies
                   </div>
 
-                  {state.withdrawMenuOpen && (
-                    <div style={{ marginLeft: '12px', marginBottom: '8px' }}>
-                      {[20, 50, state.bankedSouls].filter((amount, index, arr) => {
-                        // Filter out amounts > bankedSouls and remove duplicates
-                        if (amount > state.bankedSouls) return false;
-                        return arr.indexOf(amount) === index;
-                      }).map(amount => (
-                        <div
-                          key={amount}
-                          style={{ ...styles.bonfireOption, marginTop: '4px' }}
-                          onClick={() => { playSfx('soulsGained'); dispatch({ type: 'WITHDRAW_SOULS', amount }); }}
-                          onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
-                          onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
-                        >
-                          {amount === state.bankedSouls ? `ALL (${amount})` : amount}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {state.souls > 0 && (
-                <div>
                   <div
                     style={styles.bonfireOption}
                     onClick={() => dispatch({ type: 'TOGGLE_DEPOSIT_MENU' })}
                     onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
                     onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
                   >
-                    DEPOSIT - Put souls in bank ({state.souls} carried)
+                    DEPOSIT - Carried → Banked
                   </div>
 
-                  {state.depositMenuOpen && (
-                    <div style={{ marginLeft: '12px', marginBottom: '8px' }}>
-                      {[20, 50].filter(amount => amount < state.souls).map(amount => (
-                        <div
-                          key={amount}
-                          style={{ ...styles.bonfireOption, marginTop: '4px' }}
-                          onClick={() => { playSfx('bonfireRest'); dispatch({ type: 'DEPOSIT_SOULS', amount }); }}
-                          onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
-                          onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
-                        >
-                          {amount}
-                        </div>
-                      ))}
+                  <div
+                    style={styles.bonfireOption}
+                    onClick={() => dispatch({ type: 'TOGGLE_WITHDRAW_MENU' })}
+                    onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+                    onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+                  >
+                    WITHDRAW - Banked → Carried
+                  </div>
 
-                      {state.souls > 20 && (
-                        <div
-                          style={{ ...styles.bonfireOption, marginTop: '4px' }}
-                          onClick={() => { playSfx('bonfireRest'); dispatch({ type: 'DEPOSIT_SOULS', amount: state.souls - 20 }); }}
-                          onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
-                          onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
-                        >
-                          KEEP 20 ({state.souls - 20})
-                        </div>
-                      )}
+                  {state.team.length > 1 && (
+                    <div style={{ marginTop: 'var(--spacing-sm)' }}>
+                      <div style={{ color: GBC.textDim, marginBottom: 'var(--spacing-xs)', fontSize: 'var(--font-xs)' }}>SWITCH ACTIVE:</div>
+                      {state.team.map((creature, i) => {
+                        const isActive = i === state.activeCreatureIndex;
+                        const baseData = STARTERS[creature.id];
+                        const { maxHp } = applyScars(creature, baseData);
+                        const isAlive = creature.hp > 0;
 
-                      <div
-                        style={{ ...styles.bonfireOption, marginTop: '4px' }}
-                        onClick={() => { playSfx('bonfireRest'); dispatch({ type: 'DEPOSIT_SOULS', amount: state.souls }); }}
-                        onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
-                        onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
-                      >
-                        ALL ({state.souls})
-                      </div>
+                        return (
+                          <div
+                            key={i}
+                            style={{
+                              ...styles.bonfireOption,
+                              opacity: isAlive ? 1 : 0.5,
+                              cursor: isAlive && !isActive ? 'pointer' : 'default',
+                              borderColor: isActive ? getTypeColor(creature.type) : GBC.border
+                            }}
+                            onClick={() => {
+                              if (isAlive && !isActive) {
+                                dispatch({ type: 'SWITCH_ACTIVE_AT_BONFIRE', index: i });
+                              }
+                            }}
+                          >
+                            <span style={{ color: getTypeColor(creature.type) }}>{getTypeIcon(creature.type)}</span>
+                            {' '}{creature.nickname || creature.name} - {creature.hp}/{maxHp} HP
+                            {isActive && <span style={{ color: GBC.gold, marginLeft: '6px' }}>(ACTIVE)</span>}
+                            {!isAlive && <span style={{ color: GBC.red, marginLeft: '6px' }}>(FAINTED)</span>}
+                            {creature.scars?.length > 0 && (
+                              <span style={{ color: GBC.red, marginLeft: '6px' }}>({creature.scars.length} scars)</span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
-                </div>
+
+                  <div
+                    style={{ ...styles.bonfireOption, marginTop: '8px', color: GBC.textDim }}
+                    onClick={() => dispatch({ type: 'CLOSE_BONFIRE_MENU' })}
+                  >
+                    LEAVE
+                  </div>
+                </React.Fragment>
               )}
 
-              {state.team.length > 1 && (
-                <div style={{ marginTop: 'var(--spacing-sm)' }}>
-                  <div style={{ color: GBC.textDim, marginBottom: 'var(--spacing-xs)', fontSize: 'var(--font-xs)' }}>SWITCH ACTIVE:</div>
-                  {state.team.map((creature, i) => {
-                    const isActive = i === state.activeCreatureIndex;
-                    const baseData = STARTERS[creature.id];
-                    const { maxHp } = applyScars(creature, baseData);
-                    const isAlive = creature.hp > 0;
-
-                    return (
+              {state.depositMenuOpen && (
+                <div>
+                  <div style={{ color: GBC.textDim, fontSize: 'var(--font-xs)', marginBottom: 'var(--spacing-sm)' }}>
+                    CARRIED: {state.souls} | BANKED: {state.bankedSouls}
+                  </div>
+                  {(() => {
+                    const available = state.souls;
+                    const presets = [
+                      { label: '20', amount: Math.min(20, available) },
+                      { label: '50', amount: Math.min(50, available) },
+                      { label: 'KEEP 20', amount: Math.max(0, available - 20) },
+                      { label: 'ALL', amount: available }
+                    ];
+                    return presets.map(p => (
                       <div
-                        key={i}
+                        key={p.label}
                         style={{
                           ...styles.bonfireOption,
-                          opacity: isAlive ? 1 : 0.5,
-                          cursor: isAlive && !isActive ? 'pointer' : 'default',
-                          borderColor: isActive ? getTypeColor(creature.type) : GBC.border
+                          marginTop: '4px',
+                          opacity: p.amount <= 0 ? 0.4 : 1,
+                          cursor: p.amount <= 0 ? 'default' : 'pointer'
                         }}
                         onClick={() => {
-                          if (isAlive && !isActive) {
-                            dispatch({ type: 'SWITCH_ACTIVE_AT_BONFIRE', index: i });
+                          if (p.amount > 0) {
+                            playSfx('bonfireRest');
+                            dispatch({ type: 'DEPOSIT_SOULS', amount: p.amount });
                           }
                         }}
+                        onMouseOver={e => { if (p.amount > 0) e.currentTarget.style.borderColor = GBC.gold; }}
+                        onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
                       >
-                        <span style={{ color: getTypeColor(creature.type) }}>{getTypeIcon(creature.type)}</span>
-                        {' '}{creature.nickname || creature.name} - {creature.hp}/{maxHp} HP
-                        {isActive && <span style={{ color: GBC.gold, marginLeft: '6px' }}>(ACTIVE)</span>}
-                        {!isAlive && <span style={{ color: GBC.red, marginLeft: '6px' }}>(FAINTED)</span>}
-                        {creature.scars?.length > 0 && (
-                          <span style={{ color: GBC.red, marginLeft: '6px' }}>({creature.scars.length} scars)</span>
-                        )}
+                        {p.label}{p.amount > 0 ? ` (${p.amount})` : ''}
                       </div>
-                    );
-                  })}
+                    ));
+                  })()}
+                  <div
+                    style={{ ...styles.bonfireOption, marginTop: '8px', color: GBC.textDim }}
+                    onClick={() => dispatch({ type: 'TOGGLE_DEPOSIT_MENU' })}
+                    onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+                    onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+                  >
+                    BACK
+                  </div>
                 </div>
               )}
 
-              <div
-                style={{ ...styles.bonfireOption, marginTop: '8px', color: GBC.textDim }}
-                onClick={() => dispatch({ type: 'CLOSE_BONFIRE_MENU' })}
-              >
-                LEAVE
-              </div>
+              {state.withdrawMenuOpen && (
+                <div>
+                  <div style={{ color: GBC.textDim, fontSize: 'var(--font-xs)', marginBottom: 'var(--spacing-sm)' }}>
+                    CARRIED: {state.souls} | BANKED: {state.bankedSouls}
+                  </div>
+                  {(() => {
+                    const available = state.bankedSouls;
+                    const presets = [
+                      { label: '20', amount: Math.min(20, available), needsConfirm: false },
+                      { label: '50', amount: Math.min(50, available), needsConfirm: false },
+                      { label: 'KEEP 20', amount: Math.max(0, available - 20), needsConfirm: false },
+                      { label: 'ALL', amount: available, needsConfirm: true }
+                    ];
+                    return presets.map(p => (
+                      <div
+                        key={p.label}
+                        style={{
+                          ...styles.bonfireOption,
+                          marginTop: '4px',
+                          opacity: p.amount <= 0 ? 0.4 : 1,
+                          cursor: p.amount <= 0 ? 'default' : 'pointer'
+                        }}
+                        onClick={() => {
+                          if (p.amount <= 0) return;
+                          if (p.needsConfirm) {
+                            setConfirmDialog({
+                              message: `Withdraw all ${p.amount} souls? They will be at risk.`,
+                              onConfirm: () => {
+                                playSfx('soulsGained');
+                                dispatch({ type: 'WITHDRAW_SOULS', amount: p.amount });
+                                setConfirmDialog(null);
+                              },
+                              onCancel: () => setConfirmDialog(null)
+                            });
+                          } else {
+                            playSfx('soulsGained');
+                            dispatch({ type: 'WITHDRAW_SOULS', amount: p.amount });
+                          }
+                        }}
+                        onMouseOver={e => { if (p.amount > 0) e.currentTarget.style.borderColor = GBC.gold; }}
+                        onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+                      >
+                        {p.label}{p.amount > 0 ? ` (${p.amount})` : ''}
+                      </div>
+                    ));
+                  })()}
+                  <div
+                    style={{ ...styles.bonfireOption, marginTop: '8px', color: GBC.textDim }}
+                    onClick={() => dispatch({ type: 'TOGGLE_WITHDRAW_MENU' })}
+                    onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+                    onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+                  >
+                    BACK
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
