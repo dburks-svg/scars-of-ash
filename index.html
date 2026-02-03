@@ -1260,11 +1260,45 @@
         case 'EXAMINE_TILE': {
           const key = `${state.playerPos.x},${state.playerPos.y}`;
           const lore = TILE_LORE[state.currentMap]?.[key];
+
+          // Labyrinth secret room clue tracking
+          const LABYRINTH_CLUES = ['16,1', '1,7', '4,15', '17,17'];
+          const isLabyrinthClue = state.currentMap === 'labyrinth' && LABYRINTH_CLUES.includes(key);
+          const isSecretDoor = state.currentMap === 'labyrinth' && key === '15,9';
+
           if (lore) {
-            return {
-              ...state,
-              examineText: lore
-            };
+            let newState = { ...state, examineText: lore };
+
+            // Track clue discovery
+            if (isLabyrinthClue && !state.cluesFound.includes(key)) {
+              const newClues = [...state.cluesFound, key];
+              newState.cluesFound = newClues;
+
+              // All 4 clues found - reveal secret door
+              if (newClues.length >= 4) {
+                newState.secretDoorRevealed = true;
+                newState.saveNotification = 'Something shifts in the labyrinth...';
+              }
+            }
+
+            // Special lore when examining revealed secret door
+            if (isSecretDoor && state.secretDoorRevealed) {
+              newState.examineText = {
+                name: 'Hidden Chamber',
+                lines: [
+                  'The wall yields to your knowledge.',
+                  '',
+                  'A hidden chamber opens before you.'
+                ]
+              };
+              // Award title for discovering the secret
+              if (!state.titles.includes('ashen_seeker')) {
+                newState.titles = [...state.titles, 'ashen_seeker'];
+                newState.saveNotification = 'Title earned: Ashen Seeker';
+              }
+            }
+
+            return newState;
           }
           return state;
         }
@@ -1297,6 +1331,11 @@
           const tile = map[newY][newX];
 
           if (tile === 'W') return { ...state, playerDir: dir };
+
+          // Secret door blocks movement until revealed
+          if (tile === 'S' && !state.secretDoorRevealed) {
+            return { ...state, playerDir: dir };
+          }
 
           let newState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false, depositMenuOpen: false };
 
@@ -2286,6 +2325,8 @@
             playTime: saveData.playTime || 0,
             titles: saveData.titles || [],
             activeTitle: saveData.activeTitle || null,
+            cluesFound: saveData.cluesFound || [],
+            secretDoorRevealed: saveData.secretDoorRevealed || false,
             saveNotification: 'Journey resumed.'
           };
         }
@@ -2718,8 +2759,6 @@
       // Render tile background with area-specific styling
       const renderTileBackground = (tile, x, y) => {
         const area = state.currentMap;
-        // Check if this is a secret door that should be revealed
-        const secretRevealed = state.secretDoorRevealed && tile === 'H';
 
         switch(tile) {
           case 'W': return <WallTile area={area} />;
@@ -2731,7 +2770,9 @@
           case 'K': return <BossRoomTile area={area} />;
           case 'T': return <TorchTile area={area} />;
           case 'A': return <AshenGateTile area={area} />;
-          case 'H': return <SecretDoorTile revealed={secretRevealed} area={area} />;
+          case 'H': return <SecretDoorTile revealed={false} area={area} />;
+          case 'S': return <SecretDoorTile revealed={state.secretDoorRevealed} area={area} />;
+          case 'L': return <PathTile area={area} />;
           default: return <PathTile area={area} />;
         }
       };

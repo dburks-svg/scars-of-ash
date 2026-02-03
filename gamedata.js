@@ -2668,6 +2668,8 @@ var getSaveData = (state) => {
     difficulty: state.difficulty,
     titles: state.titles,
     activeTitle: state.activeTitle,
+    cluesFound: state.cluesFound,
+    secretDoorRevealed: state.secretDoorRevealed,
     savedAt: Date.now()
   };
 };
@@ -2923,6 +2925,8 @@ var initialState = {
   pendingCapture: null,
   releaseMenuOpen: false,
   titles: [],
-  activeTitle: null
+  activeTitle: null,
+  cluesFound: [],
+  secretDoorRevealed: false
 };
 
