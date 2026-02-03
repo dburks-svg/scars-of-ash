@@ -1,0 +1,233 @@
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* CSS Custom Properties for responsive scaling */
+    :root {
+      /* Mobile-first defaults */
+      --container-max-width: 520px;
+      --tile-size: 56px;
+      --font-xs: 7px;
+      --font-sm: 8px;
+      --font-base: 10px;
+      --font-md: 12px;
+      --font-lg: 14px;
+      --font-xl: 16px;
+      --font-2xl: 20px;
+      --spacing-xs: 4px;
+      --spacing-sm: 8px;
+      --spacing-md: 12px;
+      --spacing-lg: 16px;
+      --spacing-xl: 24px;
+      --button-size: 36px;
+      --battle-height: 120px;
+      --sprite-scale: 1;
+    }
+
+    /* Tablet - medium screens */
+    @media (min-width: 768px) {
+      :root {
+        --container-max-width: 680px;
+        --tile-size: 60px;
+        --font-xs: 9px;
+        --font-sm: 10px;
+        --font-base: 12px;
+        --font-md: 14px;
+        --font-lg: 16px;
+        --font-xl: 20px;
+        --font-2xl: 24px;
+        --spacing-sm: 10px;
+        --spacing-md: 16px;
+        --spacing-lg: 20px;
+        --spacing-xl: 32px;
+        --button-size: 44px;
+        --battle-height: 150px;
+        --sprite-scale: 1.2;
+      }
+    }
+
+    /* Desktop - large screens */
+    @media (min-width: 1024px) {
+      :root {
+        --container-max-width: 900px;
+        --tile-size: 64px;
+        --font-xs: 11px;
+        --font-sm: 12px;
+        --font-base: 14px;
+        --font-md: 16px;
+        --font-lg: 20px;
+        --font-xl: 24px;
+        --font-2xl: 32px;
+        --spacing-sm: 12px;
+        --spacing-md: 20px;
+        --spacing-lg: 24px;
+        --spacing-xl: 40px;
+        --button-size: 48px;
+        --battle-height: 180px;
+        --sprite-scale: 1.5;
+      }
+    }
+
+    /* Large desktop - 1440p+ */
+    @media (min-width: 1440px) {
+      :root {
+        --container-max-width: 1000px;
+        --tile-size: 72px;
+        --font-xs: 12px;
+        --font-sm: 14px;
+        --font-base: 16px;
+        --font-md: 18px;
+        --font-lg: 22px;
+        --font-xl: 28px;
+        --font-2xl: 36px;
+        --spacing-sm: 14px;
+        --spacing-md: 24px;
+        --spacing-lg: 28px;
+        --spacing-xl: 48px;
+        --button-size: 52px;
+        --battle-height: 200px;
+        --sprite-scale: 1.8;
+      }
+    }
+
+    body {
+      background-color: #0f0f1a;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    #root {
+      max-width: var(--container-max-width);
+      margin: 0 auto;
+    }
+
+    /* Bonfire animation */
+    @keyframes flicker {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      25% { opacity: 0.9; transform: scale(1.02, 0.98); }
+      50% { opacity: 1; transform: scale(0.98, 1.02); }
+      75% { opacity: 0.85; transform: scale(1.01, 0.99); }
+    }
+
+    @keyframes ember {
+      0% { transform: translateY(0) scale(1); opacity: 1; }
+      100% { transform: translateY(-8px) scale(0.5); opacity: 0; }
+    }
+
+    /* Grass sway animation */
+    @keyframes grassSway {
+      0%, 100% { transform: skewX(0deg); }
+      50% { transform: skewX(2deg); }
+    }
+
+    /* Combat juice animations */
+    @keyframes damageNumber {
+      0% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-30px); }
+    }
+
+    @keyframes screenShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-4px); }
+      40% { transform: translateX(4px); }
+      60% { transform: translateX(-3px); }
+      80% { transform: translateX(3px); }
+    }
+
+    @keyframes criticalFlash {
+      0%, 100% { background-color: transparent; }
+      50% { background-color: rgba(255, 255, 255, 0.4); }
+    }
+
+    @keyframes hpPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(252, 129, 129, 0); }
+      50% { box-shadow: 0 0 8px 2px rgba(252, 129, 129, 0.6); }
+    }
+
+    @keyframes staminaWarning {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    /* Torch flicker animation - Fallen Keep */
+    @keyframes torchFlicker {
+      0%, 100% { opacity: 1; filter: brightness(1); }
+      15% { opacity: 0.85; filter: brightness(0.9); }
+      30% { opacity: 1; filter: brightness(1.1); }
+      45% { opacity: 0.9; filter: brightness(0.95); }
+      60% { opacity: 1; filter: brightness(1.05); }
+      75% { opacity: 0.8; filter: brightness(0.85); }
+      90% { opacity: 0.95; filter: brightness(1); }
+    }
+
+    /* Void pulse animation - Hollow Deep */
+    @keyframes voidPulse {
+      0%, 100% {
+        box-shadow: inset 0 0 15px rgba(159, 122, 234, 0.3);
+        filter: brightness(1);
+      }
+      50% {
+        box-shadow: inset 0 0 25px rgba(159, 122, 234, 0.6);
+        filter: brightness(1.1);
+      }
+    }
+
+    /* Maze ambient glow - Labyrinth */
+    @keyframes mazeGlow {
+      0%, 100% {
+        box-shadow: inset 0 0 8px rgba(246, 224, 94, 0.2);
+      }
+      50% {
+        box-shadow: inset 0 0 16px rgba(246, 224, 94, 0.4);
+      }
+    }
+
+    /* Secret door shimmer */
+    @keyframes secretShimmer {
+      0%, 100% {
+        opacity: 0;
+        background: linear-gradient(90deg, transparent, rgba(246, 224, 94, 0.3), transparent);
+      }
+      50% {
+        opacity: 1;
+        background: linear-gradient(90deg, transparent, rgba(246, 224, 94, 0.5), transparent);
+      }
+    }
+
+    /* Ashen wind effect - Ashen Path */
+    @keyframes ashenWind {
+      0%, 100% { transform: translateX(0) rotate(0deg); opacity: 0.6; }
+      25% { transform: translateX(2px) rotate(1deg); opacity: 0.4; }
+      50% { transform: translateX(-1px) rotate(-1deg); opacity: 0.7; }
+      75% { transform: translateX(1px) rotate(0.5deg); opacity: 0.5; }
+    }
+
+    /* Lore indicator pulse */
+    @keyframes lorePulse {
+      0%, 100% { transform: scale(1); opacity: 0.7; }
+      50% { transform: scale(1.2); opacity: 1; }
+    }
+
+    .screen-shake {
+      animation: screenShake 0.2s ease-in-out;
+    }
+
+    .critical-flash {
+      animation: criticalFlash 0.1s ease-in-out;
+    }
+
+    .hp-low {
+      animation: hpPulse 1s ease-in-out infinite;
+    }
+
+    .stamina-warning {
+      animation: staminaWarning 0.5s ease-in-out infinite;
+    }
+
+    /* Focus styles for accessibility */
+    button:focus-visible,
+    input:focus-visible {
+      outline: 2px solid #f6e05e;
+      outline-offset: 2px;
+    }
