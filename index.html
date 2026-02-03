@@ -158,6 +158,65 @@
       50% { opacity: 0.6; }
     }
 
+    /* Torch flicker animation - Fallen Keep */
+    @keyframes torchFlicker {
+      0%, 100% { opacity: 1; filter: brightness(1); }
+      15% { opacity: 0.85; filter: brightness(0.9); }
+      30% { opacity: 1; filter: brightness(1.1); }
+      45% { opacity: 0.9; filter: brightness(0.95); }
+      60% { opacity: 1; filter: brightness(1.05); }
+      75% { opacity: 0.8; filter: brightness(0.85); }
+      90% { opacity: 0.95; filter: brightness(1); }
+    }
+
+    /* Void pulse animation - Hollow Deep */
+    @keyframes voidPulse {
+      0%, 100% {
+        box-shadow: inset 0 0 15px rgba(159, 122, 234, 0.3);
+        filter: brightness(1);
+      }
+      50% {
+        box-shadow: inset 0 0 25px rgba(159, 122, 234, 0.6);
+        filter: brightness(1.1);
+      }
+    }
+
+    /* Maze ambient glow - Labyrinth */
+    @keyframes mazeGlow {
+      0%, 100% {
+        box-shadow: inset 0 0 8px rgba(246, 224, 94, 0.2);
+      }
+      50% {
+        box-shadow: inset 0 0 16px rgba(246, 224, 94, 0.4);
+      }
+    }
+
+    /* Secret door shimmer */
+    @keyframes secretShimmer {
+      0%, 100% {
+        opacity: 0;
+        background: linear-gradient(90deg, transparent, rgba(246, 224, 94, 0.3), transparent);
+      }
+      50% {
+        opacity: 1;
+        background: linear-gradient(90deg, transparent, rgba(246, 224, 94, 0.5), transparent);
+      }
+    }
+
+    /* Ashen wind effect - Ashen Path */
+    @keyframes ashenWind {
+      0%, 100% { transform: translateX(0) rotate(0deg); opacity: 0.6; }
+      25% { transform: translateX(2px) rotate(1deg); opacity: 0.4; }
+      50% { transform: translateX(-1px) rotate(-1deg); opacity: 0.7; }
+      75% { transform: translateX(1px) rotate(0.5deg); opacity: 0.5; }
+    }
+
+    /* Lore indicator pulse */
+    @keyframes lorePulse {
+      0%, 100% { transform: scale(1); opacity: 0.7; }
+      50% { transform: scale(1.2); opacity: 1; }
+    }
+
     .screen-shake {
       animation: screenShake 0.2s ease-in-out;
     }
@@ -1416,40 +1475,57 @@
       { id: 'flinching', name: 'Flinching', effect: 'noPriority', description: 'Quick Strike no longer goes first' }
     ];
 
+    // ASHEN PATH - 6 wide × 8 tall - Tutorial area, desolate wasteland
+    // B = Bonfire (spawn), G = Grass (encounters), P = Path, W = Wall, X = Gate to Fallen Keep
     const ASHEN_PATH = [
-      ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
-      ['W', 'G', 'P', 'P', 'B', 'P', 'G', 'G', 'P', 'P', 'G', 'W'],
-      ['W', 'P', 'W', 'W', 'P', 'W', 'W', 'G', 'W', 'P', 'W', 'W'],
-      ['W', 'P', 'G', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'W'],
-      ['W', 'P', 'W', 'W', 'W', 'W', 'W', 'P', 'W', 'W', 'P', 'W'],
-      ['W', 'P', 'P', 'P', 'P', 'W', 'P', 'P', 'W', 'G', 'P', 'W'],
-      ['W', 'W', 'W', 'W', 'P', 'W', 'P', 'W', 'W', 'P', 'W', 'W'],
-      ['W', 'W', 'W', 'W', 'W', 'W', 'X', 'W', 'W', 'W', 'W', 'W']
-    ];
-
-    const FALLEN_KEEP = [
       ['W', 'W', 'W', 'W', 'W', 'W'],
-      ['W', 'P', 'P', 'P', 'P', 'W'],
-      ['W', 'P', 'W', 'W', 'P', 'W'],
+      ['W', 'B', 'P', 'P', 'G', 'W'],
       ['W', 'P', 'W', 'P', 'P', 'W'],
-      ['W', 'P', 'P', 'P', 'W', 'W'],
-      ['W', 'W', 'W', 'P', 'W', 'W'],
-      ['W', 'K', 'P', 'P', 'P', 'W'],
-      ['W', 'W', 'E', 'W', 'W', 'W']
+      ['W', 'G', 'P', 'P', 'W', 'W'],
+      ['W', 'P', 'W', 'G', 'P', 'W'],
+      ['W', 'P', 'P', 'P', 'P', 'W'],
+      ['W', 'W', 'P', 'W', 'W', 'W'],
+      ['W', 'W', 'X', 'W', 'W', 'W']
     ];
 
-    // The Hollow Deep - Post-game dungeon (unlocks after Keeper Varek)
-    // E = Entrance (from Fallen Keep), G = Grass (Dark/Light encounters)
-    // B = Bonfire, K = Boss room (Hollow Warden), P = Path, W = Wall
-    const HOLLOW_DEEP = [
+    // FALLEN KEEP - 8 wide × 12 tall - Dungeon with Keeper Varek
+    // B = Bonfire, E = Exit to Ashen Path, K = Boss (Keeper Varek), P = Path
+    // T = Torch (wall decoration), W = Wall
+    const FALLEN_KEEP = [
       ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
-      ['W', 'P', 'P', 'P', 'G', 'P', 'P', 'W'],
+      ['W', 'T', 'P', 'P', 'P', 'P', 'T', 'W'],
+      ['W', 'P', 'P', 'W', 'W', 'P', 'P', 'W'],
       ['W', 'P', 'W', 'W', 'W', 'W', 'P', 'W'],
-      ['W', 'P', 'W', 'B', 'W', 'P', 'P', 'W'],
-      ['W', 'P', 'P', 'P', 'P', 'W', 'G', 'W'],
-      ['W', 'W', 'W', 'P', 'W', 'W', 'P', 'W'],
-      ['W', 'K', 'P', 'P', 'P', 'P', 'P', 'W'],
+      ['W', 'P', 'P', 'P', 'P', 'P', 'P', 'W'],
+      ['W', 'W', 'W', 'P', 'P', 'W', 'W', 'W'],
+      ['W', 'T', 'P', 'P', 'P', 'P', 'T', 'W'],
+      ['W', 'P', 'P', 'B', 'P', 'P', 'P', 'W'],
+      ['W', 'P', 'W', 'W', 'W', 'W', 'P', 'W'],
+      ['W', 'P', 'P', 'P', 'K', 'P', 'P', 'W'],
+      ['W', 'W', 'W', 'P', 'P', 'W', 'W', 'W'],
       ['W', 'W', 'W', 'E', 'W', 'W', 'W', 'W']
+    ];
+
+    // THE HOLLOW DEEP - 10 wide × 16 tall - Post-game void dungeon
+    // E = Entrance (from Fallen Keep), G = Grass (Dark/Light encounters only)
+    // B = Bonfire, K = Boss (Hollow Warden), P = Path, W = Wall, X = Exit to Labyrinth
+    const HOLLOW_DEEP = [
+      ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
+      ['W', 'P', 'P', 'P', 'G', 'G', 'P', 'P', 'P', 'W'],
+      ['W', 'P', 'W', 'W', 'W', 'W', 'W', 'W', 'P', 'W'],
+      ['W', 'P', 'W', 'P', 'P', 'P', 'P', 'W', 'P', 'W'],
+      ['W', 'G', 'W', 'P', 'W', 'W', 'P', 'W', 'P', 'W'],
+      ['W', 'P', 'P', 'P', 'W', 'W', 'P', 'P', 'G', 'W'],
+      ['W', 'W', 'W', 'P', 'W', 'W', 'W', 'W', 'P', 'W'],
+      ['W', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'W'],
+      ['W', 'P', 'W', 'W', 'B', 'W', 'W', 'W', 'P', 'W'],
+      ['W', 'P', 'W', 'P', 'P', 'P', 'W', 'G', 'P', 'W'],
+      ['W', 'P', 'W', 'P', 'W', 'P', 'W', 'P', 'P', 'W'],
+      ['W', 'G', 'P', 'P', 'W', 'P', 'P', 'P', 'W', 'W'],
+      ['W', 'W', 'W', 'P', 'W', 'W', 'W', 'P', 'W', 'W'],
+      ['W', 'P', 'P', 'P', 'P', 'K', 'P', 'P', 'P', 'W'],
+      ['W', 'W', 'W', 'W', 'P', 'P', 'W', 'W', 'X', 'W'],
+      ['W', 'W', 'W', 'W', 'E', 'W', 'W', 'W', 'W', 'W']
     ];
 
     // ============= GBC COLOR PALETTE =============
@@ -1470,7 +1546,7 @@
       grass: '#48bb78',
       dark: '#9f7aea',
       light: '#faf089',
-      // Tile colors
+      // Tile colors (default/Ashen Path)
       wallDark: '#1a1a2e',
       wallMid: '#2d3748',
       wallLight: '#4a5568',
@@ -1480,6 +1556,70 @@
       grassDark: '#276749',
       grassMid: '#38a169',
       grassLight: '#48bb78',
+    };
+
+    // Area-specific tile palettes
+    const AREA_PALETTES = {
+      // Ashen Path - desolate, burned, gray-brown tones
+      ashenPath: {
+        wallDark: '#1f1a15',
+        wallMid: '#3d3530',
+        wallLight: '#5a5048',
+        pathDark: '#4a4035',
+        pathMid: '#6b5d50',
+        pathLight: '#8c7a6a',
+        grassDark: '#3d4a35',
+        grassMid: '#526b45',
+        grassLight: '#688c58',
+        accent: '#8b7355',
+        glow: 'rgba(139, 115, 85, 0.3)'
+      },
+      // Fallen Keep - dark stone, torchlit oranges
+      fallenKeep: {
+        wallDark: '#1a1520',
+        wallMid: '#2e2535',
+        wallLight: '#453850',
+        pathDark: '#3a2a25',
+        pathMid: '#5c4035',
+        pathLight: '#7a5545',
+        grassDark: '#3d3530',
+        grassMid: '#524540',
+        grassLight: '#6b5850',
+        accent: '#ed8936',
+        glow: 'rgba(237, 137, 54, 0.4)',
+        torch: '#f6ad55'
+      },
+      // Hollow Deep - void purples, sickly greens
+      hollowDeep: {
+        wallDark: '#0d0a14',
+        wallMid: '#1a1528',
+        wallLight: '#2d2540',
+        pathDark: '#1a1a25',
+        pathMid: '#252535',
+        pathLight: '#353548',
+        grassDark: '#1a2a20',
+        grassMid: '#253830',
+        grassLight: '#354840',
+        accent: '#9f7aea',
+        glow: 'rgba(159, 122, 234, 0.5)',
+        void: '#6b46c1'
+      },
+      // The Labyrinth - ancient gold, mysterious blues
+      labyrinth: {
+        wallDark: '#151a25',
+        wallMid: '#202838',
+        wallLight: '#303a50',
+        pathDark: '#252520',
+        pathMid: '#3a3830',
+        pathLight: '#504a40',
+        grassDark: '#2a3530',
+        grassMid: '#3a4a40',
+        grassLight: '#4a5a50',
+        accent: '#d69e2e',
+        glow: 'rgba(214, 158, 46, 0.3)',
+        ancient: '#c9a227',
+        mystery: '#4a6fa5'
+      }
     };
 
     // ============= PIXEL ART SPRITES (CSS) =============
@@ -1513,9 +1653,10 @@
     };
 
     // AnimatedSprite component - cycles through animation frames
+    // Frame rate guide: idle=250ms (4fps), walk=166ms (6fps), battle=125ms (8fps)
     const AnimatedSprite = ({
       frames,           // Array of preloaded Image objects
-      frameRate = 150,  // ms per frame (150 for idle, 100 for walk)
+      frameRate = 250,  // ms per frame - default to idle speed (4fps)
       size = 48,
       flip = false,
       filter = 'none',
@@ -1825,10 +1966,10 @@
     };
 
     // Main player sprite component - uses PNG if available, falls back to SVG
-    // Now supports animations: idle (2 frames at 150ms) and walk (4 frames at 100ms)
+    // Animations: idle (4fps = 250ms), walk (6fps = 166ms)
     const PlayerSprite = ({ direction = 'down', appearance = 'other', isMoving = false }) => {
       const animType = isMoving ? 'walk' : 'idle';
-      const frameRate = isMoving ? 100 : 150;
+      const frameRate = isMoving ? 166 : 250;
       const frames = preloadedSprites.player[appearance]?.[direction]?.[animType];
 
       // If PNG sprite frames are available, render animated sprite
@@ -2048,11 +2189,12 @@
       }
 
       // If PNG sprite frames are available, render animated sprite
+      // Battle animations use 8fps (125ms) for more dynamic feel
       if (frames && frames.length > 0) {
         return (
           <AnimatedSprite
             frames={frames}
-            frameRate={150}
+            frameRate={125}
             size={size}
             flip={isEnemy}
             filter={useHollowed && !isBossType ? 'saturate(0.5) brightness(0.8)' : 'none'}
@@ -2065,192 +2207,571 @@
       return <FallbackCreatureSprite type={type} size={size} isEnemy={isEnemy} />;
     };
 
-    // Tile components
-    const GrassTile = () => (
-      <div style={{
-        width: '100%',
-        height: '100%',
-        backgroundColor: GBC.grassDark,
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        {/* Grass blades pattern */}
-        <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
-          <rect x="6" y="16" width="3" height="12" fill={GBC.grassMid}/>
-          <rect x="6" y="13" width="3" height="3" fill={GBC.grassLight}/>
-          <rect x="16" y="20" width="3" height="14" fill={GBC.grassMid}/>
-          <rect x="16" y="17" width="3" height="3" fill={GBC.grassLight}/>
-          <rect x="28" y="14" width="3" height="16" fill={GBC.grassMid}/>
-          <rect x="28" y="11" width="3" height="3" fill={GBC.grassLight}/>
-          <rect x="40" y="18" width="3" height="12" fill={GBC.grassMid}/>
-          <rect x="40" y="15" width="3" height="3" fill={GBC.grassLight}/>
-          <rect x="50" y="16" width="3" height="14" fill={GBC.grassMid}/>
-          <rect x="50" y="13" width="3" height="3" fill={GBC.grassLight}/>
-          <rect x="11" y="34" width="3" height="12" fill={GBC.grassMid}/>
-          <rect x="22" y="38" width="3" height="12" fill={GBC.grassMid}/>
-          <rect x="34" y="32" width="3" height="14" fill={GBC.grassMid}/>
-          <rect x="45" y="36" width="3" height="14" fill={GBC.grassMid}/>
-        </svg>
-      </div>
-    );
+    // Tile components - area-aware for distinct visual styles
+    const GrassTile = ({ area = 'ashenPath' }) => {
+      const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
+      const isHollow = area === 'hollowDeep';
+      const isLabyrinth = area === 'labyrinth';
 
-    const PathTile = () => (
-      <div style={{
-        width: '100%',
-        height: '100%',
-        backgroundColor: GBC.pathMid,
-        position: 'relative'
-      }}>
-        <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
-          {/* Stone/dirt texture */}
-          <rect x="3" y="5" width="12" height="6" fill={GBC.pathLight}/>
-          <rect x="22" y="3" width="14" height="8" fill={GBC.pathDark}/>
-          <rect x="44" y="8" width="9" height="6" fill={GBC.pathLight}/>
-          <rect x="8" y="22" width="16" height="7" fill={GBC.pathDark}/>
-          <rect x="34" y="20" width="12" height="8" fill={GBC.pathLight}/>
-          <rect x="5" y="40" width="9" height="6" fill={GBC.pathLight}/>
-          <rect x="20" y="42" width="14" height="6" fill={GBC.pathDark}/>
-          <rect x="42" y="38" width="11" height="8" fill={GBC.pathDark}/>
-        </svg>
-      </div>
-    );
-
-    const WallTile = () => (
-      <div style={{
-        width: '100%',
-        height: '100%',
-        backgroundColor: GBC.wallDark,
-        position: 'relative'
-      }}>
-        <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
-          {/* Brick pattern */}
-          <rect x="0" y="0" width="26" height="13" fill={GBC.wallMid} stroke={GBC.wallDark} strokeWidth="1"/>
-          <rect x="28" y="0" width="28" height="13" fill={GBC.wallMid} stroke={GBC.wallDark} strokeWidth="1"/>
-          <rect x="0" y="14" width="14" height="13" fill={GBC.wallLight} stroke={GBC.wallDark} strokeWidth="1"/>
-          <rect x="16" y="14" width="26" height="13" fill={GBC.wallMid} stroke={GBC.wallDark} strokeWidth="1"/>
-          <rect x="44" y="14" width="12" height="13" fill={GBC.wallLight} stroke={GBC.wallDark} strokeWidth="1"/>
-          <rect x="0" y="28" width="22" height="13" fill={GBC.wallMid} stroke={GBC.wallDark} strokeWidth="1"/>
-          <rect x="24" y="28" width="32" height="13" fill={GBC.wallLight} stroke={GBC.wallDark} strokeWidth="1"/>
-          <rect x="0" y="42" width="12" height="14" fill={GBC.wallLight} stroke={GBC.wallDark} strokeWidth="1"/>
-          <rect x="14" y="42" width="26" height="14" fill={GBC.wallMid} stroke={GBC.wallDark} strokeWidth="1"/>
-          <rect x="42" y="42" width="14" height="14" fill={GBC.wallMid} stroke={GBC.wallDark} strokeWidth="1"/>
-        </svg>
-      </div>
-    );
-
-    const BonfireTile = () => (
-      <div style={{
-        width: '100%',
-        height: '100%',
-        backgroundColor: GBC.pathDark,
-        position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        {/* Fire base */}
+      return (
         <div style={{
-          position: 'absolute',
-          bottom: '6px',
-          width: '32px',
-          height: '10px',
-          backgroundColor: '#4a3728',
-          borderRadius: '2px'
-        }}/>
-        {/* Animated flames */}
-        <svg width="44" height="44" style={{ animation: 'flicker 0.5s infinite', position: 'relative', zIndex: 1 }}>
-          {/* Outer flame */}
-          <rect x="10" y="22" width="24" height="16" fill="#ed8936"/>
-          <rect x="13" y="16" width="18" height="8" fill="#f6ad55"/>
-          <rect x="16" y="10" width="12" height="8" fill="#f6e05e"/>
-          <rect x="19" y="4" width="6" height="8" fill="#faf089"/>
-          {/* Inner bright core */}
-          <rect x="16" y="26" width="12" height="8" fill="#faf089"/>
-          <rect x="19" y="20" width="6" height="8" fill="#fffff0"/>
-        </svg>
-        {/* Embers */}
-        <div style={{
-          position: 'absolute',
-          top: '10px',
-          left: '16px',
-          width: '5px',
-          height: '5px',
-          backgroundColor: '#f6e05e',
-          animation: 'ember 1s infinite',
-          animationDelay: '0s'
-        }}/>
-        <div style={{
-          position: 'absolute',
-          top: '12px',
-          right: '18px',
-          width: '4px',
-          height: '4px',
-          backgroundColor: '#ed8936',
-          animation: 'ember 1.2s infinite',
-          animationDelay: '0.3s'
-        }}/>
-      </div>
-    );
+          width: '100%',
+          height: '100%',
+          backgroundColor: palette.grassDark,
+          position: 'relative',
+          overflow: 'hidden',
+          animation: isHollow ? 'voidPulse 3s ease-in-out infinite' :
+                     isLabyrinth ? 'mazeGlow 4s ease-in-out infinite' : 'none'
+        }}>
+          {/* Grass blades pattern with area-specific colors */}
+          <svg width="56" height="56" style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            animation: 'grassSway 2s ease-in-out infinite'
+          }}>
+            <rect x="6" y="16" width="3" height="12" fill={palette.grassMid}/>
+            <rect x="6" y="13" width="3" height="3" fill={palette.grassLight}/>
+            <rect x="16" y="20" width="3" height="14" fill={palette.grassMid}/>
+            <rect x="16" y="17" width="3" height="3" fill={palette.grassLight}/>
+            <rect x="28" y="14" width="3" height="16" fill={palette.grassMid}/>
+            <rect x="28" y="11" width="3" height="3" fill={palette.grassLight}/>
+            <rect x="40" y="18" width="3" height="12" fill={palette.grassMid}/>
+            <rect x="40" y="15" width="3" height="3" fill={palette.grassLight}/>
+            <rect x="50" y="16" width="3" height="14" fill={palette.grassMid}/>
+            <rect x="50" y="13" width="3" height="3" fill={palette.grassLight}/>
+            <rect x="11" y="34" width="3" height="12" fill={palette.grassMid}/>
+            <rect x="22" y="38" width="3" height="12" fill={palette.grassMid}/>
+            <rect x="34" y="32" width="3" height="14" fill={palette.grassMid}/>
+            <rect x="45" y="36" width="3" height="14" fill={palette.grassMid}/>
+          </svg>
+          {/* Void particles for Hollow Deep */}
+          {isHollow && (
+            <>
+              <div style={{
+                position: 'absolute',
+                top: '8px',
+                left: '12px',
+                width: '4px',
+                height: '4px',
+                backgroundColor: palette.void,
+                borderRadius: '50%',
+                animation: 'ember 2s infinite',
+                opacity: 0.7
+              }}/>
+              <div style={{
+                position: 'absolute',
+                bottom: '12px',
+                right: '10px',
+                width: '3px',
+                height: '3px',
+                backgroundColor: palette.accent,
+                borderRadius: '50%',
+                animation: 'ember 2.5s infinite 0.5s',
+                opacity: 0.6
+              }}/>
+            </>
+          )}
+        </div>
+      );
+    };
 
-    const GateTile = ({ isKeep = false }) => (
-      <div style={{
-        width: '100%',
-        height: '100%',
-        backgroundColor: isKeep ? GBC.wallMid : GBC.pathMid,
-        position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <svg width="50" height="50" style={{ imageRendering: 'pixelated' }}>
-          {/* Torii gate / dungeon entrance */}
-          {/* Pillars */}
-          <rect x="6" y="12" width="6" height="38" fill="#742a2a"/>
-          <rect x="38" y="12" width="6" height="38" fill="#742a2a"/>
-          {/* Top beam */}
-          <rect x="3" y="6" width="44" height="6" fill="#9b2c2c"/>
-          <rect x="0" y="3" width="50" height="5" fill="#c53030"/>
-          {/* Cross beam */}
-          <rect x="6" y="16" width="38" height="4" fill="#742a2a"/>
-          {/* Entrance darkness */}
-          <rect x="14" y="22" width="22" height="28" fill="#0f0f1a"/>
-        </svg>
-      </div>
-    );
+    const PathTile = ({ area = 'ashenPath' }) => {
+      const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
+      const isKeep = area === 'fallenKeep';
+      const isLabyrinth = area === 'labyrinth';
 
-    const BossRoomTile = () => (
-      <div style={{
-        width: '100%',
-        height: '100%',
-        backgroundColor: '#1a0a0a',
-        position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <svg width="50" height="50" style={{ imageRendering: 'pixelated' }}>
-          {/* Skull */}
-          <rect x="13" y="10" width="24" height="20" fill="#e8e8e8"/>
-          <rect x="10" y="13" width="3" height="14" fill="#e8e8e8"/>
-          <rect x="37" y="13" width="3" height="14" fill="#e8e8e8"/>
-          {/* Eye sockets */}
-          <rect x="16" y="16" width="6" height="7" fill="#1a0a0a"/>
-          <rect x="28" y="16" width="6" height="7" fill="#1a0a0a"/>
-          {/* Red glow in eyes */}
-          <rect x="18" y="18" width="3" height="3" fill="#c53030"/>
-          <rect x="30" y="18" width="3" height="3" fill="#c53030"/>
-          {/* Nose */}
-          <rect x="22" y="25" width="6" height="4" fill="#1a0a0a"/>
-          {/* Teeth */}
-          <rect x="16" y="30" width="18" height="6" fill="#e8e8e8"/>
-          <rect x="19" y="30" width="3" height="6" fill="#1a0a0a"/>
-          <rect x="25" y="30" width="3" height="6" fill="#1a0a0a"/>
-          <rect x="31" y="30" width="3" height="6" fill="#1a0a0a"/>
-          {/* Jaw */}
-          <rect x="13" y="36" width="24" height="6" fill="#d4d4d4"/>
-        </svg>
-      </div>
-    );
+      return (
+        <div style={{
+          width: '100%',
+          height: '100%',
+          backgroundColor: palette.pathMid,
+          position: 'relative',
+          boxShadow: isLabyrinth ? `inset 0 0 8px ${palette.glow}` : 'none'
+        }}>
+          <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
+            {/* Stone/dirt texture with area-specific colors */}
+            <rect x="3" y="5" width="12" height="6" fill={palette.pathLight}/>
+            <rect x="22" y="3" width="14" height="8" fill={palette.pathDark}/>
+            <rect x="44" y="8" width="9" height="6" fill={palette.pathLight}/>
+            <rect x="8" y="22" width="16" height="7" fill={palette.pathDark}/>
+            <rect x="34" y="20" width="12" height="8" fill={palette.pathLight}/>
+            <rect x="5" y="40" width="9" height="6" fill={palette.pathLight}/>
+            <rect x="20" y="42" width="14" height="6" fill={palette.pathDark}/>
+            <rect x="42" y="38" width="11" height="8" fill={palette.pathDark}/>
+            {/* Labyrinth ancient runes */}
+            {isLabyrinth && (
+              <>
+                <rect x="24" y="24" width="8" height="2" fill={palette.ancient} opacity="0.4"/>
+                <rect x="26" y="22" width="2" height="6" fill={palette.ancient} opacity="0.3"/>
+              </>
+            )}
+          </svg>
+          {/* Ashen wind particles for Ashen Path */}
+          {area === 'ashenPath' && Math.random() > 0.7 && (
+            <div style={{
+              position: 'absolute',
+              top: '20px',
+              left: '10px',
+              width: '6px',
+              height: '2px',
+              backgroundColor: palette.accent,
+              animation: 'ashenWind 3s ease-in-out infinite',
+              opacity: 0.4
+            }}/>
+          )}
+        </div>
+      );
+    };
+
+    const WallTile = ({ area = 'ashenPath' }) => {
+      const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
+      const isKeep = area === 'fallenKeep';
+      const isHollow = area === 'hollowDeep';
+      const isLabyrinth = area === 'labyrinth';
+
+      return (
+        <div style={{
+          width: '100%',
+          height: '100%',
+          backgroundColor: palette.wallDark,
+          position: 'relative',
+          boxShadow: isHollow ? `inset 0 0 12px ${palette.glow}` :
+                     isLabyrinth ? `inset 0 0 6px ${palette.glow}` : 'none'
+        }}>
+          <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
+            {/* Brick pattern with area-specific colors */}
+            <rect x="0" y="0" width="26" height="13" fill={palette.wallMid} stroke={palette.wallDark} strokeWidth="1"/>
+            <rect x="28" y="0" width="28" height="13" fill={palette.wallMid} stroke={palette.wallDark} strokeWidth="1"/>
+            <rect x="0" y="14" width="14" height="13" fill={palette.wallLight} stroke={palette.wallDark} strokeWidth="1"/>
+            <rect x="16" y="14" width="26" height="13" fill={palette.wallMid} stroke={palette.wallDark} strokeWidth="1"/>
+            <rect x="44" y="14" width="12" height="13" fill={palette.wallLight} stroke={palette.wallDark} strokeWidth="1"/>
+            <rect x="0" y="28" width="22" height="13" fill={palette.wallMid} stroke={palette.wallDark} strokeWidth="1"/>
+            <rect x="24" y="28" width="32" height="13" fill={palette.wallLight} stroke={palette.wallDark} strokeWidth="1"/>
+            <rect x="0" y="42" width="12" height="14" fill={palette.wallLight} stroke={palette.wallDark} strokeWidth="1"/>
+            <rect x="14" y="42" width="26" height="14" fill={palette.wallMid} stroke={palette.wallDark} strokeWidth="1"/>
+            <rect x="42" y="42" width="14" height="14" fill={palette.wallMid} stroke={palette.wallDark} strokeWidth="1"/>
+            {/* Hollow Deep void cracks */}
+            {isHollow && (
+              <>
+                <line x1="10" y1="20" x2="18" y2="35" stroke={palette.void} strokeWidth="2" opacity="0.6"/>
+                <line x1="40" y1="8" x2="45" y2="22" stroke={palette.accent} strokeWidth="1" opacity="0.4"/>
+              </>
+            )}
+            {/* Labyrinth ancient symbols */}
+            {isLabyrinth && (
+              <>
+                <circle cx="28" cy="28" r="6" fill="none" stroke={palette.ancient} strokeWidth="1" opacity="0.3"/>
+                <rect x="25" y="25" width="6" height="6" fill="none" stroke={palette.mystery} strokeWidth="1" opacity="0.2"/>
+              </>
+            )}
+          </svg>
+        </div>
+      );
+    };
+
+    const BonfireTile = ({ area = 'ashenPath' }) => {
+      const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
+
+      return (
+        <div style={{
+          width: '100%',
+          height: '100%',
+          backgroundColor: palette.pathDark,
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          {/* Fire base */}
+          <div style={{
+            position: 'absolute',
+            bottom: '6px',
+            width: '32px',
+            height: '10px',
+            backgroundColor: '#4a3728',
+            borderRadius: '2px'
+          }}/>
+          {/* Animated flames */}
+          <svg width="44" height="44" style={{ animation: 'flicker 0.5s infinite', position: 'relative', zIndex: 1 }}>
+            {/* Outer flame */}
+            <rect x="10" y="22" width="24" height="16" fill="#ed8936"/>
+            <rect x="13" y="16" width="18" height="8" fill="#f6ad55"/>
+            <rect x="16" y="10" width="12" height="8" fill="#f6e05e"/>
+            <rect x="19" y="4" width="6" height="8" fill="#faf089"/>
+            {/* Inner bright core */}
+            <rect x="16" y="26" width="12" height="8" fill="#faf089"/>
+            <rect x="19" y="20" width="6" height="8" fill="#fffff0"/>
+          </svg>
+          {/* Embers */}
+          <div style={{
+            position: 'absolute',
+            top: '10px',
+            left: '16px',
+            width: '5px',
+            height: '5px',
+            backgroundColor: '#f6e05e',
+            animation: 'ember 1s infinite',
+            animationDelay: '0s'
+          }}/>
+          <div style={{
+            position: 'absolute',
+            top: '12px',
+            right: '18px',
+            width: '4px',
+            height: '4px',
+            backgroundColor: '#ed8936',
+            animation: 'ember 1.2s infinite',
+            animationDelay: '0.3s'
+          }}/>
+          {/* Area-specific glow */}
+          <div style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            boxShadow: `inset 0 0 20px rgba(237, 137, 54, 0.3)`,
+            pointerEvents: 'none'
+          }}/>
+        </div>
+      );
+    };
+
+    const GateTile = ({ isKeep = false, area = 'ashenPath' }) => {
+      const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
+
+      return (
+        <div style={{
+          width: '100%',
+          height: '100%',
+          backgroundColor: isKeep ? palette.wallMid : palette.pathMid,
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <svg width="50" height="50" style={{ imageRendering: 'pixelated' }}>
+            {/* Torii gate / dungeon entrance */}
+            {/* Pillars */}
+            <rect x="6" y="12" width="6" height="38" fill="#742a2a"/>
+            <rect x="38" y="12" width="6" height="38" fill="#742a2a"/>
+            {/* Top beam */}
+            <rect x="3" y="6" width="44" height="6" fill="#9b2c2c"/>
+            <rect x="0" y="3" width="50" height="5" fill="#c53030"/>
+            {/* Cross beam */}
+            <rect x="6" y="16" width="38" height="4" fill="#742a2a"/>
+            {/* Entrance darkness */}
+            <rect x="14" y="22" width="22" height="28" fill="#0f0f1a"/>
+          </svg>
+        </div>
+      );
+    };
+
+    const BossRoomTile = ({ area = 'ashenPath' }) => {
+      const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
+      const isHollow = area === 'hollowDeep';
+      const eyeColor = isHollow ? '#9f7aea' : '#c53030';
+      const eyeColor2 = isHollow ? '#faf089' : '#c53030';
+
+      return (
+        <div style={{
+          width: '100%',
+          height: '100%',
+          backgroundColor: isHollow ? '#0d0a14' : '#1a0a0a',
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          animation: isHollow ? 'voidPulse 2s ease-in-out infinite' : 'none'
+        }}>
+          <svg width="50" height="50" style={{ imageRendering: 'pixelated' }}>
+            {/* Skull */}
+            <rect x="13" y="10" width="24" height="20" fill={isHollow ? '#a0a0b0' : '#e8e8e8'}/>
+            <rect x="10" y="13" width="3" height="14" fill={isHollow ? '#a0a0b0' : '#e8e8e8'}/>
+            <rect x="37" y="13" width="3" height="14" fill={isHollow ? '#a0a0b0' : '#e8e8e8'}/>
+            {/* Eye sockets */}
+            <rect x="16" y="16" width="6" height="7" fill={isHollow ? '#0d0a14' : '#1a0a0a'}/>
+            <rect x="28" y="16" width="6" height="7" fill={isHollow ? '#0d0a14' : '#1a0a0a'}/>
+            {/* Glowing eyes */}
+            <rect x="18" y="18" width="3" height="3" fill={eyeColor}/>
+            <rect x="30" y="18" width="3" height="3" fill={eyeColor2}/>
+            {/* Nose */}
+            <rect x="22" y="25" width="6" height="4" fill={isHollow ? '#0d0a14' : '#1a0a0a'}/>
+            {/* Teeth */}
+            <rect x="16" y="30" width="18" height="6" fill={isHollow ? '#a0a0b0' : '#e8e8e8'}/>
+            <rect x="19" y="30" width="3" height="6" fill={isHollow ? '#0d0a14' : '#1a0a0a'}/>
+            <rect x="25" y="30" width="3" height="6" fill={isHollow ? '#0d0a14' : '#1a0a0a'}/>
+            <rect x="31" y="30" width="3" height="6" fill={isHollow ? '#0d0a14' : '#1a0a0a'}/>
+            {/* Jaw */}
+            <rect x="13" y="36" width="24" height="6" fill={isHollow ? '#8080a0' : '#d4d4d4'}/>
+          </svg>
+        </div>
+      );
+    };
+
+    // Torch tile for Fallen Keep atmosphere
+    const TorchTile = ({ area = 'fallenKeep' }) => {
+      const palette = AREA_PALETTES[area] || AREA_PALETTES.fallenKeep;
+
+      return (
+        <div style={{
+          width: '100%',
+          height: '100%',
+          backgroundColor: palette.wallMid,
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
+            {/* Wall base */}
+            <rect x="0" y="0" width="56" height="56" fill={palette.wallMid}/>
+            {/* Torch bracket */}
+            <rect x="22" y="20" width="12" height="4" fill="#4a3728"/>
+            <rect x="24" y="24" width="8" height="16" fill="#5a4a3a"/>
+            {/* Torch head */}
+            <rect x="23" y="10" width="10" height="12" fill="#6b5040"/>
+          </svg>
+          {/* Animated flame */}
+          <svg width="20" height="20" style={{
+            position: 'absolute',
+            top: '2px',
+            animation: 'torchFlicker 0.4s infinite'
+          }}>
+            <rect x="4" y="10" width="12" height="8" fill="#ed8936"/>
+            <rect x="6" y="6" width="8" height="6" fill="#f6ad55"/>
+            <rect x="7" y="2" width="6" height="6" fill="#f6e05e"/>
+            <rect x="8" y="0" width="4" height="4" fill="#faf089"/>
+          </svg>
+          {/* Light glow effect */}
+          <div style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            background: `radial-gradient(circle at 50% 30%, ${palette.glow} 0%, transparent 60%)`,
+            pointerEvents: 'none'
+          }}/>
+        </div>
+      );
+    };
+
+    // Ashen Gate - massive door at end of Labyrinth
+    const AshenGateTile = ({ area = 'labyrinth' }) => {
+      const palette = AREA_PALETTES.labyrinth;
+
+      return (
+        <div style={{
+          width: '100%',
+          height: '100%',
+          backgroundColor: palette.wallDark,
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          animation: 'mazeGlow 3s ease-in-out infinite'
+        }}>
+          <svg width="56" height="56" style={{ imageRendering: 'pixelated' }}>
+            {/* Massive door frame */}
+            <rect x="4" y="2" width="48" height="52" fill="#2a2520"/>
+            <rect x="8" y="6" width="40" height="44" fill="#1a1510"/>
+            {/* Door panels */}
+            <rect x="10" y="8" width="16" height="40" fill="#3a3530" stroke="#2a2520" strokeWidth="1"/>
+            <rect x="30" y="8" width="16" height="40" fill="#3a3530" stroke="#2a2520" strokeWidth="1"/>
+            {/* Ancient runes */}
+            <rect x="16" y="14" width="4" height="8" fill={palette.ancient} opacity="0.6"/>
+            <rect x="36" y="14" width="4" height="8" fill={palette.ancient} opacity="0.6"/>
+            {/* Central emblem - flame symbol */}
+            <rect x="24" y="20" width="8" height="12" fill={palette.ancient}/>
+            <rect x="26" y="16" width="4" height="6" fill={palette.ancient}/>
+            <rect x="27" y="12" width="2" height="6" fill="#faf089"/>
+            {/* Door handles */}
+            <circle cx="24" cy="36" r="3" fill="#8b7355"/>
+            <circle cx="32" cy="36" r="3" fill="#8b7355"/>
+          </svg>
+          {/* Mystical glow */}
+          <div style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            background: `radial-gradient(ellipse at 50% 50%, rgba(246, 224, 94, 0.2) 0%, transparent 70%)`,
+            animation: 'lorePulse 2s ease-in-out infinite',
+            pointerEvents: 'none'
+          }}/>
+        </div>
+      );
+    };
+
+    // Secret door tile - hidden until revealed
+    const SecretDoorTile = ({ revealed = false, area = 'labyrinth' }) => {
+      const palette = AREA_PALETTES[area] || AREA_PALETTES.labyrinth;
+
+      if (!revealed) {
+        // Looks like a normal wall with subtle cracks
+        return (
+          <div style={{
+            width: '100%',
+            height: '100%',
+            backgroundColor: palette.wallDark,
+            position: 'relative'
+          }}>
+            <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
+              <rect x="0" y="0" width="56" height="56" fill={palette.wallMid}/>
+              {/* Subtle cracks - hint */}
+              <line x1="10" y1="15" x2="18" y2="42" stroke={palette.wallLight} strokeWidth="1" opacity="0.5"/>
+              <line x1="38" y1="12" x2="45" y2="45" stroke={palette.wallLight} strokeWidth="1" opacity="0.5"/>
+              <line x1="10" y1="42" x2="46" y2="44" stroke={palette.wallLight} strokeWidth="1" opacity="0.4"/>
+            </svg>
+          </div>
+        );
+      }
+
+      // Revealed secret door
+      return (
+        <div style={{
+          width: '100%',
+          height: '100%',
+          backgroundColor: palette.wallDark,
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <svg width="56" height="56" style={{ imageRendering: 'pixelated' }}>
+            {/* Door frame */}
+            <rect x="8" y="4" width="40" height="48" fill="#1a1510"/>
+            <rect x="12" y="8" width="32" height="40" fill="#0f0f1a"/>
+            {/* Ancient markings */}
+            <rect x="14" y="12" width="2" height="30" fill={palette.ancient} opacity="0.4"/>
+            <rect x="40" y="12" width="2" height="30" fill={palette.ancient} opacity="0.4"/>
+          </svg>
+          {/* Shimmer effect */}
+          <div style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            animation: 'secretShimmer 2s ease-in-out infinite',
+            pointerEvents: 'none'
+          }}/>
+        </div>
+      );
+    };
+
+    // Lore object indicator tile - shows examinable props
+    const LoreObjectTile = ({ objectType = 'generic', area = 'ashenPath' }) => {
+      const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
+
+      const renderObject = () => {
+        switch (objectType) {
+          case 'statue':
+            return (
+              <svg width="40" height="48" style={{ imageRendering: 'pixelated' }}>
+                {/* Statue base */}
+                <rect x="8" y="40" width="24" height="8" fill="#5a5a60"/>
+                {/* Body */}
+                <rect x="12" y="20" width="16" height="22" fill="#7a7a85"/>
+                {/* Head */}
+                <rect x="14" y="10" width="12" height="12" fill="#8a8a95"/>
+                {/* Arms */}
+                <rect x="6" y="24" width="6" height="12" fill="#7a7a85"/>
+                <rect x="28" y="24" width="6" height="12" fill="#7a7a85"/>
+              </svg>
+            );
+          case 'altar':
+            return (
+              <svg width="48" height="40" style={{ imageRendering: 'pixelated' }}>
+                {/* Altar base */}
+                <rect x="4" y="28" width="40" height="12" fill="#5a4a3a"/>
+                <rect x="8" y="20" width="32" height="10" fill="#6b5a4a"/>
+                {/* Candles */}
+                <rect x="12" y="14" width="4" height="8" fill="#e8e8e0"/>
+                <rect x="32" y="14" width="4" height="8" fill="#e8e8e0"/>
+                {/* Flames */}
+                <rect x="13" y="10" width="2" height="4" fill="#f6ad55"/>
+                <rect x="33" y="10" width="2" height="4" fill="#f6ad55"/>
+              </svg>
+            );
+          case 'bones':
+            return (
+              <svg width="44" height="36" style={{ imageRendering: 'pixelated' }}>
+                {/* Scattered bones */}
+                <rect x="4" y="24" width="16" height="4" fill="#e8e8d8" transform="rotate(-15 12 26)"/>
+                <rect x="24" y="20" width="14" height="4" fill="#e0e0d0" transform="rotate(20 31 22)"/>
+                <rect x="10" y="12" width="10" height="4" fill="#d8d8c8" transform="rotate(-5 15 14)"/>
+                {/* Skull */}
+                <circle cx="34" cy="10" r="6" fill="#e8e8d8"/>
+                <rect x="31" y="8" width="2" height="2" fill="#1a1a1a"/>
+                <rect x="35" y="8" width="2" height="2" fill="#1a1a1a"/>
+              </svg>
+            );
+          case 'torch':
+            return (
+              <svg width="24" height="48" style={{ imageRendering: 'pixelated' }}>
+                {/* Torch handle */}
+                <rect x="8" y="20" width="8" height="28" fill="#5a4a3a"/>
+                {/* Torch head */}
+                <rect x="6" y="14" width="12" height="8" fill="#6b5040"/>
+                {/* Flame */}
+                <rect x="8" y="6" width="8" height="10" fill="#ed8936"/>
+                <rect x="9" y="2" width="6" height="6" fill="#f6ad55"/>
+                <rect x="10" y="0" width="4" height="4" fill="#f6e05e"/>
+              </svg>
+            );
+          case 'chest':
+            return (
+              <svg width="40" height="32" style={{ imageRendering: 'pixelated' }}>
+                {/* Chest body */}
+                <rect x="4" y="12" width="32" height="20" fill="#8b7355"/>
+                <rect x="4" y="8" width="32" height="8" fill="#a08060" rx="2"/>
+                {/* Metal bands */}
+                <rect x="4" y="16" width="32" height="3" fill="#4a4a50"/>
+                <rect x="4" y="24" width="32" height="3" fill="#4a4a50"/>
+                {/* Lock */}
+                <rect x="16" y="18" width="8" height="6" fill="#d69e2e"/>
+                <rect x="18" y="20" width="4" height="2" fill="#1a1a1a"/>
+              </svg>
+            );
+          default:
+            return (
+              <svg width="32" height="32" style={{ imageRendering: 'pixelated' }}>
+                <rect x="8" y="8" width="16" height="16" fill={palette.accent} opacity="0.6"/>
+              </svg>
+            );
+        }
+      };
+
+      return (
+        <div style={{
+          width: '100%',
+          height: '100%',
+          backgroundColor: palette.pathMid,
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          {/* Base path texture */}
+          <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
+            <rect x="3" y="5" width="12" height="6" fill={palette.pathLight}/>
+            <rect x="22" y="3" width="14" height="8" fill={palette.pathDark}/>
+            <rect x="44" y="8" width="9" height="6" fill={palette.pathLight}/>
+          </svg>
+          {/* Object */}
+          <div style={{ position: 'relative', zIndex: 2 }}>
+            {renderObject()}
+          </div>
+          {/* Lore indicator glow */}
+          <div style={{
+            position: 'absolute',
+            bottom: '4px',
+            width: '8px',
+            height: '8px',
+            backgroundColor: GBC.gold,
+            borderRadius: '50%',
+            animation: 'lorePulse 1.5s ease-in-out infinite',
+            boxShadow: '0 0 6px rgba(246, 224, 94, 0.8)'
+          }}/>
+        </div>
+      );
+    };
 
     const styles = {
       container: {
@@ -5201,17 +5722,24 @@
 
       const currentTile = map[state.playerPos.y][state.playerPos.x];
 
-      // Render tile background
-      const renderTileBackground = (tile) => {
+      // Render tile background with area-specific styling
+      const renderTileBackground = (tile, x, y) => {
+        const area = state.currentMap;
+        // Check if this is a secret door that should be revealed
+        const secretRevealed = state.secretDoorRevealed && tile === 'H';
+
         switch(tile) {
-          case 'W': return <WallTile />;
-          case 'P': return <PathTile />;
-          case 'G': return <GrassTile />;
-          case 'B': return <BonfireTile />;
-          case 'X': return <GateTile />;
-          case 'E': return <GateTile isKeep={true} />;
-          case 'K': return <BossRoomTile />;
-          default: return <PathTile />;
+          case 'W': return <WallTile area={area} />;
+          case 'P': return <PathTile area={area} />;
+          case 'G': return <GrassTile area={area} />;
+          case 'B': return <BonfireTile area={area} />;
+          case 'X': return <GateTile area={area} />;
+          case 'E': return <GateTile isKeep={true} area={area} />;
+          case 'K': return <BossRoomTile area={area} />;
+          case 'T': return <TorchTile area={area} />;
+          case 'A': return <AshenGateTile area={area} />;
+          case 'H': return <SecretDoorTile revealed={secretRevealed} area={area} />;
+          default: return <PathTile area={area} />;
         }
       };
 
@@ -5299,7 +5827,7 @@
                       }}
                       onClick={() => handleTileTap(x, y, tile)}
                     >
-                      {renderTileBackground(tile)}
+                      {renderTileBackground(tile, x, y)}
                       {isPlayer && (
                         <div style={{ position: 'absolute', zIndex: 10 }}>
                           <PlayerSprite direction={state.playerDir} appearance={state.playerAppearance || 'other'} isMoving={isMoving} />
