@@ -245,13 +245,6 @@
       60% { transform: translateX(2px); filter: none; }
     }
 
-    /* The death. Slow, gray, final. */
-    @keyframes faintDissolve {
-      0% { filter: grayscale(0) brightness(1); opacity: 1; transform: translateY(0) rotate(0deg); }
-      30% { filter: grayscale(1) brightness(0.7); opacity: 0.9; transform: translateY(2px) rotate(-3deg); }
-      100% { filter: grayscale(1) brightness(0.25); opacity: 0.15; transform: translateY(14px) rotate(-12deg); }
-    }
-
     /* Boss winding up a telegraphed blow */
     @keyframes telegraphCharge {
       0%, 100% { filter: brightness(1); transform: scale(1); }
@@ -273,17 +266,10 @@
       100% { transform: translate(14px, 105%); opacity: 0; }
     }
 
-    /* Embers rising off a bonfire */
-    @keyframes emberRise {
-      0% { transform: translate(0, 0) scale(1); opacity: 0.9; }
-      100% { transform: translate(6px, -34px) scale(0.3); opacity: 0; }
-    }
-
     .lunge-right { animation: lungeRight 0.45s ease-out; }
     .lunge-left { animation: lungeLeft 0.45s ease-out; }
     .hit-flash-right { animation: hitFlashRight 0.4s ease-out; }
     .hit-flash-left { animation: hitFlashLeft 0.4s ease-out; }
-    .faint-dissolve { animation: faintDissolve 1.1s ease-in forwards; }
     .telegraph-charge { animation: telegraphCharge 0.7s ease-in-out infinite; }
     .battle-wipe {
       position: fixed;
@@ -305,9 +291,14 @@
     /* Respect users who asked for less motion */
     @media (prefers-reduced-motion: reduce) {
       .lunge-right, .lunge-left, .hit-flash-right, .hit-flash-left,
-      .faint-dissolve, .telegraph-charge, .battle-wipe, .screen-shake,
-      .critical-flash {
+      .telegraph-charge, .screen-shake, .critical-flash {
         animation: none !important;
+      }
+      /* Killing the wipe's animation alone would leave an opaque panel sitting
+         on screen until React removes it. Hide it outright. */
+      .battle-wipe {
+        animation: none !important;
+        display: none !important;
       }
     }
 

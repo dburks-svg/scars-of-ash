@@ -256,7 +256,7 @@ Earned titles and the active title persist in the save.
 - Solrath (Light, speed 6) - Wild (Hollow Deep, Labyrinth)
 
 ### Signature Moves (each kit is 5 moves: signature, Quick Strike, unique, Guard, Rest)
-- Cindrath: Immolate (8 SP, 22 damage, 6 recoil self-damage; recoil can KO you, and if the enemy survives that death earns a scar)
+- Cindrath: Immolate (8 SP, 22 damage, 6 recoil self-damage; the recoil can KO you, and that death always scars, even on a trade kill. Trade with your last creature and you still lose the run.)
 - Marshveil: Tidal Mend (6 SP, cleanse all statuses + heal 12; Withered halves the heal)
 - Thornwick: Thornwall (6 SP, 9 damage, +12 bonus if the enemy is guarding or winding up a telegraph)
 - Umbravine: Void Drain (8 SP, 8 damage, drains 4 enemy stamina, heals 4 HP)

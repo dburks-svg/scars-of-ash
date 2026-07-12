@@ -1861,6 +1861,23 @@
 
           const playerScarMods = getScarModifiers(activeCreature);
 
+          // Initiative: a faster enemy strikes before non-priority moves resolve.
+          // This is checked FIRST. The freeze rolls below must happen exactly
+          // once per round, at the moment the move actually resolves - rolling
+          // them before the deferral would roll them again on the forced pass.
+          if (!action.forced && !move.priority && state.enemy && state.enemy.hp > 0) {
+            const playerSpeed = getEffectiveSpeed(activeCreature, STARTERS[activeCreature.id]);
+            const enemySpeed = getEffectiveSpeed(state.enemy, state.enemyCreature);
+            if (enemySpeed > playerSpeed) {
+              return {
+                ...state,
+                pendingMove: move,
+                battleLog: [...state.battleLog, `${state.enemyCreature.name} moves first!`],
+                turnPhase: 'enemy'
+              };
+            }
+          }
+
           // Chill can freeze the creature, consuming its action for the round
           if (activeCreature.chillTurns > 0 && Math.random() < GAME_CONFIG.statusFx.chillSkipChance) {
             return {
@@ -1877,20 +1894,6 @@
               battleLog: [...state.battleLog, `${activeCreature.nickname || activeCreature.name} freezes, haunted by what it saw beyond the veil...`],
               turnPhase: action.forced ? 'player' : 'enemy'
             };
-          }
-
-          // Initiative: a faster enemy strikes before non-priority moves resolve
-          if (!action.forced && !move.priority && state.enemy && state.enemy.hp > 0) {
-            const playerSpeed = getEffectiveSpeed(activeCreature, STARTERS[activeCreature.id]);
-            const enemySpeed = getEffectiveSpeed(state.enemy, state.enemyCreature);
-            if (enemySpeed > playerSpeed) {
-              return {
-                ...state,
-                pendingMove: move,
-                battleLog: [...state.battleLog, `${state.enemyCreature.name} moves first!`],
-                turnPhase: 'enemy'
-              };
-            }
           }
 
           let newTeam = [...state.team];
@@ -2042,16 +2045,42 @@
             log.push(`${activeCreature.nickname || activeCreature.name} is winded!`);
           }
 
-          // Recoil (Immolate) can kill your own creature. Checked before the phase
+          // Recoil (Immolate) can kill your own creature. A death is a death: it
+          // always scars, even when the same blow killed the enemy.
+          const selfKO = newTeam[state.activeCreatureIndex].hp <= 0;
+          const selfKOCause = {
+            isBoss: state.isBossFight,
+            killerType: STARTERS[activeCreature.id].type,
+            wasWinded: newTeam[state.activeCreatureIndex].winded,
+            physical: true
+          };
+
+          // Enemy still standing: an ordinary death. Checked before the phase
           // transition so a self-KO isn't swallowed by the boss transforming.
-          // The enemy surviving is what makes this a real death, so it earns a scar.
-          if (newEnemy.hp > 0 && newTeam[state.activeCreatureIndex].hp <= 0) {
-            return handleCreatureFaint(state, newTeam, newEnemy, log, {
-              isBoss: state.isBossFight,
-              killerType: STARTERS[activeCreature.id].type,
-              wasWinded: newTeam[state.activeCreatureIndex].winded,
-              physical: true
-            });
+          if (newEnemy.hp > 0 && selfKO) {
+            return handleCreatureFaint(state, newTeam, newEnemy, log, selfKOCause);
+          }
+
+          // Trade kill. Both fell. If nothing of ours walks away, the win is
+          // hollow and it is still a game over.
+          let survivorIndex = state.activeCreatureIndex;
+          if (selfKO) {
+            const hasSurvivor = newTeam.some((c, i) => i !== state.activeCreatureIndex && c.hp > 0);
+            if (!hasSurvivor) {
+              return handleCreatureFaint(state, newTeam, newEnemy, log, selfKOCause);
+            }
+            const difficulty = getDifficulty(state);
+            const fallen = { ...newTeam[state.activeCreatureIndex] };
+            const scar = getScarForDeathCause(fallen, selfKOCause, difficulty);
+            fallen.hp = 0;
+            fallen.scars = [...(fallen.scars || []), scar];
+            newTeam[state.activeCreatureIndex] = fallen;
+            log.push(`${fallen.nickname || fallen.name} fell with the enemy.`);
+            log.push(`  → ${scar.name}: ${scar.description}`);
+            if (scar.upsideDescription) {
+              log.push(`  → But the flame remembers: ${scar.upsideDescription}`);
+            }
+            survivorIndex = newTeam.findIndex(c => c.hp > 0);
           }
 
           if (state.isBossFight && state.bossPhase === 1 &&
@@ -2103,6 +2132,7 @@
                 bossDefeated: state.isHollowWardenFight ? state.bossDefeated : true,
                 hollowWardenDefeated: state.isHollowWardenFight ? true : state.hollowWardenDefeated,
                 team: newTeam,
+                activeCreatureIndex: survivorIndex,
                 battleLog: log
               };
             }
@@ -2120,6 +2150,7 @@
               enemy: null,
               enemyCreature: null,
               team: newTeam,
+              activeCreatureIndex: survivorIndex,
               battleLog: log,
               grassEncounters
             };
@@ -3985,6 +4016,19 @@
       const [showWipe, setShowWipe] = useState(true);
       const damageIdRef = useRef(0);
 
+      // Battles end mid-animation all the time (a KO ends the screen). Track the
+      // effect timers so none of them fire into an unmounted component.
+      const fxTimersRef = useRef([]);
+      const fxTimeout = useCallback((fn, ms) => {
+        const id = setTimeout(fn, ms);
+        fxTimersRef.current.push(id);
+        return id;
+      }, []);
+      useEffect(() => () => {
+        fxTimersRef.current.forEach(clearTimeout);
+        fxTimersRef.current = [];
+      }, []);
+
       // GBC-style wipe when the encounter opens
       useEffect(() => {
         const t = setTimeout(() => setShowWipe(false), 600);
@@ -4013,17 +4057,17 @@
               setPlayerAnim('lunge-right');
               setEnemyAnim('hit-flash-right');
             }
-            setTimeout(() => { setPlayerAnim(''); setEnemyAnim(''); }, 460);
+            fxTimeout(() => { setPlayerAnim(''); setEnemyAnim(''); }, 460);
 
             // Play sound effects
             if (isEffective) {
               playSfx('critical');
               setCriticalFlash(true);
-              setTimeout(() => setCriticalFlash(false), 100);
+              fxTimeout(() => setCriticalFlash(false), 100);
             } else if (damage >= 15) {
               playSfx('hitHeavy');
               setScreenShake(true);
-              setTimeout(() => setScreenShake(false), 200);
+              fxTimeout(() => setScreenShake(false), 200);
             } else if (damage >= 8) {
               playSfx('hitMedium');
             } else {
@@ -4050,13 +4094,12 @@
           if (log.includes('chill damage') || log.includes('frozen')) playSfx('chill');
           if (log.includes('burn damage')) playSfx('burn');
 
-          // Check for faint. The loser dissolves.
-          if (log.includes('has fallen')) {
+          // Check for faint. No dissolve animation here: on a player faint the
+          // reducer has already swapped in the next creature, and on an enemy
+          // defeat the screen changes in the same dispatch, so any animation
+          // would either play on the wrong sprite or never render at all.
+          if (log.includes('has fallen') || log.includes('defeated')) {
             playSfx('faint');
-            setPlayerAnim('faint-dissolve');
-          } else if (log.includes('defeated')) {
-            playSfx('faint');
-            setEnemyAnim('faint-dissolve');
           }
 
           // Check for souls
@@ -4090,8 +4133,11 @@
         }
       }, [state.turnPhase, state.pendingMove, dispatch]);
 
+      // Must mirror the reducer exactly: Flinching strips priority from ATTACKS
+      // only. If this also stripped Guard, a Flinching creature could never
+      // brace a telegraphed boss blow.
       const getMoveWithPriority = (move) => {
-        if (move.priority && hasFlinching) {
+        if (move.priority && hasFlinching && move.damage > 0) {
           return { ...move, priority: false };
         }
         return move;
