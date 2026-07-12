@@ -48,6 +48,10 @@ window.GAME_CONFIG = {
     captureBrackets: { under10: 90, under25: 60, under50: 30, over50: 10 },
     captureCapMin: 5,
     captureCapMax: 95,
+    // Fleeing at the encounter preview costs carried souls (capped at what you carry)
+    fleeCost: 5,
+    // One-time carried-souls toll to unseal each boss door. Paid state persists in the save.
+    gateTolls: { fallenKeep: 50, hollowDeep: 100 },
     // Kindle: permanent stat growth bought with carried souls at bonfires
     kindle: {
       baseCost: 25,
@@ -1442,14 +1446,15 @@ var TITLES = [
 
 // ASHEN PATH - 6 wide × 8 tall - Tutorial area, desolate wasteland
 // B = Bonfire (spawn), G = Grass (encounters), P = Path, W = Wall, X = Gate to Fallen Keep
+// N = Sentinel (mandatory fight; passable once defeated), C = the Keeper NPC
 var ASHEN_PATH = [
   ['W', 'W', 'W', 'W', 'W', 'W'],
-  ['W', 'B', 'P', 'P', 'G', 'W'],
+  ['W', 'B', 'C', 'P', 'G', 'W'],
   ['W', 'P', 'W', 'P', 'P', 'W'],
   ['W', 'G', 'P', 'P', 'W', 'W'],
   ['W', 'P', 'W', 'G', 'P', 'W'],
   ['W', 'P', 'P', 'P', 'P', 'W'],
-  ['W', 'W', 'P', 'W', 'W', 'W'],
+  ['W', 'W', 'N', 'W', 'W', 'W'],
   ['W', 'W', 'X', 'W', 'W', 'W']
 ];
 
@@ -1474,6 +1479,8 @@ var FALLEN_KEEP = [
 // THE HOLLOW DEEP - 10 wide × 16 tall - Post-game void dungeon
 // E = Entrance (from Fallen Keep), G = Grass (Dark/Light encounters only)
 // B = Bonfire, K = Boss (Hollow Warden), P = Path, W = Wall, X = Exit to Labyrinth
+// N = Sentinel. Row 12's right passage is walled so the sentinel is the only
+// way into the boss row; the Labyrinth gate beyond can no longer bypass the Warden.
 var HOLLOW_DEEP = [
   ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
   ['W', 'P', 'P', 'P', 'G', 'G', 'P', 'P', 'P', 'W'],
@@ -1487,7 +1494,7 @@ var HOLLOW_DEEP = [
   ['W', 'P', 'W', 'P', 'P', 'P', 'W', 'G', 'P', 'W'],
   ['W', 'P', 'W', 'P', 'W', 'P', 'W', 'P', 'P', 'W'],
   ['W', 'G', 'P', 'P', 'W', 'P', 'P', 'P', 'W', 'W'],
-  ['W', 'W', 'W', 'P', 'W', 'W', 'W', 'P', 'W', 'W'],
+  ['W', 'W', 'W', 'N', 'W', 'W', 'W', 'W', 'W', 'W'],
   ['W', 'P', 'P', 'P', 'P', 'K', 'P', 'P', 'P', 'W'],
   ['W', 'W', 'W', 'W', 'P', 'P', 'W', 'W', 'X', 'W'],
   ['W', 'W', 'W', 'W', 'E', 'W', 'W', 'W', 'W', 'W']
@@ -1496,6 +1503,8 @@ var HOLLOW_DEEP = [
 // ============= THE LABYRINTH (Post-Hollow Deep) =============
 // 20x20 maze - Entry from Hollow Deep at bottom, Ashen Gate at top
 // Tile codes: W=Wall, P=Path, E=Entry, B=Bonfire, A=AshenGate, S=SecretDoor, L=LoreObject, G=Grass
+// N=Sentinel. Row 16's side passages are walled so the entry corridor funnels
+// through the sentinel; everything north of the spawn row sits behind it.
 var LABYRINTH = [
   ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'A', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
   ['W', 'P', 'P', 'P', 'P', 'W', 'P', 'P', 'P', 'P', 'P', 'W', 'P', 'P', 'P', 'P', 'L', 'P', 'P', 'W'],
@@ -1513,11 +1522,97 @@ var LABYRINTH = [
   ['W', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'G', 'P', 'P', 'W', 'P', 'P', 'W'],
   ['W', 'P', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'P', 'W', 'W', 'W', 'W', 'W', 'P', 'W'],
   ['W', 'P', 'P', 'P', 'L', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'W'],
-  ['W', 'P', 'W', 'W', 'W', 'W', 'W', 'P', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'P', 'W'],
+  ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'N', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
   ['W', 'G', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'L', 'P', 'W'],
   ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'E', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
   ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W']
 ];
+
+// ============= NARRATIVE FRAMING =============
+// Shown as an examine overlay the moment a new run enters exploration.
+// States the goal so players have an arc to follow (playtest feedback).
+var RUN_GOAL_TEXT = {
+  name: 'The Flame Remembers',
+  lines: [
+    'The fire below the world is guttering.',
+    '',
+    'Walk the Ashen Path. Pay what the doors demand.',
+    'Face what bars the way.',
+    '',
+    'Your creatures will scar. Scars are not failure.',
+    'They are memory. The flame remembers, and so will they.'
+  ]
+};
+
+// The Keeper: a hooded figure beside the first bonfire ('C' tile on Ashen
+// Path). Walking into them shows this dialogue; the tile never opens.
+var KEEPER_DIALOGUE = {
+  name: 'The Keeper',
+  lines: [
+    '"Another walker. The flame drew you, as it drew us all."',
+    '',
+    '"Rest here. Bank what you fear to lose."',
+    '"The doors below drink souls, and the roads have grown teeth."',
+    '',
+    '"Your beasts will break, and mend crooked. Let them."',
+    '"What is scarred cannot be wounded the same way twice."'
+  ]
+};
+
+// ============= SENTINELS =============
+// One mandatory fight per encounter area, standing on that map's 'N' tile.
+// Sentinels are visible on the map, block movement until defeated, and start
+// battle directly (no FIGHT/FLEE preview, so they cannot be fled). Defeating
+// or soul-binding one marks it dead permanently (state.sentinelsDefeated).
+// Stats are final values; their scars are flavor + combat modifiers only, so
+// they must NOT use maxHp/maxStamina scar effects (those would double-apply).
+var SENTINELS = {
+  ashenPath: {
+    id: 'sentinelAshenPath',
+    name: 'Ember Sentinel',
+    type: 'fire',
+    maxHp: 34,
+    maxStamina: 16,
+    speed: 7,
+    souls: 40,
+    scars: [SCAR_TYPES.find(s => s.id === 'cracked')],
+    moves: [
+      { name: 'Ashen Claw', cost: 6, damage: 11, priority: false },
+      { name: 'Quick Strike', cost: 3, damage: 4, priority: true },
+      { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
+    ]
+  },
+  hollowDeep: {
+    id: 'sentinelHollowDeep',
+    name: 'Hollow Sentinel',
+    type: 'dark',
+    maxHp: 44,
+    maxStamina: 18,
+    speed: 6,
+    souls: 55,
+    scars: [SCAR_TYPES.find(s => s.id === 'cursed')],
+    moves: [
+      { name: 'Void Rend', cost: 6, damage: 12, priority: false },
+      { name: 'Quick Strike', cost: 3, damage: 4, priority: true },
+      { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
+    ]
+  },
+  labyrinth: {
+    id: 'sentinelLabyrinth',
+    name: 'Lumen Sentinel',
+    type: 'light',
+    maxHp: 50,
+    maxStamina: 18,
+    speed: 6,
+    souls: 70,
+    scars: [SCAR_TYPES.find(s => s.id === 'blinded')],
+    moves: [
+      { name: 'Judgement Ray', cost: 7, damage: 13, priority: false },
+      { name: 'Quick Strike', cost: 3, damage: 4, priority: true },
+      { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
+    ]
+  }
+};
 
 // ============= BFS PATHFINDING =============
 // Returns array of {x,y} positions from first step to destination (excludes start).
@@ -1564,6 +1659,7 @@ function findPath(map, startX, startY, endX, endY, secretDoorRevealed) {
       var tile = map[ny][nx];
       if (tile === 'W') continue;
       if (tile === 'S' && !secretDoorRevealed) continue;
+      if (tile === 'C') continue; // NPCs never move; route around them
       visited[ny][nx] = true;
       parent[ny][nx] = { x: cur.x, y: cur.y };
       queue.push({ x: nx, y: ny });
@@ -2695,15 +2791,17 @@ var TILE_LORE = {
     // Old signpost near start (3,1)
     '3,1': {
       name: 'Old Signpost',
+      object: 'signpost',
       lines: [
         '"Cinder\'s Edge - 3 leagues east"',
         '',
         'The wood is burned. The arrow points to nothing but wall.'
       ]
     },
-    // Collapsed statue in corner (6,1)
-    '6,1': {
+    // Collapsed statue (4,2) - was keyed '6,1', off the 6-wide map and unreachable
+    '4,2': {
       name: 'Collapsed Statue',
+      object: 'statue',
       lines: [
         'A Healer\'s Sanctuary sign, half-buried.',
         '',
@@ -2713,6 +2811,7 @@ var TILE_LORE = {
     // Near the gate
     '4,4': {
       name: 'Faded Marks',
+      object: 'generic',
       lines: [
         'Scratches in the stone. Tally marks.',
         '',
@@ -2722,6 +2821,7 @@ var TILE_LORE = {
     // Abandoned Pack
     '2,3': {
       name: 'Abandoned Pack',
+      object: 'chest',
       lines: [
         'Scattered belongings. Someone left in a hurry.',
         '',
@@ -2731,10 +2831,11 @@ var TILE_LORE = {
     // Scorched Tree
     '5,2': {
       name: 'Scorched Tree',
+      object: 'tree',
       lines: [
         'The bark is burned clean through.',
         '',
-        'Whatever did this wasn\'t trying to destroy—it was trying to purify.'
+        'Whatever did this wasn\'t trying to destroy. It was trying to purify.'
       ]
     }
   },
@@ -2742,6 +2843,7 @@ var TILE_LORE = {
     // Scratched message near entrance (2,7)
     '2,7': {
       name: 'Scratched Message',
+      object: 'signpost',
       lines: [
         '"V. guards what remains. Do not wake him.',
         '',
@@ -2751,6 +2853,7 @@ var TILE_LORE = {
     // Broken soul spheres scattered (4,1)
     '4,1': {
       name: 'Broken Shells',
+      object: 'bones',
       lines: [
         'Empty shells. Dozens of them.',
         '',
@@ -2778,6 +2881,7 @@ var TILE_LORE = {
     // Keeper's Quarters
     '4,3': {
       name: 'Keeper\'s Quarters',
+      object: 'chest',
       lines: [
         'A bedroll, long cold.',
         '',
@@ -2798,6 +2902,7 @@ var TILE_LORE = {
     // Shattered Altar
     '2,2': {
       name: 'Shattered Altar',
+      object: 'altar',
       lines: [
         'The light faded here first.',
         '',
@@ -2807,6 +2912,7 @@ var TILE_LORE = {
     // Hollow Roots
     '5,3': {
       name: 'Hollow Roots',
+      object: 'tree',
       lines: [
         'Even the stone bleeds where the dark vines grew.',
         '',
@@ -2822,9 +2928,10 @@ var TILE_LORE = {
         'Nor the last.'
       ]
     },
-    // The Final Gate
-    '1,6': {
+    // The Final Gate (4,14) - was keyed '1,6', a wall tile and unreachable
+    '4,14': {
       name: 'The Final Gate',
+      object: 'generic',
       lines: [
         'Beyond this, only ending.',
         '',
@@ -2856,6 +2963,7 @@ var TILE_LORE = {
     // Clue 1 (16,1) - Statue pointing
     '16,1': {
       name: 'Stone Sentinel',
+      object: 'statue',
       lines: [
         'A worn statue stands watch, arm extended.',
         '',
@@ -2865,6 +2973,7 @@ var TILE_LORE = {
     // Clue 2 (1,7) - Journal/inscription
     '1,7': {
       name: 'Faded Inscription',
+      object: 'signpost',
       lines: [
         '"Where the labyrinth breathes, stone yields."',
         '',
@@ -2874,6 +2983,7 @@ var TILE_LORE = {
     // Clue 3 (4,15) - Bones arranged
     '4,15': {
       name: 'Scattered Remains',
+      object: 'bones',
       lines: [
         'Ancient bones lie in deliberate arrangement.',
         '',
@@ -2883,6 +2993,7 @@ var TILE_LORE = {
     // Clue 4 (17,17) - Flickering torch
     '17,17': {
       name: 'Restless Flame',
+      object: 'torch',
       lines: [
         'A torch flickers without wind.',
         '',
@@ -3041,6 +3152,8 @@ var getSaveData = (state) => {
     bossDefeated: state.bossDefeated,
     hollowWardenDefeated: state.hollowWardenDefeated,
     shortcutUnlocked: state.shortcutUnlocked,
+    tollsPaid: state.tollsPaid,
+    sentinelsDefeated: state.sentinelsDefeated,
     grassEncounters: state.grassEncounters,
     lastBonfire: state.lastBonfire,
     hasSeenPrologue: state.hasSeenPrologue,
@@ -3272,6 +3385,10 @@ var initialState = {
   bossDefeated: false,
   bossPhase: 1,
   arenaEffect: null,
+  tollsPaid: [],
+  sentinelsDefeated: [],
+  isSentinelFight: false,
+  currentSentinelId: null,
   grassEncounters: [
     // Ashen Path encounters (6x8 map)
     { x: 4, y: 1, map: 'ashenPath', active: true },

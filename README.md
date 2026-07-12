@@ -76,7 +76,19 @@ After capturing a creature, you can give it a nickname. Names appear in battle l
 When encountering wild creatures in grass:
 - See the creature's type before engaging
 - Choose to **FIGHT** or **FLEE**
+- Fleeing costs 5 carried souls - the flame takes its cut
 - Fleeing marks that grass as "alerted" - can't flee twice from the same spot
+
+### Sentinels (Mandatory Fights)
+One scarred creature stands guard in each wild area, visible on the map and blocking the only road forward:
+- **Ember Sentinel** (Fire) guards the gate out of Ashen Path
+- **Hollow Sentinel** (Dark) guards the Hollow Warden's approach
+- **Lumen Sentinel** (Light) guards the Labyrinth beyond its entry corridor
+
+Walk into one and the fight starts. No preview, no fleeing. Defeat it (or soul-bind it away from its post) and the road opens permanently.
+
+### Sealed Boss Doors (Soul Tolls)
+Boss doors demand a one-time payment of carried souls before they open: 50 at the Fallen Keep, 100 in the Hollow Deep. Come up short and the door refuses you. The seal stays broken once paid, even if the boss kills you after.
 
 ### Run Statistics
 Access from the title screen's **STATS** button:
@@ -346,8 +358,10 @@ Scars are permanent (except on Ashen difficulty where they heal at bonfires).
 ### Souls Economy
 
 - Defeat wild creatures: +12 to 28 souls (deeper areas pay more; Fractured creatures earn +15% each)
+- Defeat sentinels: +40 to 70 souls (one-time, per area)
 - Defeat Keeper Varek: +100 souls
 - Defeat Hollow Warden: +200 souls
+- **Spend**: Soul Bind (20), Kindle (25+), boss door tolls (50/100), fleeing (5)
 - **Death**: Drop carried souls at death location (50% on Ashen, all of them otherwise; Hollowed/Broken drop banked souls too)
 - **Recovery**: Return to the spot to reclaim dropped souls (visible SOULS marker)
 - **Banking**: Deposit at a bonfire to keep souls safe

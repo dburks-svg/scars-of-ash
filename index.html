@@ -385,9 +385,12 @@
         );
       }
 
-      // Fallback: SVG with bob animation for movement
+      // Fallback: SVG bobs while walking, breathes gently while idle
       return (
-        <div style={{ transform: isMoving && bobUp ? 'translateY(-2px)' : 'none' }}>
+        <div style={{
+          transform: isMoving && bobUp ? 'translateY(-2px)' : 'none',
+          animation: isMoving ? 'none' : 'idleBob 2.4s ease-in-out infinite'
+        }}>
           <FallbackPlayerSprite direction={direction} appearance={appearance} />
         </div>
       );
@@ -679,7 +682,7 @@
     };
 
     // Tile components - area-aware for distinct visual styles
-    const GrassTile = ({ area = 'ashenPath' }) => {
+    const GrassTile = ({ area = 'ashenPath', seed = 0 }) => {
       const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
       const isHollow = area === 'hollowDeep';
       const isLabyrinth = area === 'labyrinth';
@@ -694,12 +697,15 @@
           animation: isHollow ? 'voidPulse 3s ease-in-out infinite' :
                      isLabyrinth ? 'mazeGlow 4s ease-in-out infinite' : 'none'
         }}>
-          {/* Grass blades pattern with area-specific colors */}
+          {/* Grass blades pattern; mirrored and desynced per tile so a field
+              of grass does not sway as one repeated block */}
           <svg width="56" height="56" style={{
             position: 'absolute',
             top: 0,
             left: 0,
-            animation: 'grassSway 2s ease-in-out infinite'
+            transform: seed % 2 === 1 ? 'scaleX(-1)' : 'none',
+            animation: 'grassSway 2s ease-in-out infinite',
+            animationDelay: `${(seed % 5) * 0.35}s`
           }}>
             <rect x="6" y="16" width="3" height="12" fill={palette.grassMid}/>
             <rect x="6" y="13" width="3" height="3" fill={palette.grassLight}/>
@@ -747,10 +753,21 @@
       );
     };
 
-    const PathTile = ({ area = 'ashenPath' }) => {
+    const PathTile = ({ area = 'ashenPath', seed = 0 }) => {
       const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
-      const isKeep = area === 'fallenKeep';
       const isLabyrinth = area === 'labyrinth';
+
+      // Deterministic per-tile variety: mirror/rotate the shared texture and
+      // sprinkle occasional details so floors stop reading as wallpaper.
+      // Seeded from tile coordinates, never Math.random(), so nothing
+      // flickers between re-renders.
+      const variant = seed % 3;
+      const textureTransform = variant === 1 ? 'scaleX(-1)' : variant === 2 ? 'rotate(180deg)' : 'none';
+      const hasCrack = seed % 7 === 3;
+      const hasPebbles = seed % 5 === 1;
+      const hasWind = area === 'ashenPath' && seed % 6 === 2;
+      const detailX = 8 + (seed % 4) * 9;
+      const detailY = 12 + (seed % 3) * 11;
 
       return (
         <div style={{
@@ -758,9 +775,10 @@
           height: '100%',
           backgroundColor: palette.pathMid,
           position: 'relative',
+          overflow: 'hidden',
           boxShadow: isLabyrinth ? `inset 0 0 8px ${palette.glow}` : 'none'
         }}>
-          <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
+          <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0, transform: textureTransform }}>
             {/* Stone/dirt texture with area-specific colors */}
             <rect x="3" y="5" width="12" height="6" fill={palette.pathLight}/>
             <rect x="22" y="3" width="14" height="8" fill={palette.pathDark}/>
@@ -778,16 +796,33 @@
               </>
             )}
           </svg>
+          {/* Per-tile details on top of the shared texture */}
+          <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
+            {hasCrack && (
+              <>
+                <rect x={detailX} y={detailY} width="12" height="2" fill={palette.pathDark} opacity="0.8"/>
+                <rect x={detailX + 8} y={detailY + 2} width="8" height="2" fill={palette.pathDark} opacity="0.6"/>
+              </>
+            )}
+            {hasPebbles && (
+              <>
+                <rect x={detailX} y={detailY + 6} width="3" height="3" fill={palette.pathLight}/>
+                <rect x={detailX + 6} y={detailY + 9} width="2" height="2" fill={palette.pathDark}/>
+                <rect x={detailX + 3} y={detailY + 12} width="2" height="2" fill={palette.pathLight}/>
+              </>
+            )}
+          </svg>
           {/* Ashen wind particles for Ashen Path */}
-          {area === 'ashenPath' && Math.random() > 0.7 && (
+          {hasWind && (
             <div style={{
               position: 'absolute',
-              top: '20px',
+              top: `${10 + (seed % 5) * 6}px`,
               left: '10px',
               width: '6px',
               height: '2px',
               backgroundColor: palette.accent,
               animation: 'ashenWind 3s ease-in-out infinite',
+              animationDelay: `${(seed % 4) * 0.7}s`,
               opacity: 0.4
             }}/>
           )}
@@ -1200,6 +1235,45 @@
                 <rect x="18" y="20" width="4" height="2" fill="#1a1a1a"/>
               </svg>
             );
+          case 'signpost':
+            return (
+              <svg width="36" height="44" style={{ imageRendering: 'pixelated' }}>
+                {/* Post */}
+                <rect x="16" y="10" width="4" height="34" fill="#5a4a3a"/>
+                {/* Board with worn text lines */}
+                <rect x="4" y="8" width="28" height="12" fill="#6b5a4a"/>
+                <rect x="7" y="11" width="22" height="2" fill="#3a3530"/>
+                <rect x="7" y="15" width="14" height="2" fill="#3a3530"/>
+              </svg>
+            );
+          case 'statue':
+            return (
+              <svg width="32" height="44" style={{ imageRendering: 'pixelated' }}>
+                {/* Plinth */}
+                <rect x="6" y="36" width="20" height="8" fill="#4a4a50"/>
+                {/* Worn torso and head */}
+                <rect x="10" y="18" width="12" height="18" fill="#6b6b72"/>
+                <rect x="12" y="8" width="8" height="10" fill="#7a7a82"/>
+                {/* Broken outstretched arm */}
+                <rect x="22" y="20" width="8" height="4" fill="#6b6b72"/>
+                {/* Fallen rubble */}
+                <rect x="2" y="40" width="6" height="4" fill="#55555c"/>
+              </svg>
+            );
+          case 'tree':
+            return (
+              <svg width="36" height="48" style={{ imageRendering: 'pixelated' }}>
+                {/* Charred trunk */}
+                <rect x="15" y="16" width="6" height="32" fill="#3a3028"/>
+                <rect x="13" y="4" width="4" height="18" fill="#443830"/>
+                {/* Bare branches */}
+                <rect x="7" y="12" width="10" height="3" fill="#3a3028"/>
+                <rect x="20" y="8" width="10" height="3" fill="#3a3028"/>
+                <rect x="20" y="22" width="8" height="3" fill="#443830"/>
+                {/* A last ember clinging on */}
+                <rect x="27" y="6" width="2" height="2" fill="#ed8936"/>
+              </svg>
+            );
           default:
             return (
               <svg width="32" height="32" style={{ imageRendering: 'pixelated' }}>
@@ -1346,12 +1420,15 @@
             poisonTurns: 0,
             chillTurns: 0
           };
-          // Show prologue on first playthrough
+          // Show prologue on first playthrough; repeat runs get the goal card
           const nextScreen = state.hasSeenPrologue ? 'exploration' : 'prologue';
           return {
             ...state,
             screen: nextScreen,
-            team: [newCreature]
+            team: [newCreature],
+            examineText: nextScreen === 'exploration'
+              ? { name: RUN_GOAL_TEXT.name, lines: RUN_GOAL_TEXT.lines }
+              : state.examineText
           };
         }
 
@@ -1359,7 +1436,9 @@
           return {
             ...state,
             screen: 'exploration',
-            hasSeenPrologue: true
+            hasSeenPrologue: true,
+            // Every run opens by stating the goal (playtest: "no arc to follow")
+            examineText: { name: RUN_GOAL_TEXT.name, lines: RUN_GOAL_TEXT.lines }
           };
         }
 
@@ -1423,6 +1502,9 @@
         }
 
         case 'MOVE_PLAYER': {
+          // A held-key or auto-path timer can fire one last time as a battle
+          // or menu screen takes over; movement only ever means exploration
+          if (state.screen !== 'exploration') return state;
           const map = state.currentMap === 'ashenPath' ? ASHEN_PATH :
                       state.currentMap === 'hollowDeep' ? HOLLOW_DEEP :
                       state.currentMap === 'labyrinth' ? LABYRINTH : FALLEN_KEEP;
@@ -1472,6 +1554,53 @@
             return sState;
           }
 
+          // The Keeper: walking into them talks; the tile never opens
+          if (tile === 'C') {
+            return {
+              ...state,
+              playerDir: dir,
+              examineText: { name: KEEPER_DIALOGUE.name, lines: KEEPER_DIALOGUE.lines }
+            };
+          }
+
+          // Sentinel bars the tile until defeated: the player does not move, the
+          // fight starts directly (no preview, so it cannot be fled). Once dead
+          // the tile behaves like path.
+          if (tile === 'N') {
+            const sentinel = SENTINELS[state.currentMap];
+            if (sentinel && !(state.sentinelsDefeated || []).includes(sentinel.id)) {
+              return {
+                ...state,
+                playerDir: dir,
+                screen: 'battle',
+                enemy: {
+                  ...sentinel,
+                  hp: sentinel.maxHp,
+                  stamina: sentinel.maxStamina,
+                  winded: false,
+                  isGuarding: false
+                },
+                enemyCreature: sentinel,
+                battleLog: [
+                  `${sentinel.name} bars the way!`,
+                  'It will not move, and it will not let you flee.'
+                ],
+                turnPhase: 'player',
+                pendingMove: null,
+                bossTelegraph: null,
+                bossTelegraphCooldown: 0,
+                isSentinelFight: true,
+                currentSentinelId: sentinel.id,
+                currentEncounter: null,
+                pendingEncounter: null,
+                bonfireMenuOpen: false,
+                withdrawMenuOpen: false,
+                depositMenuOpen: false,
+                kindleMenuOpen: false
+              };
+            }
+          }
+
           let newState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false, depositMenuOpen: false, kindleMenuOpen: false };
 
           if (tile === 'G' && (state.currentMap === 'ashenPath' || state.currentMap === 'hollowDeep' || state.currentMap === 'labyrinth')) {
@@ -1516,6 +1645,45 @@
               ...newState,
               currentMap: 'ashenPath',
               playerPos: { x: 2, y: 6 }
+            };
+          }
+
+          // Soul-toll seal on the boss door: the first approach demands carried
+          // souls. Unpaid, the door blocks; paid once, it stays open forever
+          // (persisted), even across deaths. The step that pays does not start
+          // the fight, so paying and fighting are two deliberate moves.
+          if (tile === 'K' && state.currentMap === 'fallenKeep' && !state.bossDefeated &&
+              !(state.tollsPaid || []).includes('fallenKeep') && GAME_CONFIG.souls.gateTolls.fallenKeep > 0) {
+            const toll = GAME_CONFIG.souls.gateTolls.fallenKeep;
+            if (state.souls < toll) {
+              return {
+                ...state,
+                playerDir: dir,
+                examineText: {
+                  name: 'The Sealed Door',
+                  lines: [
+                    'A seal of old flame bars the door.',
+                    '',
+                    `It demands ${toll} souls.`,
+                    `You carry ${state.souls}.`
+                  ]
+                }
+              };
+            }
+            return {
+              ...state,
+              playerDir: dir,
+              souls: state.souls - toll,
+              tollsPaid: [...(state.tollsPaid || []), 'fallenKeep'],
+              examineText: {
+                name: 'The Sealed Door',
+                lines: [
+                  `The seal drinks ${toll} souls.`,
+                  '',
+                  'The way is open.',
+                  'What waits inside has been listening.'
+                ]
+              }
             };
           }
 
@@ -1583,6 +1751,41 @@
               ...newState,
               currentMap: 'hollowDeep',
               playerPos: { x: 8, y: 13 }
+            };
+          }
+
+          // Soul-toll seal on the Hollow Warden's door (see Fallen Keep above)
+          if (tile === 'K' && state.currentMap === 'hollowDeep' && !state.hollowWardenDefeated &&
+              !(state.tollsPaid || []).includes('hollowDeep') && GAME_CONFIG.souls.gateTolls.hollowDeep > 0) {
+            const toll = GAME_CONFIG.souls.gateTolls.hollowDeep;
+            if (state.souls < toll) {
+              return {
+                ...state,
+                playerDir: dir,
+                examineText: {
+                  name: 'The Hollow Seal',
+                  lines: [
+                    'A seal of hollow light bars the way.',
+                    '',
+                    `It demands ${toll} souls.`,
+                    `You carry ${state.souls}.`
+                  ]
+                }
+              };
+            }
+            return {
+              ...state,
+              playerDir: dir,
+              souls: state.souls - toll,
+              tollsPaid: [...(state.tollsPaid || []), 'hollowDeep'],
+              examineText: {
+                name: 'The Hollow Seal',
+                lines: [
+                  `The seal drinks ${toll} souls.`,
+                  '',
+                  'The hollow light parts before you.'
+                ]
+              }
             };
           }
 
@@ -2143,6 +2346,10 @@
                 : e
             );
 
+            if (state.currentSentinelId) {
+              log.push('The sentinel crumbles. The way is open.');
+            }
+
             return {
               ...state,
               screen: 'exploration',
@@ -2152,7 +2359,12 @@
               team: newTeam,
               activeCreatureIndex: survivorIndex,
               battleLog: log,
-              grassEncounters
+              grassEncounters,
+              sentinelsDefeated: state.currentSentinelId
+                ? [...(state.sentinelsDefeated || []), state.currentSentinelId]
+                : state.sentinelsDefeated,
+              isSentinelFight: false,
+              currentSentinelId: null
             };
           }
 
@@ -2217,6 +2429,14 @@
                 : e
             );
 
+            // A bound sentinel leaves its post: the way opens just as if slain
+            const boundSentinels = state.currentSentinelId
+              ? [...(state.sentinelsDefeated || []), state.currentSentinelId]
+              : state.sentinelsDefeated;
+            if (state.currentSentinelId) {
+              log.push('The sentinel abandons its post. The way is open.');
+            }
+
             // Team full? Show release screen instead of nickname
             if (state.team.length >= GAME_CONFIG.souls.maxTeamSize) {
               log.push(`${capturedCreature.name} bound! But your team is full...`);
@@ -2227,7 +2447,10 @@
                 releaseMenuOpen: true,
                 souls: newSouls,
                 battleLog: log,
-                grassEncounters
+                grassEncounters,
+                sentinelsDefeated: boundSentinels,
+                isSentinelFight: false,
+                currentSentinelId: null
               };
             }
 
@@ -2241,7 +2464,10 @@
               pendingCreature: capturedCreature,
               souls: newSouls,
               battleLog: log,
-              grassEncounters
+              grassEncounters,
+              sentinelsDefeated: boundSentinels,
+              isSentinelFight: false,
+              currentSentinelId: null
             };
           } else {
             // FAILED - enemy gets a free attack
@@ -2454,13 +2680,21 @@
                 battleLog: log
               };
             }
+            if (state.currentSentinelId) {
+              log.push('The sentinel crumbles. The way is open.');
+            }
             return {
               ...state,
               screen: 'exploration',
               souls: state.souls + soulsEarned,
               enemy: null,
               team: newTeam,
-              battleLog: log
+              battleLog: log,
+              sentinelsDefeated: state.currentSentinelId
+                ? [...(state.sentinelsDefeated || []), state.currentSentinelId]
+                : state.sentinelsDefeated,
+              isSentinelFight: false,
+              currentSentinelId: null
             };
           }
 
@@ -2666,13 +2900,21 @@
               };
             }
 
+            if (state.currentSentinelId) {
+              log.push('The sentinel crumbles. The way is open.');
+            }
             return {
               ...state,
               screen: 'exploration',
               souls: state.souls + soulsEarned,
               enemy: null,
               team: newTeam,
-              battleLog: log
+              battleLog: log,
+              sentinelsDefeated: state.currentSentinelId
+                ? [...(state.sentinelsDefeated || []), state.currentSentinelId]
+                : state.sentinelsDefeated,
+              isSentinelFight: false,
+              currentSentinelId: null
             };
           }
 
@@ -2749,6 +2991,8 @@
             arenaEffect: null,
             isBossFight: false,
             isHollowWardenFight: false,
+            isSentinelFight: false,
+            currentSentinelId: null,
             bossTelegraph: null,
             bossTelegraphCooldown: 0,
             diedToBoss: false,
@@ -2806,6 +3050,8 @@
             bossDefeated: saveData.bossDefeated,
             hollowWardenDefeated: saveData.hollowWardenDefeated || false,
             shortcutUnlocked: saveData.shortcutUnlocked,
+            tollsPaid: saveData.tollsPaid || [],
+            sentinelsDefeated: saveData.sentinelsDefeated || [],
             grassEncounters: saveData.grassEncounters,
             lastBonfire: saveData.lastBonfire,
             hasSeenPrologue: saveData.hasSeenPrologue,
@@ -2886,11 +3132,18 @@
               ? { ...e, alerted: true }
               : e
           );
+          // Fleeing is never free: the flame takes its cut of carried souls
+          // (capped at what you carry, so it can't go negative)
+          const fleeCost = Math.min(GAME_CONFIG.souls.fleeCost || 0, state.souls);
           return {
             ...state,
             screen: 'exploration',
             pendingEncounter: null,
-            grassEncounters
+            grassEncounters,
+            souls: state.souls - fleeCost,
+            saveNotification: fleeCost > 0
+              ? `You flee. The flame takes ${fleeCost} souls.`
+              : state.saveNotification
           };
         }
 
@@ -3217,6 +3470,11 @@
       );
     });
 
+    // Overworld walk pacing. Playtests called 150ms-per-tile walking "boring";
+    // held keys drive their own repeat so there is no OS repeat-delay hitch.
+    const AUTO_PATH_STEP_MS = 100;
+    const HELD_MOVE_MS = 110;
+
     function Exploration({ state, dispatch }) {
       const map = state.currentMap === 'ashenPath' ? ASHEN_PATH : state.currentMap === 'hollowDeep' ? HOLLOW_DEEP : state.currentMap === 'labyrinth' ? LABYRINTH : FALLEN_KEEP;
       const mapName = state.currentMap === 'ashenPath' ? 'Ashen Path' : state.currentMap === 'hollowDeep' ? 'The Hollow Deep' : state.currentMap === 'labyrinth' ? 'The Labyrinth' : 'Fallen Keep';
@@ -3228,6 +3486,8 @@
       const moveTimeoutRef = useRef(null);
       const autoPathRef = useRef(null);
       const [destFlash, setDestFlash] = useState(null);
+      const [dustPuffs, setDustPuffs] = useState([]);
+      const heldMoveRef = useRef(null);
 
       // Cancel any active auto-path
       const cancelAutoPath = useCallback(() => {
@@ -3238,6 +3498,14 @@
         setDestFlash(null);
       }, []);
 
+      // Stop held-key repeat movement
+      const stopHeldMove = useCallback(() => {
+        if (heldMoveRef.current) {
+          clearInterval(heldMoveRef.current.timerId);
+          heldMoveRef.current = null;
+        }
+      }, []);
+
       // Detect when player position changes and trigger walk animation
       useEffect(() => {
         const posChanged = prevPosRef.current.x !== state.playerPos.x ||
@@ -3245,6 +3513,16 @@
 
         if (posChanged) {
           setIsMoving(true);
+          // Kick up a dust puff on the tile just left behind
+          const puff = {
+            x: prevPosRef.current.x,
+            y: prevPosRef.current.y,
+            id: `${prevPosRef.current.x},${prevPosRef.current.y},${Date.now()}`
+          };
+          setDustPuffs(prev => [...prev.slice(-5), puff]);
+          setTimeout(() => {
+            setDustPuffs(prev => prev.filter(p => p.id !== puff.id));
+          }, 500);
           prevPosRef.current = { x: state.playerPos.x, y: state.playerPos.y };
 
           // Clear any existing timeout
@@ -3296,7 +3574,7 @@
           dispatch({ type: 'MOVE_PLAYER', dx: step.dx, dy: step.dy });
           ap.stepIndex++;
           if (ap.stepIndex < ap.steps.length) {
-            ap.timerId = setTimeout(executeNextStep, 150);
+            ap.timerId = setTimeout(executeNextStep, AUTO_PATH_STEP_MS);
           } else {
             // Final step dispatched, clean up
             autoPathRef.current = null;
@@ -3316,6 +3594,15 @@
       useEffect(() => {
         cancelAutoPath();
       }, [state.currentMap, cancelAutoPath]);
+
+      // Cancel walking when an examine overlay opens (sealed doors, lore), or a
+      // queued step could pay a door toll AND start the boss in one tap/hold
+      useEffect(() => {
+        if (state.examineText) {
+          cancelAutoPath();
+          stopHeldMove();
+        }
+      }, [state.examineText, cancelAutoPath, stopHeldMove]);
 
       const handleKeyDown = useCallback((e) => {
         const key = e.key.toLowerCase();
@@ -3352,25 +3639,62 @@
 
         if (dx !== 0 || dy !== 0) {
           cancelAutoPath();
+          // We drive our own key repeat (faster and steadier than the OS one)
+          if (e.repeat) return;
           dispatch({ type: 'MOVE_PLAYER', dx, dy });
+          stopHeldMove();
+          const timerId = setInterval(() => {
+            dispatch({ type: 'MOVE_PLAYER', dx, dy });
+          }, HELD_MOVE_MS);
+          heldMoveRef.current = { key, timerId };
         }
-      }, [dispatch, map, state.playerPos, state.examineText, cancelAutoPath]);
+      }, [dispatch, map, state.playerPos, state.examineText, cancelAutoPath, stopHeldMove]);
+
+      const handleKeyUp = useCallback((e) => {
+        if (heldMoveRef.current && heldMoveRef.current.key === e.key.toLowerCase()) {
+          stopHeldMove();
+        }
+      }, [stopHeldMove]);
 
       useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-      }, [handleKeyDown]);
+        window.addEventListener('keyup', handleKeyUp);
+        return () => {
+          window.removeEventListener('keydown', handleKeyDown);
+          window.removeEventListener('keyup', handleKeyUp);
+        };
+      }, [handleKeyDown, handleKeyUp]);
+
+      // Held movement must not outlive focus, overlays, or this screen
+      useEffect(() => {
+        const onBlur = () => stopHeldMove();
+        window.addEventListener('blur', onBlur);
+        return () => {
+          window.removeEventListener('blur', onBlur);
+          stopHeldMove();
+        };
+      }, [stopHeldMove]);
 
       const currentTile = map[state.playerPos.y][state.playerPos.x];
 
-      // Render tile background with area-specific styling
+      // This map's sentinel, if it still stands (renders on its 'N' tile)
+      const areaSentinel = SENTINELS[state.currentMap];
+      const sentinelAlive = areaSentinel && !(state.sentinelsDefeated || []).includes(areaSentinel.id);
+
+      // Render tile background with area-specific styling. Seed gives each
+      // tile a stable texture variant so floors stop looking like wallpaper.
       const renderTileBackground = (tile, x, y) => {
         const area = state.currentMap;
+        const seed = x * 31 + y * 17;
+        // Lore objects render on their tile so the story is discoverable
+        const lore = TILE_LORE[area]?.[`${x},${y}`];
 
         switch(tile) {
           case 'W': return <WallTile area={area} />;
-          case 'P': return <PathTile area={area} />;
-          case 'G': return <GrassTile area={area} />;
+          case 'P': return lore
+            ? <LoreObjectTile objectType={lore.object || 'generic'} area={area} />
+            : <PathTile area={area} seed={seed} />;
+          case 'G': return <GrassTile area={area} seed={seed} />;
           case 'B': return <BonfireTile area={area} />;
           case 'X': return <GateTile area={area} />;
           case 'E': return <GateTile isKeep={true} area={area} />;
@@ -3379,8 +3703,10 @@
           case 'A': return <AshenGateTile area={area} />;
           case 'H': return <SecretDoorTile revealed={false} area={area} />;
           case 'S': return <SecretDoorTile revealed={state.secretDoorRevealed} area={area} />;
-          case 'L': return <PathTile area={area} />;
-          default: return <PathTile area={area} />;
+          case 'N': return <PathTile area={area} seed={seed} />;
+          case 'C': return <PathTile area={area} seed={seed} />;
+          case 'L': return <LoreObjectTile objectType={lore?.object || 'generic'} area={area} />;
+          default: return <PathTile area={area} seed={seed} />;
         }
       };
 
@@ -3540,6 +3866,68 @@
                             marginTop: '-4px'
                           }}>{ghost.name}...</div>
                         </div>
+                      )}
+                      {sentinelAlive && tile === 'N' && !isPlayer && (
+                        <div style={{
+                          position: 'absolute',
+                          zIndex: 6,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <div style={{ transform: 'scale(0.8)', transformOrigin: 'center' }}>
+                            <CreatureSprite
+                              type={areaSentinel.type}
+                              size={40}
+                              isEnemy={true}
+                              scars={areaSentinel.scars}
+                              scarCount={areaSentinel.scars.length}
+                              animated={true}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {tile === 'C' && !isPlayer && (
+                        <div style={{
+                          position: 'absolute',
+                          zIndex: 6,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <svg width="32" height="36" style={{ imageRendering: 'pixelated', animation: 'idleBob 2.8s ease-in-out infinite' }}>
+                            {/* Hooded robe */}
+                            <rect x="8" y="4" width="16" height="10" fill="#4a4440"/>
+                            <rect x="6" y="12" width="20" height="20" fill="#3a3430"/>
+                            {/* Shadowed face, two embers watching */}
+                            <rect x="10" y="8" width="12" height="6" fill="#1a1614"/>
+                            <rect x="13" y="10" width="2" height="2" fill="#f6ad55"/>
+                            <rect x="18" y="10" width="2" height="2" fill="#f6ad55"/>
+                            {/* Staff with a kindled tip */}
+                            <rect x="26" y="8" width="3" height="26" fill="#5a4a3a"/>
+                            <rect x="25" y="3" width="5" height="5" fill="#f6e05e"/>
+                          </svg>
+                          <div style={{
+                            fontSize: '6px',
+                            color: GBC.gold,
+                            fontFamily: '"Press Start 2P", monospace',
+                            textShadow: '1px 1px 0 #000',
+                            marginTop: '-2px'
+                          }}>KEEPER</div>
+                        </div>
+                      )}
+                      {dustPuffs.some(pf => pf.x === x && pf.y === y) && (
+                        <div style={{
+                          position: 'absolute',
+                          zIndex: 8,
+                          width: '10px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          backgroundColor: 'rgba(200, 190, 170, 0.5)',
+                          animation: 'dustPuff 0.5s ease-out forwards',
+                          pointerEvents: 'none'
+                        }} />
                       )}
                     </div>
                   );
@@ -5104,7 +5492,7 @@
               style={{ ...styles.button, padding: 'var(--spacing-sm) var(--spacing-xl)' }}
               onClick={handleFlee}
             >
-              FLEE
+              FLEE{GAME_CONFIG.souls.fleeCost > 0 ? ` (-${GAME_CONFIG.souls.fleeCost})` : ''}
             </button>
             <button
               style={{
@@ -6166,6 +6554,13 @@ const DevDashboard = ({ onClose, onModified }) => {
         onChange={v => updateConfig('souls.kindle.staminaPerKindle', v)} color={GBC.blue} />
       <ConfigSlider label="Max Kindles per Creature" value={getConfig('souls.kindle.maxKindles')} min={1} max={30} step={1}
         onChange={v => updateConfig('souls.kindle.maxKindles', v)} />
+      <div style={{ ...S.sectionTitle, marginTop: 16 }}>GATES & FLEEING</div>
+      <ConfigSlider label="Flee Cost (souls)" value={getConfig('souls.fleeCost')} min={0} max={30} step={1}
+        onChange={v => updateConfig('souls.fleeCost', v)} color={GBC.gold} />
+      <ConfigSlider label="Fallen Keep Door Toll" value={getConfig('souls.gateTolls.fallenKeep')} min={0} max={200} step={5}
+        onChange={v => updateConfig('souls.gateTolls.fallenKeep', v)} color={GBC.gold} />
+      <ConfigSlider label="Hollow Deep Door Toll" value={getConfig('souls.gateTolls.hollowDeep')} min={0} max={300} step={5}
+        onChange={v => updateConfig('souls.gateTolls.hollowDeep', v)} color={GBC.gold} />
     </div>
   );
 
