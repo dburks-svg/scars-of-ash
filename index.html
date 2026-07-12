@@ -573,9 +573,68 @@
 
     // Main creature sprite component - uses PNG if available, falls back to SVG
     // Now supports 4-frame idle animations
-    const CreatureSprite = ({ type, size = 48, isEnemy = false, scarCount = 0, isHollowed = false, bossPhase = 1, animated = true }) => {
+    // Scars you can SEE. Each scar paints its own mark on the sprite, so a
+    // roster screen reads as a history of how each creature died.
+    const SCAR_DECALS = {
+      fractured:   [{ d: 'M30 16 L36 26 L31 30 L38 44', stroke: '#e2e8f0', w: 2 }],
+      cracked:     [{ d: 'M16 22 L24 30 L18 36 L26 46', stroke: '#a0aec0', w: 2 }],
+      burned:      [{ blob: [30, 34, 9], fill: '#7b341e' }, { blob: [36, 28, 5], fill: '#c05621' }],
+      frostbitten: [{ d: 'M14 30 L22 30 M18 26 L18 34 M15 27 L21 33 M21 27 L15 33', stroke: '#90cdf4', w: 2 }],
+      cursed:      [{ blob: [24, 20, 7], fill: '#553c9a', op: 0.75 }, { blob: [30, 14, 4], fill: '#805ad5', op: 0.6 }],
+      blinded:     [{ d: 'M18 20 L30 28 M30 20 L18 28', stroke: '#faf089', w: 2 }],
+      withered:    [{ d: 'M20 40 L24 32 M28 42 L30 34 M36 40 L38 33', stroke: '#68705a', w: 2 }],
+      haunted:     [{ blob: [20, 16, 4], fill: '#e2e8f0', op: 0.5 }, { blob: [34, 12, 3], fill: '#e2e8f0', op: 0.35 }],
+      hesitant:    [{ d: 'M40 34 L46 34 M43 31 L43 37', stroke: '#f6ad55', w: 2 }],
+      flinching:   [{ d: 'M10 18 L18 18 M8 24 L14 24 M10 30 L16 30', stroke: '#cbd5e0', w: 1 }]
+    };
+
+    const ScarOverlay = ({ scars, size, isEnemy }) => {
+      if (!scars || scars.length === 0) return null;
+      // Dedupe: Fractured stacks, but one crack reads the same as five.
+      const ids = [...new Set(scars.map(s => s.id))].filter(id => SCAR_DECALS[id]);
+      if (ids.length === 0) return null;
+
+      return (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 56 56"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            pointerEvents: 'none',
+            transform: isEnemy ? 'scaleX(-1)' : 'none',
+            imageRendering: 'pixelated'
+          }}
+        >
+          {ids.flatMap(id => SCAR_DECALS[id].map((mark, i) => (
+            mark.blob ? (
+              <circle
+                key={`${id}-${i}`}
+                cx={mark.blob[0]} cy={mark.blob[1]} r={mark.blob[2]}
+                fill={mark.fill} opacity={mark.op ?? 0.85}
+              />
+            ) : (
+              <path
+                key={`${id}-${i}`}
+                d={mark.d}
+                stroke={mark.stroke}
+                strokeWidth={mark.w}
+                fill="none"
+                opacity="0.9"
+                strokeLinecap="square"
+              />
+            )
+          )))}
+        </svg>
+      );
+    };
+
+    const CreatureSprite = ({ type, size = 48, isEnemy = false, scarCount = 0, scars = null, isHollowed = false, bossPhase = 1, animated = true }) => {
       // Determine which sprite variant to use
-      const useHollowed = isHollowed || scarCount >= SCAR_THRESHOLD_HOLLOWED;
+      const effectiveScarCount = scars ? scars.length : scarCount;
+      const useHollowed = isHollowed || effectiveScarCount >= SCAR_THRESHOLD_HOLLOWED;
 
       // Check if we have PNG sprite frames loaded for this type
       const isBossType = type === 'boss' || type === 'hollowWarden';
@@ -593,23 +652,30 @@
         }
       }
 
-      // If PNG sprite frames are available, render animated sprite
-      // Battle animations use 8fps (125ms) for more dynamic feel
-      if (frames && frames.length > 0) {
-        return (
-          <AnimatedSprite
-            frames={frames}
-            frameRate={125}
-            size={size}
-            flip={isEnemy}
-            filter={useHollowed && !isBossType ? 'saturate(0.5) brightness(0.8)' : 'none'}
-            playing={animated}
-          />
-        );
-      }
+      const body = (frames && frames.length > 0) ? (
+        // Battle animations use 8fps (125ms) for more dynamic feel
+        <AnimatedSprite
+          frames={frames}
+          frameRate={125}
+          size={size}
+          flip={isEnemy}
+          filter={useHollowed && !isBossType ? 'saturate(0.5) brightness(0.8)' : 'none'}
+          playing={animated}
+        />
+      ) : (
+        // Fall back to SVG sprite (no animation)
+        <FallbackCreatureSprite type={type} size={size} isEnemy={isEnemy} />
+      );
 
-      // Fall back to SVG sprite (no animation)
-      return <FallbackCreatureSprite type={type} size={size} isEnemy={isEnemy} />;
+      // Bosses don't carry scars, so skip the overlay entirely for them
+      if (isBossType || !scars || scars.length === 0) return body;
+
+      return (
+        <div style={{ position: 'relative', display: 'inline-block', width: size, height: size }}>
+          {body}
+          <ScarOverlay scars={scars} size={size} isEnemy={isEnemy} />
+        </div>
+      );
     };
 
     // Tile components - area-aware for distinct visual styles
@@ -3048,6 +3114,52 @@
       );
     }
 
+    // The world is still burning somewhere. Ash drifts over every area, tinted
+    // to that area's palette. Purely decorative, never eats a tap.
+    const AshFall = React.memo(function AshFall({ map }) {
+      const palette = AREA_PALETTES[map] || AREA_PALETTES.ashenPath;
+      // Fixed, hand-picked motes: deterministic, so they don't reshuffle on
+      // every re-render and strobe while the player walks.
+      const MOTES = [
+        { left: 6, delay: 0, dur: 9, size: 3, op: 0.5 },
+        { left: 17, delay: 3.4, dur: 12, size: 2, op: 0.35 },
+        { left: 29, delay: 1.2, dur: 10, size: 2, op: 0.4 },
+        { left: 38, delay: 6.1, dur: 14, size: 3, op: 0.3 },
+        { left: 47, delay: 2.3, dur: 8, size: 2, op: 0.45 },
+        { left: 58, delay: 5.0, dur: 13, size: 3, op: 0.32 },
+        { left: 66, delay: 0.8, dur: 11, size: 2, op: 0.42 },
+        { left: 75, delay: 4.2, dur: 9, size: 3, op: 0.38 },
+        { left: 84, delay: 7.3, dur: 15, size: 2, op: 0.28 },
+        { left: 93, delay: 2.9, dur: 10, size: 3, op: 0.44 }
+      ];
+
+      return (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          overflow: 'hidden',
+          pointerEvents: 'none',
+          zIndex: 5
+        }}>
+          {MOTES.map((m, i) => (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: `${m.left}%`,
+                width: `${m.size}px`,
+                height: `${m.size}px`,
+                backgroundColor: palette.accent,
+                opacity: m.op,
+                animation: `ashFall ${m.dur}s linear ${m.delay}s infinite`
+              }}
+            />
+          ))}
+        </div>
+      );
+    });
+
     function Exploration({ state, dispatch }) {
       const map = state.currentMap === 'ashenPath' ? ASHEN_PATH : state.currentMap === 'hollowDeep' ? HOLLOW_DEEP : state.currentMap === 'labyrinth' ? LABYRINTH : FALLEN_KEEP;
       const mapName = state.currentMap === 'ashenPath' ? 'Ashen Path' : state.currentMap === 'hollowDeep' ? 'The Hollow Deep' : state.currentMap === 'labyrinth' ? 'The Labyrinth' : 'Fallen Keep';
@@ -3283,7 +3395,8 @@
             <span style={{ color: GBC.textDim, fontSize: 'var(--font-sm)' }}>TEAM {state.team.length}/{GAME_CONFIG.souls.maxTeamSize}</span>
           </div>
 
-          <div style={styles.mapContainer}>
+          <div style={{ ...styles.mapContainer, position: 'relative' }}>
+            <AshFall map={state.currentMap} />
             <div style={{
               ...styles.grid,
               gridTemplateColumns: `repeat(${map[0].length}, var(--tile-size))`
@@ -3735,7 +3848,7 @@
                 }}
               >
                 <div style={styles.creatureSprite}>
-                  <CreatureSprite type={creature.type} size={32} scarCount={creature.scars?.length || 0} isHollowed={isHollowed} />
+                  <CreatureSprite type={creature.type} size={32} scarCount={creature.scars?.length || 0} scars={creature.scars} isHollowed={isHollowed} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
@@ -3818,6 +3931,40 @@
       );
     }
 
+    // Battles used to float in the void. Each area gets a horizon and a
+    // silhouette strip drawn from that area's own palette, so a fight in the
+    // Hollow Deep never looks like a fight on the Ashen Path.
+    function BattleBackdrop({ map, isBoss, bossPhase }) {
+      const palette = AREA_PALETTES[map] || AREA_PALETTES.ashenPath;
+      const sky = isBoss && bossPhase === 2 ? '#2a1010' : palette.pathDark;
+      const ground = palette.pathMid;
+      const ridge = palette.wallDark || palette.pathDark;
+
+      const RIDGES = {
+        ashenPath: 'M0,26 L14,16 L26,24 L40,10 L54,22 L68,14 L82,24 L96,18 L110,26 L120,20 L120,40 L0,40 Z',
+        fallenKeep: 'M0,28 L10,28 L10,12 L20,12 L20,28 L34,28 L34,6 L46,6 L46,28 L62,28 L62,16 L74,16 L74,28 L92,28 L92,10 L104,10 L104,28 L120,28 L120,40 L0,40 Z',
+        hollowDeep: 'M0,30 L12,18 L18,28 L30,8 L42,26 L52,14 L64,28 L76,12 L88,26 L100,16 L112,28 L120,22 L120,40 L0,40 Z',
+        labyrinth: 'M0,24 L16,24 L16,12 L32,12 L32,26 L48,26 L48,10 L64,10 L64,24 L80,24 L80,14 L96,14 L96,26 L120,26 L120,40 L0,40 Z'
+      };
+      const ridgePath = RIDGES[map] || RIDGES.ashenPath;
+
+      return (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+          <svg
+            width="100%"
+            height="100%"
+            viewBox="0 0 120 40"
+            preserveAspectRatio="none"
+            style={{ display: 'block', imageRendering: 'pixelated' }}
+          >
+            <rect x="0" y="0" width="120" height="40" fill={sky} />
+            <path d={ridgePath} fill={ridge} opacity="0.75" />
+            <rect x="0" y="32" width="120" height="8" fill={ground} opacity="0.9" />
+          </svg>
+        </div>
+      );
+    }
+
     function Battle({ state, dispatch }) {
       const activeCreature = state.team[state.activeCreatureIndex];
       const activeBase = STARTERS[activeCreature.id];
@@ -3832,7 +3979,17 @@
       const [damageNumbers, setDamageNumbers] = useState([]);
       const [screenShake, setScreenShake] = useState(false);
       const [criticalFlash, setCriticalFlash] = useState(false);
+      // Who is lunging / who is reeling, this instant
+      const [playerAnim, setPlayerAnim] = useState('');
+      const [enemyAnim, setEnemyAnim] = useState('');
+      const [showWipe, setShowWipe] = useState(true);
       const damageIdRef = useRef(0);
+
+      // GBC-style wipe when the encounter opens
+      useEffect(() => {
+        const t = setTimeout(() => setShowWipe(false), 600);
+        return () => clearTimeout(t);
+      }, []);
 
       // Play sound effects and visual effects based on battle log changes
       useEffect(() => {
@@ -3847,6 +4004,16 @@
             const isEffective = log.includes('super effective');
             const isResisted = log.includes('not very effective');
             const isEnemyDamage = log.includes(state.enemyCreature?.name + ' used');
+
+            // Attacker lunges, defender reels. Player sits left, enemy sits right.
+            if (isEnemyDamage) {
+              setEnemyAnim('lunge-left');
+              setPlayerAnim('hit-flash-left');
+            } else {
+              setPlayerAnim('lunge-right');
+              setEnemyAnim('hit-flash-right');
+            }
+            setTimeout(() => { setPlayerAnim(''); setEnemyAnim(''); }, 460);
 
             // Play sound effects
             if (isEffective) {
@@ -3883,9 +4050,13 @@
           if (log.includes('chill damage') || log.includes('frozen')) playSfx('chill');
           if (log.includes('burn damage')) playSfx('burn');
 
-          // Check for faint
-          if (log.includes('has fallen') || log.includes('defeated')) {
+          // Check for faint. The loser dissolves.
+          if (log.includes('has fallen')) {
             playSfx('faint');
+            setPlayerAnim('faint-dissolve');
+          } else if (log.includes('defeated')) {
+            playSfx('faint');
+            setEnemyAnim('faint-dissolve');
           }
 
           // Check for souls
@@ -3969,6 +4140,7 @@
 
       return (
         <div style={styles.battleContainer}>
+          {showWipe && <div className="battle-wipe" />}
           <div style={styles.header}>
             <span style={styles.souls}>CARRIED {state.souls}</span>
             <span style={{ color: state.isBossFight ? GBC.red : GBC.textDim, fontSize: 'var(--font-sm)' }}>
@@ -4009,16 +4181,19 @@
 
           {/* Battle sprite arena */}
           <div
-            style={styles.battleSpriteArea}
+            style={{ ...styles.battleSpriteArea, position: 'relative', overflow: 'hidden' }}
             className={`${screenShake ? 'screen-shake' : ''} ${criticalFlash ? 'critical-flash' : ''}`}
           >
-            <div style={{ textAlign: 'center', position: 'relative' }}>
-              <CreatureSprite type={activeCreature.type} size={48} scarCount={activeCreature.scars?.length || 0} />
+            <BattleBackdrop map={state.currentMap} isBoss={state.isBossFight} bossPhase={state.bossPhase} />
+            <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+              <div className={playerAnim}>
+                <CreatureSprite type={activeCreature.type} size={48} scarCount={activeCreature.scars?.length || 0} scars={activeCreature.scars} />
+              </div>
               <div style={{ fontSize: 'var(--font-xs)', color: GBC.text, marginTop: 'var(--spacing-xs)' }}>
                 {activeCreature.nickname || activeCreature.name}
               </div>
             </div>
-            <div style={{ textAlign: 'center' }}>
+            <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
               <div style={{ fontSize: 'var(--font-xl)', color: GBC.textDim }}>VS</div>
               <div style={{ fontSize: 'var(--font-xs)', color: playerActsFirst ? GBC.green : GBC.red, marginTop: '2px' }}>
                 {playerActsFirst ? 'YOU LEAD' : 'FOE LEADS'}
@@ -4028,6 +4203,7 @@
               style={{
                 textAlign: 'center',
                 position: 'relative',
+                zIndex: 1,
                 cursor: state.turnPhase === 'player' ? 'pointer' : 'default',
                 padding: 'var(--spacing-xs)'
               }}
@@ -4046,7 +4222,16 @@
               }}
               title={state.turnPhase === 'player' ? 'Tap to attack' : ''}
             >
-              <CreatureSprite type={enemyType} size={state.isBossFight ? 56 : 48} isEnemy={true} bossPhase={state.bossPhase || 1} />
+              {/* Charging visibly telegraphs the wind-up even if the banner is missed */}
+              <div className={`${enemyAnim} ${state.bossTelegraph ? 'telegraph-charge' : ''}`.trim()}>
+                <CreatureSprite
+                  type={enemyType}
+                  size={state.isBossFight ? 56 : 48}
+                  isEnemy={true}
+                  scars={state.enemy.scars}
+                  bossPhase={state.bossPhase || 1}
+                />
+              </div>
               <div style={{ fontSize: 'var(--font-xs)', color: GBC.text, marginTop: 'var(--spacing-xs)' }}>{state.enemyCreature.name}</div>
               {isTouchDevice() && state.turnPhase === 'player' && (
                 <div style={{ fontSize: 'var(--font-xs)', color: GBC.gold, marginTop: '2px' }}>TAP TO ATTACK</div>
@@ -4571,7 +4756,7 @@
             backgroundColor: 'rgba(245, 203, 92, 0.1)',
             border: `2px solid ${GBC.gold}`
           }}>
-            <CreatureSprite type={pendingCreature.type} size={32} scarCount={pendingCreature.scars?.length || 0} />
+            <CreatureSprite type={pendingCreature.type} size={32} scarCount={pendingCreature.scars?.length || 0} scars={pendingCreature.scars} />
             <div>
               <div style={{ color: GBC.gold, fontSize: 'var(--font-sm)' }}>
                 {getTypeIcon(pendingCreature.type)} {pendingCreature.name}
@@ -4605,7 +4790,7 @@
                 textAlign: 'center'
               }}>
                 <div style={{ marginBottom: 'var(--spacing-md)' }}>
-                  <CreatureSprite type={selectedCreature.type} size={48} scarCount={selectedCreature.scars?.length || 0} />
+                  <CreatureSprite type={selectedCreature.type} size={48} scarCount={selectedCreature.scars?.length || 0} scars={selectedCreature.scars} />
                 </div>
                 <div style={{ color: GBC.red, fontSize: 'var(--font-sm)', marginBottom: 'var(--spacing-sm)' }}>
                   Release {selectedCreature.nickname || selectedCreature.name} forever?
@@ -4662,7 +4847,7 @@
                     }}
                     onClick={() => handleSelect(i)}
                   >
-                    <CreatureSprite type={creature.type} size={32} scarCount={creature.scars?.length || 0} isHollowed={isHollowed} />
+                    <CreatureSprite type={creature.type} size={32} scarCount={creature.scars?.length || 0} scars={creature.scars} isHollowed={isHollowed} />
                     <div style={{ flex: 1 }}>
                       <div style={{ color: isHollowed ? GBC.textDim : GBC.text, fontSize: 'var(--font-sm)' }}>
                         {getTypeIcon(creature.type)} {creature.nickname || creature.name}
@@ -4735,7 +4920,7 @@
           alignItems: 'center'
         }}>
           <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-            <CreatureSprite type={creature.type} size={64} scarCount={creature.scars?.length || 0} />
+            <CreatureSprite type={creature.type} size={64} scarCount={creature.scars?.length || 0} scars={creature.scars} />
           </div>
 
           <div style={{ color: GBC.gold, fontSize: 'var(--font-md)', marginBottom: 'var(--spacing-sm)' }}>
@@ -5292,7 +5477,7 @@
                 E - Rest at bonfire<br/>
                 X - Examine surroundings<br/>
                 ESC - Pause menu<br/>
-                Click - Select moves
+                1-5 - Select moves (or click)
               </div>
             </div>
 
@@ -5303,6 +5488,24 @@
                 End turn below 5 = "Winded" (take +25% damage)<br/>
                 REST move in battle: Recover 12 SP (skips attack)<br/>
                 Bonfire rest: Fully restores stamina
+              </div>
+            </div>
+
+            <div style={styles.helpSection}>
+              <div style={styles.helpSectionTitle}>SPEED</div>
+              <div style={styles.helpText}>
+                The faster creature strikes first.<br/>
+                Watch for <span style={{ color: GBC.red }}>FOE LEADS</span>: it hits before your move lands.<br/>
+                Quick Strike and Guard always go first.
+              </div>
+            </div>
+
+            <div style={styles.helpSection}>
+              <div style={styles.helpSectionTitle}>BOSSES TELEGRAPH</div>
+              <div style={styles.helpText}>
+                A boss winds up before its signature blow.<br/>
+                When the warning flashes, <span style={{ color: GBC.gold }}>GUARD</span>.<br/>
+                Guard it and it glances off. Ignore it and it doubles.
               </div>
             </div>
 
@@ -5318,7 +5521,10 @@
             <div style={styles.helpSection}>
               <div style={styles.helpSectionTitle}>SCARS</div>
               <div style={styles.helpText}>
-                Creatures gain permanent scars when they faint.<br/>
+                Creatures scar when they faint, and the scar<br/>
+                remembers HOW they died. Burned by fire.<br/>
+                Cursed by the dark. Haunted by a boss.<br/>
+                Every scar wounds, but every scar also gives.<br/>
                 Three scars = Hollowed (75% stats)
               </div>
             </div>
@@ -5326,7 +5532,9 @@
             <div style={styles.helpSection}>
               <div style={styles.helpSectionTitle}>BONFIRE</div>
               <div style={styles.helpText}>
-                Heals team. Banks souls. BUT respawns all enemies.
+                Heals team. Banks souls. BUT respawns all enemies.<br/>
+                KINDLE: spend carried souls to permanently raise<br/>
+                a creature's max HP or stamina.
               </div>
             </div>
 
