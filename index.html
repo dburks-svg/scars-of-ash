@@ -1423,6 +1423,9 @@
         }
 
         case 'MOVE_PLAYER': {
+          // A held-key or auto-path timer can fire one last time as a battle
+          // or menu screen takes over; movement only ever means exploration
+          if (state.screen !== 'exploration') return state;
           const map = state.currentMap === 'ashenPath' ? ASHEN_PATH :
                       state.currentMap === 'hollowDeep' ? HOLLOW_DEEP :
                       state.currentMap === 'labyrinth' ? LABYRINTH : FALLEN_KEEP;
@@ -3379,6 +3382,11 @@
       );
     });
 
+    // Overworld walk pacing. Playtests called 150ms-per-tile walking "boring";
+    // held keys drive their own repeat so there is no OS repeat-delay hitch.
+    const AUTO_PATH_STEP_MS = 100;
+    const HELD_MOVE_MS = 110;
+
     function Exploration({ state, dispatch }) {
       const map = state.currentMap === 'ashenPath' ? ASHEN_PATH : state.currentMap === 'hollowDeep' ? HOLLOW_DEEP : state.currentMap === 'labyrinth' ? LABYRINTH : FALLEN_KEEP;
       const mapName = state.currentMap === 'ashenPath' ? 'Ashen Path' : state.currentMap === 'hollowDeep' ? 'The Hollow Deep' : state.currentMap === 'labyrinth' ? 'The Labyrinth' : 'Fallen Keep';
@@ -3390,6 +3398,7 @@
       const moveTimeoutRef = useRef(null);
       const autoPathRef = useRef(null);
       const [destFlash, setDestFlash] = useState(null);
+      const heldMoveRef = useRef(null);
 
       // Cancel any active auto-path
       const cancelAutoPath = useCallback(() => {
@@ -3398,6 +3407,14 @@
           autoPathRef.current = null;
         }
         setDestFlash(null);
+      }, []);
+
+      // Stop held-key repeat movement
+      const stopHeldMove = useCallback(() => {
+        if (heldMoveRef.current) {
+          clearInterval(heldMoveRef.current.timerId);
+          heldMoveRef.current = null;
+        }
       }, []);
 
       // Detect when player position changes and trigger walk animation
@@ -3458,7 +3475,7 @@
           dispatch({ type: 'MOVE_PLAYER', dx: step.dx, dy: step.dy });
           ap.stepIndex++;
           if (ap.stepIndex < ap.steps.length) {
-            ap.timerId = setTimeout(executeNextStep, 150);
+            ap.timerId = setTimeout(executeNextStep, AUTO_PATH_STEP_MS);
           } else {
             // Final step dispatched, clean up
             autoPathRef.current = null;
@@ -3479,11 +3496,14 @@
         cancelAutoPath();
       }, [state.currentMap, cancelAutoPath]);
 
-      // Cancel auto-path when an examine overlay opens (sealed doors, lore),
-      // or a queued step could pay a door toll AND start the boss in one tap
+      // Cancel walking when an examine overlay opens (sealed doors, lore), or a
+      // queued step could pay a door toll AND start the boss in one tap/hold
       useEffect(() => {
-        if (state.examineText) cancelAutoPath();
-      }, [state.examineText, cancelAutoPath]);
+        if (state.examineText) {
+          cancelAutoPath();
+          stopHeldMove();
+        }
+      }, [state.examineText, cancelAutoPath, stopHeldMove]);
 
       const handleKeyDown = useCallback((e) => {
         const key = e.key.toLowerCase();
@@ -3520,14 +3540,41 @@
 
         if (dx !== 0 || dy !== 0) {
           cancelAutoPath();
+          // We drive our own key repeat (faster and steadier than the OS one)
+          if (e.repeat) return;
           dispatch({ type: 'MOVE_PLAYER', dx, dy });
+          stopHeldMove();
+          const timerId = setInterval(() => {
+            dispatch({ type: 'MOVE_PLAYER', dx, dy });
+          }, HELD_MOVE_MS);
+          heldMoveRef.current = { key, timerId };
         }
-      }, [dispatch, map, state.playerPos, state.examineText, cancelAutoPath]);
+      }, [dispatch, map, state.playerPos, state.examineText, cancelAutoPath, stopHeldMove]);
+
+      const handleKeyUp = useCallback((e) => {
+        if (heldMoveRef.current && heldMoveRef.current.key === e.key.toLowerCase()) {
+          stopHeldMove();
+        }
+      }, [stopHeldMove]);
 
       useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-      }, [handleKeyDown]);
+        window.addEventListener('keyup', handleKeyUp);
+        return () => {
+          window.removeEventListener('keydown', handleKeyDown);
+          window.removeEventListener('keyup', handleKeyUp);
+        };
+      }, [handleKeyDown, handleKeyUp]);
+
+      // Held movement must not outlive focus, overlays, or this screen
+      useEffect(() => {
+        const onBlur = () => stopHeldMove();
+        window.addEventListener('blur', onBlur);
+        return () => {
+          window.removeEventListener('blur', onBlur);
+          stopHeldMove();
+        };
+      }, [stopHeldMove]);
 
       const currentTile = map[state.playerPos.y][state.playerPos.x];
 
