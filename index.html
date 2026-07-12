@@ -1231,7 +1231,8 @@
           souls: 0,
           bankedSouls: difficulty.dropBankedSouls ? 0 : state.bankedSouls,
           droppedSouls,
-          diedToBoss: state.isBossFight
+          diedToBoss: state.isBossFight,
+          pendingMove: null
         };
       }
 
@@ -1241,7 +1242,8 @@
         enemy,
         battleLog: log,
         activeCreatureIndex: availableIndex,
-        turnPhase: 'player'
+        turnPhase: 'player',
+        pendingMove: null
       };
     }
 
@@ -1473,6 +1475,7 @@
                 ...BOSS_DIALOGUE.intro
               ],
               turnPhase: 'player',
+              pendingMove: null,
               bossPhase: 1,
               arenaEffect: null,
               isBossFight: true
@@ -1537,6 +1540,7 @@
                 ...HOLLOW_WARDEN_DIALOGUE.intro
               ],
               turnPhase: 'player',
+              pendingMove: null,
               bossPhase: 1,
               arenaEffect: null,
               isBossFight: true,
@@ -1703,17 +1707,56 @@
         }
 
         case 'SELECT_MOVE': {
+          // Forced = deferred resolution after a faster enemy already acted this round
+          if (action.forced) {
+            state = { ...state, pendingMove: null };
+          }
+
           const activeCreature = state.team[state.activeCreatureIndex];
           // Check Flinching scar - strip priority at resolution time
           const { hasFlinching } = applyScars(activeCreature, STARTERS[activeCreature.id]);
           const move = action.move.priority && hasFlinching ? { ...action.move, priority: false } : action.move;
 
-          if (move.cost > activeCreature.stamina) return state;
+          if (move.cost > activeCreature.stamina) {
+            if (action.forced) {
+              // Stamina was drained before the deferred move could resolve
+              return {
+                ...state,
+                battleLog: [...state.battleLog, `${activeCreature.nickname || activeCreature.name} couldn't muster the stamina!`],
+                turnPhase: 'player'
+              };
+            }
+            return state;
+          }
+
+          // Chill can freeze the creature, consuming its action for the round
+          if (activeCreature.chillTurns > 0 && Math.random() < GAME_CONFIG.statusFx.chillSkipChance) {
+            return {
+              ...state,
+              battleLog: [...state.battleLog, `${activeCreature.nickname || activeCreature.name} is frozen and can't move!`],
+              turnPhase: action.forced ? 'player' : 'enemy'
+            };
+          }
+
+          // Initiative: a faster enemy strikes before non-priority moves resolve
+          if (!action.forced && !move.priority && state.enemy && state.enemy.hp > 0) {
+            const playerSpeed = getEffectiveSpeed(activeCreature, STARTERS[activeCreature.id]);
+            const enemySpeed = getEffectiveSpeed(state.enemy, state.enemyCreature);
+            if (enemySpeed > playerSpeed) {
+              return {
+                ...state,
+                pendingMove: move,
+                battleLog: [...state.battleLog, `${state.enemyCreature.name} moves first!`],
+                turnPhase: 'enemy'
+              };
+            }
+          }
 
           let newTeam = [...state.team];
           let newEnemy = { ...state.enemy };
           let log = [...state.battleLog];
-          let turnPhase = 'enemy';
+          // Forced moves resolve after the enemy already acted - the round ends here
+          let turnPhase = action.forced ? 'player' : 'enemy';
 
           if (move.effect === 'rest') {
             newTeam[state.activeCreatureIndex] = {
@@ -2100,14 +2143,9 @@
             log.push(`${activeCreature.nickname || activeCreature.name} takes ${GAME_CONFIG.statusFx.poisonDamage} poison damage!`);
           }
 
-          // Process chill effect
-          let chillSkip = false;
+          // Tick down chill (the freeze roll happens when the player acts, in SELECT_MOVE)
           if (activeCreature.chillTurns > 0) {
             activeCreature.chillTurns--;
-            if (Math.random() < GAME_CONFIG.statusFx.chillSkipChance) {
-              chillSkip = true;
-              log.push(`${activeCreature.nickname || activeCreature.name} is frozen and can't move!`);
-            }
           }
 
           if (state.arenaEffect === 'scorchedEarth' && activeBase.type !== 'fire') {
@@ -2297,12 +2335,15 @@
             team: newTeam,
             enemy: newEnemy,
             battleLog: log,
-            turnPhase: 'player'
+            // A faster enemy already acted; the player's chosen move now resolves
+            turnPhase: state.pendingMove ? 'playerForced' : 'player'
           };
         }
 
         case 'SWITCH_CREATURE': {
           if (state.team[action.index].hp <= 0) return state;
+          // In battle, switching is only legal while waiting for player input
+          if (state.screen === 'battle' && state.turnPhase !== 'player') return state;
           return {
             ...state,
             activeCreatureIndex: action.index,
@@ -2458,6 +2499,7 @@
             enemyCreature: wildData,
             battleLog: [`A ${wildData.name} appeared!`],
             turnPhase: 'player',
+            pendingMove: null,
             currentEncounter: encounter,
             pendingEncounter: null
           };
@@ -3454,6 +3496,9 @@
 
       const enemyHpPercent = (state.enemy.hp / (state.enemyCreature.maxHp || 1)) * 100;
       const playerHpPercent = (activeCreature.hp / (maxHp || 1)) * 100;
+      const playerSpeed = getEffectiveSpeed(activeCreature, activeBase);
+      const enemySpeed = getEffectiveSpeed(state.enemy, state.enemyCreature);
+      const playerActsFirst = playerSpeed >= enemySpeed;
       const prevLogLengthRef = useRef(state.battleLog.length);
       const [damageNumbers, setDamageNumbers] = useState([]);
       const [screenShake, setScreenShake] = useState(false);
@@ -3537,7 +3582,13 @@
           }, 1000);
           return () => clearTimeout(timer);
         }
-      }, [state.turnPhase, dispatch]);
+        if (state.turnPhase === 'playerForced' && state.pendingMove) {
+          const timer = setTimeout(() => {
+            dispatch({ type: 'SELECT_MOVE', move: state.pendingMove, forced: true });
+          }, 1000);
+          return () => clearTimeout(timer);
+        }
+      }, [state.turnPhase, state.pendingMove, dispatch]);
 
       const getMoveWithPriority = (move) => {
         if (move.priority && hasFlinching) {
@@ -3622,7 +3673,12 @@
                 {activeCreature.nickname || activeCreature.name}
               </div>
             </div>
-            <div style={{ fontSize: 'var(--font-xl)', color: GBC.textDim }}>VS</div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 'var(--font-xl)', color: GBC.textDim }}>VS</div>
+              <div style={{ fontSize: 'var(--font-xs)', color: playerActsFirst ? GBC.green : GBC.red, marginTop: '2px' }}>
+                {playerActsFirst ? 'YOU LEAD' : 'FOE LEADS'}
+              </div>
+            </div>
             <div
               style={{
                 textAlign: 'center',
@@ -3686,6 +3742,7 @@
             </div>
             <div style={{ fontSize: 'var(--font-xs)', color: GBC.textDim, marginTop: '3px' }}>
               STA {state.enemy.stamina}/{state.enemyCreature.maxStamina}
+              <span style={{ marginLeft: 'var(--spacing-xs)' }}>SPD {enemySpeed}</span>
               {state.enemy.winded && <span style={{ ...styles.status, ...styles.winded }}>WIND</span>}
               {state.enemy.isGuarding && <span style={{ ...styles.status, backgroundColor: '#1a2a3a', border: `1px solid ${GBC.blue}`, color: GBC.blue }}>GRD</span>}
             </div>
@@ -3722,6 +3779,7 @@
             </div>
             <div style={{ fontSize: 'var(--font-xs)', color: GBC.textDim, marginTop: '3px' }}>
               STA {activeCreature.stamina}/{maxStamina}
+              <span style={{ marginLeft: 'var(--spacing-xs)' }}>SPD {playerSpeed}</span>
               {activeCreature.scars && activeCreature.scars.length > 0 && (
                 <span style={{ marginLeft: 'var(--spacing-xs)' }}>
                   {activeCreature.scars.slice(0, 2).map((scar, j) => (

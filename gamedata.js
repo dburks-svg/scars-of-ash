@@ -23,7 +23,8 @@ window.GAME_CONFIG = {
     scarredDamageThreshold: 3,
     staminaPerTurnRecovery: 4,
     restRecoveryBase: 8,
-    minimumDamage: 1
+    minimumDamage: 1,
+    defaultSpeed: 5
   },
   // -- Status Effects --
   statusFx: {
@@ -1119,10 +1120,11 @@ var STARTERS = {
     type: 'fire',
     maxHp: 45,
     maxStamina: 20,
+    speed: 8,
     moves: [
       { name: 'Ember Slash', cost: 6, damage: 12, priority: false, effect: 'burn', effectChance: 20 },
       { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
-      { name: 'Guard', cost: 2, damage: 0, effect: 'guard' },
+      { name: 'Guard', cost: 2, damage: 0, effect: 'guard', priority: true },
       { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
     ]
   },
@@ -1132,10 +1134,11 @@ var STARTERS = {
     type: 'water',
     maxHp: 50,
     maxStamina: 18,
+    speed: 5,
     moves: [
       { name: 'Tide Crash', cost: 7, damage: 14, priority: false, effect: 'chill', effectChance: 20 },
       { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
-      { name: 'Guard', cost: 2, damage: 0, effect: 'guard' },
+      { name: 'Guard', cost: 2, damage: 0, effect: 'guard', priority: true },
       { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
     ]
   },
@@ -1145,10 +1148,11 @@ var STARTERS = {
     type: 'grass',
     maxHp: 40,
     maxStamina: 24,
+    speed: 9,
     moves: [
       { name: 'Vine Lash', cost: 5, damage: 10, priority: false, effect: 'poison', effectChance: 20 },
       { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
-      { name: 'Guard', cost: 2, damage: 0, effect: 'guard' },
+      { name: 'Guard', cost: 2, damage: 0, effect: 'guard', priority: true },
       { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
     ]
   },
@@ -1158,11 +1162,12 @@ var STARTERS = {
     type: 'dark',
     maxHp: 42,
     maxStamina: 22,
+    speed: 7,
     lore: 'Vines that grew in places the light forgot',
     moves: [
       { name: 'Shadow Lash', cost: 6, damage: 12, priority: false },
       { name: 'Void Drain', cost: 8, damage: 8, effect: 'drain', drainHp: 4, drainStamina: 4 },
-      { name: 'Guard', cost: 2, damage: 0, effect: 'guard' },
+      { name: 'Guard', cost: 2, damage: 0, effect: 'guard', priority: true },
       { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
     ]
   },
@@ -1172,11 +1177,12 @@ var STARTERS = {
     type: 'light',
     maxHp: 48,
     maxStamina: 18,
+    speed: 6,
     lore: 'Ember of the last dawn, before the ash',
     moves: [
       { name: 'Radiant Burst', cost: 5, damage: 11, priority: false },
       { name: 'Purifying Light', cost: 7, damage: 0, effect: 'purify', healAmount: 10 },
-      { name: 'Guard', cost: 2, damage: 0, effect: 'guard' },
+      { name: 'Guard', cost: 2, damage: 0, effect: 'guard', priority: true },
       { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
     ]
   }
@@ -1189,6 +1195,7 @@ var WILD_CREATURES = {
     type: 'fire',
     maxHp: 30,
     maxStamina: 15,
+    speed: 7,
     souls: 12,
     moves: [
       { name: 'Ember Slash', cost: 6, damage: 9, priority: false },
@@ -1202,6 +1209,7 @@ var WILD_CREATURES = {
     type: 'water',
     maxHp: 30,
     maxStamina: 15,
+    speed: 4,
     souls: 12,
     moves: [
       { name: 'Tide Crash', cost: 7, damage: 10, priority: false },
@@ -1215,6 +1223,7 @@ var WILD_CREATURES = {
     type: 'grass',
     maxHp: 30,
     maxStamina: 15,
+    speed: 8,
     souls: 12,
     moves: [
       { name: 'Vine Lash', cost: 5, damage: 8, priority: false },
@@ -1228,6 +1237,7 @@ var WILD_CREATURES = {
     type: 'dark',
     maxHp: 35,
     maxStamina: 18,
+    speed: 6,
     souls: 18,
     moves: [
       { name: 'Shadow Lash', cost: 6, damage: 10, priority: false },
@@ -1241,6 +1251,7 @@ var WILD_CREATURES = {
     type: 'light',
     maxHp: 38,
     maxStamina: 16,
+    speed: 5,
     souls: 20,
     moves: [
       { name: 'Radiant Burst', cost: 5, damage: 9, priority: false },
@@ -1257,6 +1268,7 @@ var BOSS = {
     type: 'fire',
     maxHp: 60,
     maxStamina: 22,
+    speed: 7,
     souls: 100,
     moves: [
       { name: 'Ember Slash', cost: 6, damage: 12, priority: false },
@@ -1276,6 +1288,7 @@ var BOSS = {
     type: 'dark', // Phase 1: Dark type
     maxHp: 70,
     maxStamina: 24,
+    speed: 6,
     souls: 200,
     moves: [
       { name: 'Shadow Lash', cost: 6, damage: 12, priority: false },
@@ -2361,6 +2374,7 @@ var getRandomDeepWild = () => {
     type: 'dark',
     maxHp: STARTERS.umbravine.maxHp + deep.hpBonus,
     maxStamina: STARTERS.umbravine.maxStamina + deep.staminaBonus,
+    speed: STARTERS.umbravine.speed,
     souls: deep.umbravineSouls,
     moves: STARTERS.umbravine.moves
   } : {
@@ -2369,6 +2383,7 @@ var getRandomDeepWild = () => {
     type: 'light',
     maxHp: STARTERS.solrath.maxHp + deep.hpBonus,
     maxStamina: STARTERS.solrath.maxStamina + deep.staminaBonus,
+    speed: STARTERS.solrath.speed,
     souls: deep.solrathSouls,
     moves: STARTERS.solrath.moves
   };
@@ -2400,23 +2415,23 @@ var getRandomLabyrinthWild = () => {
   if (typeRoll < 0.2) {
     baseCreature = { id: 'wildCindrath', name: 'Wild Cindrath', type: 'fire',
       maxHp: STARTERS.cindrath.maxHp + lab.hpBonus, maxStamina: STARTERS.cindrath.maxStamina + lab.staminaBonus,
-      souls: lab.souls, moves: STARTERS.cindrath.moves };
+      speed: STARTERS.cindrath.speed, souls: lab.souls, moves: STARTERS.cindrath.moves };
   } else if (typeRoll < 0.4) {
     baseCreature = { id: 'wildMarshveil', name: 'Wild Marshveil', type: 'water',
       maxHp: STARTERS.marshveil.maxHp + lab.hpBonus, maxStamina: STARTERS.marshveil.maxStamina + lab.staminaBonus,
-      souls: lab.souls, moves: STARTERS.marshveil.moves };
+      speed: STARTERS.marshveil.speed, souls: lab.souls, moves: STARTERS.marshveil.moves };
   } else if (typeRoll < 0.6) {
     baseCreature = { id: 'wildThornwick', name: 'Wild Thornwick', type: 'grass',
       maxHp: STARTERS.thornwick.maxHp + lab.hpBonus, maxStamina: STARTERS.thornwick.maxStamina + lab.staminaBonus,
-      souls: lab.souls, moves: STARTERS.thornwick.moves };
+      speed: STARTERS.thornwick.speed, souls: lab.souls, moves: STARTERS.thornwick.moves };
   } else if (typeRoll < 0.8) {
     baseCreature = { id: 'wildUmbravine', name: 'Wild Umbravine', type: 'dark',
       maxHp: STARTERS.umbravine.maxHp + lab.hpBonus, maxStamina: STARTERS.umbravine.maxStamina + lab.staminaBonus,
-      souls: lab.souls, moves: STARTERS.umbravine.moves };
+      speed: STARTERS.umbravine.speed, souls: lab.souls, moves: STARTERS.umbravine.moves };
   } else {
     baseCreature = { id: 'wildSolrath', name: 'Wild Solrath', type: 'light',
       maxHp: STARTERS.solrath.maxHp + lab.hpBonus, maxStamina: STARTERS.solrath.maxStamina + lab.staminaBonus,
-      souls: lab.souls, moves: STARTERS.solrath.moves };
+      speed: STARTERS.solrath.speed, souls: lab.souls, moves: STARTERS.solrath.moves };
   }
 
   const hpVariance = Math.floor(Math.random() * cfg.hpVarianceRange) - Math.floor(cfg.hpVarianceRange / 2);
@@ -2483,6 +2498,19 @@ var applyScars = (creature, baseData, hollowedThreshold = 3) => {
   }
 
   return { maxHp: Math.max(1, maxHp), maxStamina: Math.max(1, maxStamina), hasFlinching };
+};
+
+// Effective speed for turn order. baseData carries the species speed;
+// scars with effect 'speed' shift it. Ties go to the player.
+var getEffectiveSpeed = (creature, baseData) => {
+  var cfg = window.GAME_CONFIG.combat;
+  let speed = (baseData && baseData.speed) ?? creature.speed ?? cfg.defaultSpeed;
+  if (creature.scars) {
+    creature.scars.forEach(scar => {
+      if (scar.effect === 'speed') speed += scar.value;
+    });
+  }
+  return Math.max(1, speed);
 };
 
 // ============= LORE DATA =============
