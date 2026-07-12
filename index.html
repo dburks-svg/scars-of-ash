@@ -2428,6 +2428,17 @@
             log.push(`The curse gnaws at ${state.enemyCreature.name} for ${enemyMods.curseDot} damage.`);
           }
 
+          // Chill ticks down on the enemy's own turn, and can freeze it solid.
+          // Mirrors the player's chill: the tick always happens, the freeze roll
+          // decides whether the action is lost.
+          let enemyFrozen = false;
+          if (newEnemy.chillTurns > 0) {
+            newEnemy.chillTurns--;
+            if (Math.random() < GAME_CONFIG.statusFx.chillSkipChance) {
+              enemyFrozen = true;
+            }
+          }
+
           // Check if enemy died from status effects
           if (newEnemy.hp <= 0) {
             const soulsEarned = Math.floor((state.enemyCreature.souls || 10) * playerMods.soulsMult);
@@ -2450,6 +2461,21 @@
               enemy: null,
               team: newTeam,
               battleLog: log
+            };
+          }
+
+          // Frozen solid: the enemy loses its action entirely. Checked before the
+          // telegraph machine, so a frozen boss stays wound up and its blow lands
+          // next turn rather than being skipped.
+          if (enemyFrozen) {
+            log.push(`${state.enemyCreature.name} is frozen and can't move!`);
+            newTeam[state.activeCreatureIndex] = activeCreature;
+            return {
+              ...state,
+              team: newTeam,
+              enemy: newEnemy,
+              battleLog: log,
+              turnPhase: state.pendingMove ? 'playerForced' : 'player'
             };
           }
 
