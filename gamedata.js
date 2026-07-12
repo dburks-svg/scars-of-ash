@@ -1314,10 +1314,30 @@ var TYPE_CHART = {
   darklight: { fire: 1.25, water: 1.0, grass: 1.25, dark: 0.75, light: 0.75, darklight: 1.0 }
 };
 
+// Every scar carries a wound AND a lesson. Trophies of failure, not trash.
+// 'effect' fields feed applyScars/getEffectiveSpeed; everything else is read
+// by getScarModifiers. 'cause' is documentation of the death that earns it.
 var SCAR_TYPES = [
-  { id: 'fractured', name: 'Fractured', effect: 'maxHp', value: -5, description: '-5 max HP' },
-  { id: 'hesitant', name: 'Hesitant', effect: 'maxStamina', value: -2, description: '-2 max Stamina' },
-  { id: 'flinching', name: 'Flinching', effect: 'noPriority', description: 'Quick Strike no longer goes first' }
+  { id: 'fractured', name: 'Fractured', cause: 'any KO', effect: 'maxHp', value: -5,
+    description: '-5 max HP', upsideValue: 0.15, upsideDescription: '+15% souls earned' },
+  { id: 'hesitant', name: 'Hesitant', cause: 'KO while winded', effect: 'maxStamina', value: -2,
+    description: '-2 max Stamina', upsideValue: 2, upsideDescription: 'Rest recovers +2 more' },
+  { id: 'flinching', name: 'Flinching', cause: 'KO by faster enemy', effect: 'noPriority',
+    description: 'Priority moves lose their edge', upsideValue: 2, upsideDescription: '+2 speed' },
+  { id: 'burned', name: 'Burned', cause: 'KO by fire', effect: 'fireVuln', value: 0.25,
+    description: '+25% damage taken from fire', upsideDescription: 'Cannot be burned again' },
+  { id: 'frostbitten', name: 'Frostbitten', cause: 'KO by water or chill', effect: 'speed', value: -2,
+    description: '-2 speed', upsideDescription: 'Cannot be chilled again' },
+  { id: 'cursed', name: 'Cursed', cause: 'KO by dark', effect: 'curseDot', value: 1,
+    description: 'Loses 1 HP each round', upsideValue: 0.25, upsideDescription: '+25% damage vs dark' },
+  { id: 'blinded', name: 'Blinded', cause: 'KO by light', effect: 'missChance', value: 0.15,
+    description: '15% chance to miss', upsideValue: 0.25, upsideDescription: '+25% damage vs light' },
+  { id: 'cracked', name: 'Cracked', cause: 'KO by a plain physical blow', effect: 'defenseVuln', value: 0.1,
+    description: '+10% damage taken', upsideValue: 0.1, upsideDescription: '+10% damage dealt' },
+  { id: 'withered', name: 'Withered', cause: 'KO while poisoned', effect: 'healingMult', value: 0.5,
+    description: 'Healing received halved', upsideDescription: 'Cannot be poisoned again' },
+  { id: 'haunted', name: 'Haunted', cause: 'KO by a boss', effect: 'hauntChance', value: 0.1,
+    description: '10% chance to freeze in fear', upsideValue: 0.15, upsideDescription: '+15% damage vs bosses' }
 ];
 
 var TITLES = [
@@ -2308,7 +2328,7 @@ var getTypeIcon = (type) => {
   }
 };
 
-var calculateDamage = (move, attacker, defender, attackerCreature, defenderCreature, difficultyMult = 1.0) => {
+var calculateDamage = (move, attacker, defender, attackerCreature, defenderCreature, difficultyMult = 1.0, targetIsBoss = false) => {
   if (move.damage === 0) return 0;
   var cfg = window.GAME_CONFIG.combat;
   let damage = move.damage;
@@ -2322,6 +2342,17 @@ var calculateDamage = (move, attacker, defender, attackerCreature, defenderCreat
   if (defender.winded) {
     damage = Math.floor(damage * cfg.windedDamageBonus);
   }
+
+  // Scar upsides (attacker) and wounds (defender)
+  const atkMods = getScarModifiers(attacker);
+  const defMods = getScarModifiers(defender);
+  let scarMult = 1 + atkMods.dmgBonus + defMods.defenseVuln;
+  if (defenderCreature.type === 'dark') scarMult += atkMods.dmgVsDark;
+  else if (defenderCreature.type === 'light') scarMult += atkMods.dmgVsLight;
+  else if (defenderCreature.type === 'darklight') scarMult += Math.max(atkMods.dmgVsDark, atkMods.dmgVsLight);
+  if (targetIsBoss) scarMult += atkMods.dmgVsBoss;
+  if (attackerCreature.type === 'fire') scarMult += defMods.fireVuln;
+  damage = Math.floor(damage * scarMult);
 
   if (attacker.scars && attacker.scars.length >= cfg.scarredDamageThreshold) {
     damage = Math.floor(damage * cfg.scarredDamagePenalty);
@@ -2464,18 +2495,71 @@ var getCaptureChance = (currentHp, maxHp, captureBonus = 0) => {
   return Math.max(cfg.captureCapMin, Math.min(cfg.captureCapMax, chance + captureBonus));
 };
 
-var getRandomScar = (difficulty) => {
-  const baseScar = SCAR_TYPES[Math.floor(Math.random() * SCAR_TYPES.length)];
-  // Apply difficulty-specific penalties
+// Scale hp/stamina scar penalties by difficulty
+var scaleScarForDifficulty = (scar, difficulty) => {
   if (difficulty && difficulty.scarPenalties) {
-    if (baseScar.effect === 'maxHp') {
-      return { ...baseScar, value: difficulty.scarPenalties.hp, description: `${difficulty.scarPenalties.hp} max HP` };
+    if (scar.effect === 'maxHp') {
+      return { ...scar, value: difficulty.scarPenalties.hp, description: `${difficulty.scarPenalties.hp} max HP` };
     }
-    if (baseScar.effect === 'maxStamina') {
-      return { ...baseScar, value: difficulty.scarPenalties.stamina, description: `${difficulty.scarPenalties.stamina} max Stamina` };
+    if (scar.effect === 'maxStamina') {
+      return { ...scar, value: difficulty.scarPenalties.stamina, description: `${difficulty.scarPenalties.stamina} max Stamina` };
     }
   }
-  return baseScar;
+  return scar;
+};
+
+// Used for pre-scarred wild spawns, where the death that marked them is unknown
+var getRandomScar = (difficulty) => {
+  const baseScar = SCAR_TYPES[Math.floor(Math.random() * SCAR_TYPES.length)];
+  return scaleScarForDifficulty(baseScar, difficulty);
+};
+
+// The scar remembers HOW the creature died. Candidates are checked in
+// story-priority order; duplicates fall through to the next cause.
+// Fractured (any KO) is the universal fallback and the only scar that stacks.
+var getScarForDeathCause = (creature, cause, difficulty) => {
+  cause = cause || {};
+  const existing = new Set((creature.scars || []).map(s => s.id));
+  const candidates = [];
+  if (cause.isBoss) candidates.push('haunted');
+  if (cause.wasPoisoned) candidates.push('withered');
+  if (cause.killerType === 'fire' || cause.byStatus === 'burn') candidates.push('burned');
+  if (cause.killerType === 'water' || cause.wasChilled) candidates.push('frostbitten');
+  if (cause.killerType === 'dark' || cause.killerType === 'darklight') candidates.push('cursed');
+  if (cause.killerType === 'light' || cause.killerType === 'darklight') candidates.push('blinded');
+  if (cause.wasWinded) candidates.push('hesitant');
+  if (cause.enemyFaster) candidates.push('flinching');
+  if (cause.physical) candidates.push('cracked');
+  candidates.push('fractured');
+  const pickId = candidates.find(id => id === 'fractured' || !existing.has(id));
+  const scar = SCAR_TYPES.find(s => s.id === pickId);
+  return scaleScarForDifficulty(scar, difficulty);
+};
+
+// Aggregate every battle-relevant scar effect and upside into one mods object.
+// Keyed by scar id so creatures saved before this system still resolve.
+var getScarModifiers = (creature) => {
+  const mods = {
+    speed: 0, fireVuln: 0, defenseVuln: 0, missChance: 0, healingMult: 1,
+    curseDot: 0, hauntChance: 0, restBonus: 0, soulsMult: 1,
+    dmgVsDark: 0, dmgVsLight: 0, dmgVsBoss: 0, dmgBonus: 0,
+    immuneBurn: false, immuneChill: false, immunePoison: false
+  };
+  (creature.scars || []).forEach(scar => {
+    switch (scar.id) {
+      case 'fractured': mods.soulsMult += scar.upsideValue ?? 0.15; break;
+      case 'hesitant': mods.restBonus += scar.upsideValue ?? 2; break;
+      case 'flinching': mods.speed += scar.upsideValue ?? 2; break;
+      case 'burned': mods.fireVuln += scar.value ?? 0.25; mods.immuneBurn = true; break;
+      case 'frostbitten': mods.speed += scar.value ?? -2; mods.immuneChill = true; break;
+      case 'cursed': mods.curseDot += scar.value ?? 1; mods.dmgVsDark += scar.upsideValue ?? 0.25; break;
+      case 'blinded': mods.missChance += scar.value ?? 0.15; mods.dmgVsLight += scar.upsideValue ?? 0.25; break;
+      case 'cracked': mods.defenseVuln += scar.value ?? 0.1; mods.dmgBonus += scar.upsideValue ?? 0.1; break;
+      case 'withered': mods.healingMult *= scar.value ?? 0.5; mods.immunePoison = true; break;
+      case 'haunted': mods.hauntChance += scar.value ?? 0.1; mods.dmgVsBoss += scar.upsideValue ?? 0.15; break;
+    }
+  });
+  return mods;
 };
 
 var applyScars = (creature, baseData, hollowedThreshold = 3) => {
@@ -2501,15 +2585,11 @@ var applyScars = (creature, baseData, hollowedThreshold = 3) => {
 };
 
 // Effective speed for turn order. baseData carries the species speed;
-// scars with effect 'speed' shift it. Ties go to the player.
+// scars shift it (Frostbitten -2, Flinching +2). Ties go to the player.
 var getEffectiveSpeed = (creature, baseData) => {
   var cfg = window.GAME_CONFIG.combat;
   let speed = (baseData && baseData.speed) ?? creature.speed ?? cfg.defaultSpeed;
-  if (creature.scars) {
-    creature.scars.forEach(scar => {
-      if (scar.effect === 'speed') speed += scar.value;
-    });
-  }
+  speed += getScarModifiers(creature).speed;
   return Math.max(1, speed);
 };
 

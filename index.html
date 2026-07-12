@@ -1180,21 +1180,20 @@
 
 
     // ============= BATTLE HELPERS =============
-    function handleCreatureFaint(state, team, enemy, log) {
+    function handleCreatureFaint(state, team, enemy, log, cause) {
       const difficulty = getDifficulty(state);
       const activeCreature = team[state.activeCreatureIndex];
-      const scar = getRandomScar(difficulty);
+      const scar = getScarForDeathCause(activeCreature, cause, difficulty);
 
       activeCreature.hp = 0;
       activeCreature.scars = [...(activeCreature.scars || []), scar];
 
       log.push(`${activeCreature.nickname || activeCreature.name} has fallen!`);
-      const scarMessages = [
-        `${activeCreature.nickname || activeCreature.name} gained a scar. It's a look.`,
-        `Another scar for ${activeCreature.nickname || activeCreature.name}. Basically tattoos at this point.`
-      ];
-      log.push(scarMessages[Math.floor(Math.random() * scarMessages.length)]);
+      log.push(`The death leaves its mark: ${scar.name}.`);
       log.push(`  → ${scar.name}: ${scar.description}`);
+      if (scar.upsideDescription) {
+        log.push(`  → But the flame remembers: ${scar.upsideDescription}`);
+      }
 
       if (activeCreature.scars.length >= difficulty.hollowedThreshold) {
         log.push(`${activeCreature.nickname || activeCreature.name} has become Hollowed...`);
@@ -1729,11 +1728,22 @@
             return state;
           }
 
+          const playerScarMods = getScarModifiers(activeCreature);
+
           // Chill can freeze the creature, consuming its action for the round
           if (activeCreature.chillTurns > 0 && Math.random() < GAME_CONFIG.statusFx.chillSkipChance) {
             return {
               ...state,
               battleLog: [...state.battleLog, `${activeCreature.nickname || activeCreature.name} is frozen and can't move!`],
+              turnPhase: action.forced ? 'player' : 'enemy'
+            };
+          }
+
+          // Haunted scar: sometimes the memory of death takes the turn instead
+          if (playerScarMods.hauntChance > 0 && Math.random() < playerScarMods.hauntChance) {
+            return {
+              ...state,
+              battleLog: [...state.battleLog, `${activeCreature.nickname || activeCreature.name} freezes, haunted by what it saw beyond the veil...`],
               turnPhase: action.forced ? 'player' : 'enemy'
             };
           }
@@ -1759,9 +1769,10 @@
           let turnPhase = action.forced ? 'player' : 'enemy';
 
           if (move.effect === 'rest') {
+            // Hesitant scar upside: rest recovers more
             newTeam[state.activeCreatureIndex] = {
               ...activeCreature,
-              stamina: Math.min(activeCreature.stamina + GAME_CONFIG.combat.restRecoveryBase + GAME_CONFIG.combat.staminaPerTurnRecovery,
+              stamina: Math.min(activeCreature.stamina + GAME_CONFIG.combat.restRecoveryBase + GAME_CONFIG.combat.staminaPerTurnRecovery + playerScarMods.restBonus,
                 applyScars(activeCreature, STARTERS[activeCreature.id]).maxStamina),
               winded: false,
               isGuarding: false
@@ -1770,13 +1781,14 @@
             return { ...state, team: newTeam, battleLog: log, turnPhase };
           }
 
-          // Purifying Light - removes all status effects and heals
+          // Purifying Light - removes all status effects and heals (Withered halves it)
           if (move.effect === 'purify') {
             const baseData = STARTERS[activeCreature.id];
             const { maxHp } = applyScars(activeCreature, baseData);
+            const purifyHeal = Math.max(1, Math.floor((move.healAmount || GAME_CONFIG.fallbacks.healAmount) * playerScarMods.healingMult));
             newTeam[state.activeCreatureIndex] = {
               ...activeCreature,
-              hp: Math.min(activeCreature.hp + (move.healAmount || GAME_CONFIG.fallbacks.healAmount), maxHp),
+              hp: Math.min(activeCreature.hp + purifyHeal, maxHp),
               stamina: activeCreature.stamina - move.cost,
               burnTurns: 0,
               poisonTurns: 0,
@@ -1809,8 +1821,22 @@
             return { ...state, team: newTeam, battleLog: log, turnPhase };
           }
 
+          // Blinded scar: attacks can miss outright (stamina still spent)
+          if (playerScarMods.missChance > 0 && Math.random() < playerScarMods.missChance) {
+            newTeam[state.activeCreatureIndex] = {
+              ...activeCreature,
+              stamina: activeCreature.stamina - move.cost,
+              isGuarding: false
+            };
+            if (newTeam[state.activeCreatureIndex].stamina < GAME_CONFIG.combat.windedThreshold) {
+              newTeam[state.activeCreatureIndex].winded = true;
+            }
+            log.push(`${activeCreature.nickname || activeCreature.name}'s ${move.name} misses! (Blinded)`);
+            return { ...state, team: newTeam, battleLog: log, turnPhase };
+          }
+
           const damage = calculateDamage(move, activeCreature, newEnemy,
-            STARTERS[activeCreature.id], state.enemyCreature);
+            STARTERS[activeCreature.id], state.enemyCreature, 1.0, state.isBossFight);
 
           newEnemy.hp = Math.max(0, newEnemy.hp - damage);
           newEnemy.isGuarding = false;
@@ -1822,26 +1848,27 @@
 
           log.push(`${activeCreature.nickname || activeCreature.name} used ${move.name}! ${damage} damage.${effectText}`);
 
-          // Apply status effects to enemy based on move
+          // Apply status effects to enemy based on move (scar immunities block re-marking)
           if (move.effect && move.effectChance && Math.random() * 100 < move.effectChance) {
-            if (move.effect === 'burn' && (!newEnemy.burnTurns || newEnemy.burnTurns === 0)) {
+            const enemyScarMods = getScarModifiers(newEnemy);
+            if (move.effect === 'burn' && (!newEnemy.burnTurns || newEnemy.burnTurns === 0) && !enemyScarMods.immuneBurn) {
               newEnemy.burnTurns = GAME_CONFIG.statusFx.burnDuration;
               log.push(`${state.enemyCreature.name} is burning!`);
             }
-            if (move.effect === 'poison' && (!newEnemy.poisonTurns || newEnemy.poisonTurns === 0)) {
+            if (move.effect === 'poison' && (!newEnemy.poisonTurns || newEnemy.poisonTurns === 0) && !enemyScarMods.immunePoison) {
               newEnemy.poisonTurns = GAME_CONFIG.statusFx.poisonDuration;
               log.push(`${state.enemyCreature.name} is poisoned!`);
             }
-            if (move.effect === 'chill' && (!newEnemy.chillTurns || newEnemy.chillTurns === 0)) {
+            if (move.effect === 'chill' && (!newEnemy.chillTurns || newEnemy.chillTurns === 0) && !enemyScarMods.immuneChill) {
               newEnemy.chillTurns = GAME_CONFIG.statusFx.chillDuration;
               log.push(`${state.enemyCreature.name} is chilled!`);
             }
           }
 
-          // Void Drain - drains stamina from enemy and heals self
+          // Void Drain - drains stamina from enemy and heals self (Withered halves the heal)
           if (move.effect === 'drain') {
             const drainAmount = move.drainStamina || GAME_CONFIG.fallbacks.drainStamina;
-            const healAmount = move.drainHp || GAME_CONFIG.fallbacks.drainHp;
+            const healAmount = Math.max(1, Math.floor((move.drainHp || GAME_CONFIG.fallbacks.drainHp) * playerScarMods.healingMult));
             newEnemy.stamina = Math.max(0, newEnemy.stamina - drainAmount);
             const baseData = STARTERS[activeCreature.id];
             const { maxHp } = applyScars(activeCreature, baseData);
@@ -1900,7 +1927,8 @@
           }
 
           if (newEnemy.hp <= 0) {
-            const soulsEarned = state.enemyCreature.souls || 10;
+            // Fractured scar upside: the broken draw more souls from the kill
+            const soulsEarned = Math.floor((state.enemyCreature.souls || 10) * playerScarMods.soulsMult);
             log.push(`${state.enemyCreature.name} defeated! Gained ${soulsEarned} souls.`);
 
             if (state.isBossFight) {
@@ -2129,6 +2157,12 @@
             activeCreature.winded = false;
           }
 
+          // Status state BEFORE ticks, so a killing tick still counts as its cause
+          const wasBurning = activeCreature.burnTurns > 0;
+          const wasPoisoned = activeCreature.poisonTurns > 0;
+          const wasChilled = activeCreature.chillTurns > 0;
+          const playerMods = getScarModifiers(activeCreature);
+
           // Process burn damage
           if (activeCreature.burnTurns > 0) {
             activeCreature.hp = Math.max(0, activeCreature.hp - GAME_CONFIG.statusFx.burnDamage);
@@ -2148,6 +2182,12 @@
             activeCreature.chillTurns--;
           }
 
+          // Cursed scar: the darkness gnaws each round
+          if (playerMods.curseDot > 0) {
+            activeCreature.hp = Math.max(0, activeCreature.hp - playerMods.curseDot);
+            log.push(`The curse gnaws at ${activeCreature.nickname || activeCreature.name} for ${playerMods.curseDot} damage.`);
+          }
+
           if (state.arenaEffect === 'scorchedEarth' && activeBase.type !== 'fire') {
             activeCreature.hp = Math.max(0, activeCreature.hp - GAME_CONFIG.statusFx.scorchedEarthDamage);
             log.push(`Scorched Earth burns ${activeCreature.nickname || activeCreature.name} for ${GAME_CONFIG.statusFx.scorchedEarthDamage} damage!`);
@@ -2162,7 +2202,15 @@
           newTeam[state.activeCreatureIndex] = activeCreature;
 
           if (activeCreature.hp <= 0) {
-            return handleCreatureFaint(state, newTeam, newEnemy, log);
+            return handleCreatureFaint(state, newTeam, newEnemy, log, {
+              isBoss: state.isBossFight,
+              wasPoisoned,
+              wasChilled,
+              wasWinded: activeCreature.winded,
+              byStatus: wasBurning ? 'burn' : null,
+              killerType: state.arenaEffect === 'scorchedEarth' ? 'fire' :
+                          state.arenaEffect === 'fracturedAura' ? 'darklight' : null
+            });
           }
 
           newEnemy.stamina = Math.min(newEnemy.stamina + GAME_CONFIG.combat.staminaPerTurnRecovery, state.enemyCreature.maxStamina);
@@ -2179,10 +2227,15 @@
             newEnemy.poisonTurns--;
             log.push(`${state.enemyCreature.name} takes ${GAME_CONFIG.statusFx.poisonDamage} poison damage!`);
           }
+          const enemyMods = getScarModifiers(newEnemy);
+          if (enemyMods.curseDot > 0) {
+            newEnemy.hp = Math.max(0, newEnemy.hp - enemyMods.curseDot);
+            log.push(`The curse gnaws at ${state.enemyCreature.name} for ${enemyMods.curseDot} damage.`);
+          }
 
           // Check if enemy died from status effects
           if (newEnemy.hp <= 0) {
-            const soulsEarned = state.enemyCreature.souls || 10;
+            const soulsEarned = Math.floor((state.enemyCreature.souls || 10) * playerMods.soulsMult);
             log.push(`${state.enemyCreature.name} defeated! Gained ${soulsEarned} souls.`);
             if (state.isBossFight) {
               return {
@@ -2255,6 +2308,10 @@
             newEnemy.isGuarding = true;
             newEnemy.stamina -= selectedMove.cost;
             log.push(`${state.enemyCreature.name} guards.`);
+          } else if (enemyMods.missChance > 0 && Math.random() < enemyMods.missChance) {
+            // Blinded enemies can whiff their attacks
+            newEnemy.stamina -= selectedMove.cost;
+            log.push(`${state.enemyCreature.name}'s ${selectedMove.name} misses! (Blinded)`);
           } else {
             const difficulty = getDifficulty(state);
             const damageMult = state.isBossFight ? difficulty.bossDamageMult : difficulty.wildDamageMult;
@@ -2267,18 +2324,30 @@
 
             log.push(`${state.enemyCreature.name} used ${selectedMove.name}! ${damage} damage.`);
 
-            // Apply status effects from enemy attacks
+            // Apply status effects from enemy attacks (scar immunities block re-marking)
             if (selectedMove.effect === 'burn' && (!activeCreature.burnTurns || activeCreature.burnTurns === 0)) {
-              activeCreature.burnTurns = GAME_CONFIG.statusFx.burnDuration;
-              log.push(`${activeCreature.nickname || activeCreature.name} is burning!`);
+              if (playerMods.immuneBurn) {
+                log.push(`${activeCreature.nickname || activeCreature.name} is already Burned. Flames find nothing left to take.`);
+              } else {
+                activeCreature.burnTurns = GAME_CONFIG.statusFx.burnDuration;
+                log.push(`${activeCreature.nickname || activeCreature.name} is burning!`);
+              }
             }
             if (selectedMove.effect === 'poison' && (!activeCreature.poisonTurns || activeCreature.poisonTurns === 0)) {
-              activeCreature.poisonTurns = GAME_CONFIG.statusFx.poisonDuration;
-              log.push(`${activeCreature.nickname || activeCreature.name} is poisoned!`);
+              if (playerMods.immunePoison) {
+                log.push(`${activeCreature.nickname || activeCreature.name} is Withered. Poison cannot touch it.`);
+              } else {
+                activeCreature.poisonTurns = GAME_CONFIG.statusFx.poisonDuration;
+                log.push(`${activeCreature.nickname || activeCreature.name} is poisoned!`);
+              }
             }
             if (selectedMove.effect === 'chill' && (!activeCreature.chillTurns || activeCreature.chillTurns === 0)) {
-              activeCreature.chillTurns = GAME_CONFIG.statusFx.chillDuration;
-              log.push(`${activeCreature.nickname || activeCreature.name} is chilled!`);
+              if (playerMods.immuneChill) {
+                log.push(`${activeCreature.nickname || activeCreature.name} is Frostbitten. The cold holds no more fear.`);
+              } else {
+                activeCreature.chillTurns = GAME_CONFIG.statusFx.chillDuration;
+                log.push(`${activeCreature.nickname || activeCreature.name} is chilled!`);
+              }
             }
 
             if (selectedMove.effect === 'recoil') {
@@ -2301,7 +2370,7 @@
           newTeam[state.activeCreatureIndex] = activeCreature;
 
           if (newEnemy.hp <= 0) {
-            const soulsEarned = state.enemyCreature.souls || 10;
+            const soulsEarned = Math.floor((state.enemyCreature.souls || 10) * playerMods.soulsMult);
             log.push(`${state.enemyCreature.name} defeated! Gained ${soulsEarned} souls.`);
 
             if (state.isBossFight) {
@@ -2327,7 +2396,17 @@
           }
 
           if (activeCreature.hp <= 0) {
-            return handleCreatureFaint(state, newTeam, newEnemy, log);
+            const enemyFaster = getEffectiveSpeed(newEnemy, state.enemyCreature) >
+                                getEffectiveSpeed(activeCreature, activeBase);
+            return handleCreatureFaint(state, newTeam, newEnemy, log, {
+              isBoss: state.isBossFight,
+              killerType: state.enemyCreature.type,
+              physical: selectedMove.damage > 0 && !selectedMove.effect,
+              wasPoisoned: wasPoisoned || activeCreature.poisonTurns > 0,
+              wasChilled: wasChilled || activeCreature.chillTurns > 0,
+              wasWinded: activeCreature.winded,
+              enemyFaster
+            });
           }
 
           return {
@@ -5378,9 +5457,12 @@ const DevDashboard = ({ onClose, onModified }) => {
       <div style={{ ...S.sectionTitle, marginTop: 16 }}>SCAR TYPES</div>
       {SCAR_TYPES.map((scar, i) => (
         <div key={scar.id} style={{ marginBottom: 12, padding: 8, background: '#1a1a1a', borderRadius: 3, border: '1px solid #282828' }}>
-          <div style={{ color: '#f6e05e', fontSize: 11, marginBottom: 6 }}>{scar.name} <span style={{ color: '#666', fontSize: 9 }}>({scar.id})</span></div>
+          <div style={{ color: '#f6e05e', fontSize: 11, marginBottom: 6 }}>{scar.name} <span style={{ color: '#666', fontSize: 9 }}>({scar.id})</span> <span style={{ color: '#555', fontSize: 9 }}>{scar.cause}</span></div>
           <div style={{ color: '#888', fontSize: 10, marginBottom: 4 }}>{scar.description}</div>
-          {scar.value !== undefined && (
+          {scar.upsideDescription && (
+            <div style={{ color: '#68d391', fontSize: 10, marginBottom: 4 }}>Upside: {scar.upsideDescription}</div>
+          )}
+          {(scar.effect === 'maxHp' || scar.effect === 'maxStamina') && (
             <ConfigSlider
               label={`Effect value (${scar.effect})`}
               value={scar.value}
