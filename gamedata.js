@@ -47,7 +47,15 @@ window.GAME_CONFIG = {
     maxTeamSize: 5,
     captureBrackets: { under10: 90, under25: 60, under50: 30, over50: 10 },
     captureCapMin: 5,
-    captureCapMax: 95
+    captureCapMax: 95,
+    // Kindle: permanent stat growth bought with carried souls at bonfires
+    kindle: {
+      baseCost: 25,
+      costStep: 15,
+      hpPerKindle: 2,
+      staminaPerKindle: 1,
+      maxKindles: 10
+    }
   },
   // -- Wild Encounters --
   wildEncounters: {
@@ -2564,8 +2572,10 @@ var getScarModifiers = (creature) => {
 
 var applyScars = (creature, baseData, hollowedThreshold = 3) => {
   var cfg = window.GAME_CONFIG.scars;
-  let maxHp = baseData.maxHp;
-  let maxStamina = baseData.maxStamina;
+  // Kindled bonuses are stored as raw values on the creature so past
+  // purchases survive config changes
+  let maxHp = baseData.maxHp + (creature.kindled?.hp || 0);
+  let maxStamina = baseData.maxStamina + (creature.kindled?.stamina || 0);
   let hasFlinching = false;
 
   if (creature.scars) {

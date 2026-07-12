@@ -1385,7 +1385,7 @@
 
           // Walking into revealed secret door awards Ashen Seeker title
           if (tile === 'S' && state.secretDoorRevealed) {
-            let sState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false, depositMenuOpen: false };
+            let sState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false, depositMenuOpen: false, kindleMenuOpen: false };
             sState.examineText = {
               name: 'The Hidden Chamber',
               lines: [
@@ -1406,7 +1406,7 @@
             return sState;
           }
 
-          let newState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false, depositMenuOpen: false };
+          let newState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false, depositMenuOpen: false, kindleMenuOpen: false };
 
           if (tile === 'G' && (state.currentMap === 'ashenPath' || state.currentMap === 'hollowDeep' || state.currentMap === 'labyrinth')) {
             const encounter = state.grassEncounters.find(
@@ -1627,6 +1627,7 @@
             bonfireMenuOpen: false,
             withdrawMenuOpen: false,
             depositMenuOpen: false,
+            kindleMenuOpen: false,
             saveNotification: saveMessage
           };
 
@@ -1661,7 +1662,8 @@
             ...state,
             bonfireMenuOpen: false,
             withdrawMenuOpen: false,
-            depositMenuOpen: false
+            depositMenuOpen: false,
+            kindleMenuOpen: false
           };
         }
 
@@ -1669,7 +1671,8 @@
           return {
             ...state,
             withdrawMenuOpen: !state.withdrawMenuOpen,
-            depositMenuOpen: false
+            depositMenuOpen: false,
+            kindleMenuOpen: false
           };
         }
 
@@ -1689,8 +1692,61 @@
           return {
             ...state,
             depositMenuOpen: !state.depositMenuOpen,
+            withdrawMenuOpen: false,
+            kindleMenuOpen: false
+          };
+        }
+
+        case 'TOGGLE_KINDLE_MENU': {
+          return {
+            ...state,
+            kindleMenuOpen: !state.kindleMenuOpen,
+            depositMenuOpen: false,
             withdrawMenuOpen: false
           };
+        }
+
+        case 'KINDLE_CREATURE': {
+          const kindleCfg = GAME_CONFIG.souls.kindle;
+          const creature = state.team[action.index];
+          if (!creature) return state;
+
+          const count = creature.kindled?.count || 0;
+          if (count >= kindleCfg.maxKindles) {
+            return { ...state, saveNotification: 'The flame can give this one no more.' };
+          }
+
+          const cost = kindleCfg.baseCost + kindleCfg.costStep * count;
+          if (state.souls < cost) {
+            return { ...state, saveNotification: `Not enough carried souls (need ${cost}).` };
+          }
+
+          const isHp = action.stat === 'hp';
+          const gained = isHp ? kindleCfg.hpPerKindle : kindleCfg.staminaPerKindle;
+          const kindled = {
+            hp: (creature.kindled?.hp || 0) + (isHp ? gained : 0),
+            stamina: (creature.kindled?.stamina || 0) + (isHp ? 0 : gained),
+            count: count + 1
+          };
+
+          const newTeam = [...state.team];
+          newTeam[action.index] = {
+            ...creature,
+            kindled,
+            // The new strength arrives immediately
+            hp: creature.hp > 0 && isHp ? creature.hp + gained : creature.hp,
+            stamina: !isHp ? creature.stamina + gained : creature.stamina
+          };
+
+          const name = creature.nickname || creature.name;
+          const newState = {
+            ...state,
+            team: newTeam,
+            souls: state.souls - cost,
+            saveNotification: `${name} kindled: +${gained} max ${isHp ? 'HP' : 'Stamina'} (${cost} souls)`
+          };
+          saveGame(newState);
+          return newState;
         }
 
         case 'DEPOSIT_SOULS': {
@@ -3054,7 +3110,7 @@
         }
 
         // Block taps while bonfire/deposit/withdraw menus are open
-        if (state.bonfireMenuOpen || state.depositMenuOpen || state.withdrawMenuOpen) return;
+        if (state.bonfireMenuOpen || state.depositMenuOpen || state.withdrawMenuOpen || state.kindleMenuOpen) return;
 
         const px = state.playerPos.x;
         const py = state.playerPos.y;
@@ -3226,7 +3282,7 @@
             <div style={styles.bonfireMenu}>
               <div style={{ color: GBC.gold, marginBottom: 'var(--spacing-sm)', fontSize: 'var(--font-sm)' }}>BONFIRE</div>
 
-              {!state.depositMenuOpen && !state.withdrawMenuOpen && (
+              {!state.depositMenuOpen && !state.withdrawMenuOpen && !state.kindleMenuOpen && (
                 <React.Fragment>
                   <div
                     style={styles.bonfireOption}
@@ -3235,6 +3291,15 @@
                     onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
                   >
                     REST - Heal all, respawn enemies
+                  </div>
+
+                  <div
+                    style={styles.bonfireOption}
+                    onClick={() => dispatch({ type: 'TOGGLE_KINDLE_MENU' })}
+                    onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+                    onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+                  >
+                    KINDLE - Spend souls to strengthen
                   </div>
 
                   <div
@@ -3299,6 +3364,77 @@
                     LEAVE
                   </div>
                 </React.Fragment>
+              )}
+
+              {state.kindleMenuOpen && (
+                <div>
+                  <div style={{ color: GBC.textDim, fontSize: 'var(--font-xs)', marginBottom: 'var(--spacing-sm)' }}>
+                    CARRIED: {state.souls} | Feed the flame, forge the body
+                  </div>
+                  {state.team.map((creature, i) => {
+                    const kindleCfg = GAME_CONFIG.souls.kindle;
+                    const count = creature.kindled?.count || 0;
+                    const atCap = count >= kindleCfg.maxKindles;
+                    const cost = kindleCfg.baseCost + kindleCfg.costStep * count;
+                    const canAfford = state.souls >= cost;
+
+                    return (
+                      <div key={i} style={{ ...styles.bonfireOption, marginTop: '4px', cursor: 'default' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span>
+                            <span style={{ color: getTypeColor(creature.type) }}>{getTypeIcon(creature.type)}</span>
+                            {' '}{creature.nickname || creature.name}
+                            <span style={{ color: GBC.textDim, marginLeft: '6px', fontSize: 'var(--font-xs)' }}>
+                              {atCap ? 'FULLY KINDLED' : `${cost} souls (${count}/${kindleCfg.maxKindles})`}
+                            </span>
+                          </span>
+                        </div>
+                        {!atCap && (
+                          <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                            <button
+                              style={{
+                                ...styles.button,
+                                flex: 1,
+                                minHeight: '48px',
+                                padding: 'var(--spacing-xs)',
+                                fontSize: 'var(--font-xs)',
+                                opacity: canAfford ? 1 : 0.4,
+                                cursor: canAfford ? 'pointer' : 'default'
+                              }}
+                              disabled={!canAfford}
+                              onClick={() => { playSfx('soulsGained'); dispatch({ type: 'KINDLE_CREATURE', index: i, stat: 'hp' }); }}
+                            >
+                              +{kindleCfg.hpPerKindle} MAX HP
+                            </button>
+                            <button
+                              style={{
+                                ...styles.button,
+                                flex: 1,
+                                minHeight: '48px',
+                                padding: 'var(--spacing-xs)',
+                                fontSize: 'var(--font-xs)',
+                                opacity: canAfford ? 1 : 0.4,
+                                cursor: canAfford ? 'pointer' : 'default'
+                              }}
+                              disabled={!canAfford}
+                              onClick={() => { playSfx('soulsGained'); dispatch({ type: 'KINDLE_CREATURE', index: i, stat: 'stamina' }); }}
+                            >
+                              +{kindleCfg.staminaPerKindle} MAX SP
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <div
+                    style={{ ...styles.bonfireOption, marginTop: '8px', color: GBC.textDim }}
+                    onClick={() => dispatch({ type: 'TOGGLE_KINDLE_MENU' })}
+                    onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+                    onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+                  >
+                    BACK
+                  </div>
+                </div>
               )}
 
               {state.depositMenuOpen && (
@@ -5609,6 +5745,17 @@ const DevDashboard = ({ onClose, onModified }) => {
         onChange={v => updateConfig('souls.captureCapMin', v)} />
       <ConfigSlider label="Capture Cap Max (%)" value={getConfig('souls.captureCapMax')} min={50} max={100} step={1}
         onChange={v => updateConfig('souls.captureCapMax', v)} />
+      <div style={{ ...S.sectionTitle, marginTop: 16 }}>KINDLE (bonfire stat growth)</div>
+      <ConfigSlider label="Base Cost (souls)" value={getConfig('souls.kindle.baseCost')} min={5} max={200} step={5}
+        onChange={v => updateConfig('souls.kindle.baseCost', v)} color={GBC.gold} />
+      <ConfigSlider label="Cost Step per Kindle" value={getConfig('souls.kindle.costStep')} min={0} max={100} step={5}
+        onChange={v => updateConfig('souls.kindle.costStep', v)} color={GBC.gold} />
+      <ConfigSlider label="Max HP per Kindle" value={getConfig('souls.kindle.hpPerKindle')} min={1} max={10} step={1}
+        onChange={v => updateConfig('souls.kindle.hpPerKindle', v)} color={GBC.green} />
+      <ConfigSlider label="Max Stamina per Kindle" value={getConfig('souls.kindle.staminaPerKindle')} min={1} max={10} step={1}
+        onChange={v => updateConfig('souls.kindle.staminaPerKindle', v)} color={GBC.blue} />
+      <ConfigSlider label="Max Kindles per Creature" value={getConfig('souls.kindle.maxKindles')} min={1} max={30} step={1}
+        onChange={v => updateConfig('souls.kindle.maxKindles', v)} />
     </div>
   );
 
