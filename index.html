@@ -573,9 +573,68 @@
 
     // Main creature sprite component - uses PNG if available, falls back to SVG
     // Now supports 4-frame idle animations
-    const CreatureSprite = ({ type, size = 48, isEnemy = false, scarCount = 0, isHollowed = false, bossPhase = 1, animated = true }) => {
+    // Scars you can SEE. Each scar paints its own mark on the sprite, so a
+    // roster screen reads as a history of how each creature died.
+    const SCAR_DECALS = {
+      fractured:   [{ d: 'M30 16 L36 26 L31 30 L38 44', stroke: '#e2e8f0', w: 2 }],
+      cracked:     [{ d: 'M16 22 L24 30 L18 36 L26 46', stroke: '#a0aec0', w: 2 }],
+      burned:      [{ blob: [30, 34, 9], fill: '#7b341e' }, { blob: [36, 28, 5], fill: '#c05621' }],
+      frostbitten: [{ d: 'M14 30 L22 30 M18 26 L18 34 M15 27 L21 33 M21 27 L15 33', stroke: '#90cdf4', w: 2 }],
+      cursed:      [{ blob: [24, 20, 7], fill: '#553c9a', op: 0.75 }, { blob: [30, 14, 4], fill: '#805ad5', op: 0.6 }],
+      blinded:     [{ d: 'M18 20 L30 28 M30 20 L18 28', stroke: '#faf089', w: 2 }],
+      withered:    [{ d: 'M20 40 L24 32 M28 42 L30 34 M36 40 L38 33', stroke: '#68705a', w: 2 }],
+      haunted:     [{ blob: [20, 16, 4], fill: '#e2e8f0', op: 0.5 }, { blob: [34, 12, 3], fill: '#e2e8f0', op: 0.35 }],
+      hesitant:    [{ d: 'M40 34 L46 34 M43 31 L43 37', stroke: '#f6ad55', w: 2 }],
+      flinching:   [{ d: 'M10 18 L18 18 M8 24 L14 24 M10 30 L16 30', stroke: '#cbd5e0', w: 1 }]
+    };
+
+    const ScarOverlay = ({ scars, size, isEnemy }) => {
+      if (!scars || scars.length === 0) return null;
+      // Dedupe: Fractured stacks, but one crack reads the same as five.
+      const ids = [...new Set(scars.map(s => s.id))].filter(id => SCAR_DECALS[id]);
+      if (ids.length === 0) return null;
+
+      return (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 56 56"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            pointerEvents: 'none',
+            transform: isEnemy ? 'scaleX(-1)' : 'none',
+            imageRendering: 'pixelated'
+          }}
+        >
+          {ids.flatMap(id => SCAR_DECALS[id].map((mark, i) => (
+            mark.blob ? (
+              <circle
+                key={`${id}-${i}`}
+                cx={mark.blob[0]} cy={mark.blob[1]} r={mark.blob[2]}
+                fill={mark.fill} opacity={mark.op ?? 0.85}
+              />
+            ) : (
+              <path
+                key={`${id}-${i}`}
+                d={mark.d}
+                stroke={mark.stroke}
+                strokeWidth={mark.w}
+                fill="none"
+                opacity="0.9"
+                strokeLinecap="square"
+              />
+            )
+          )))}
+        </svg>
+      );
+    };
+
+    const CreatureSprite = ({ type, size = 48, isEnemy = false, scarCount = 0, scars = null, isHollowed = false, bossPhase = 1, animated = true }) => {
       // Determine which sprite variant to use
-      const useHollowed = isHollowed || scarCount >= SCAR_THRESHOLD_HOLLOWED;
+      const effectiveScarCount = scars ? scars.length : scarCount;
+      const useHollowed = isHollowed || effectiveScarCount >= SCAR_THRESHOLD_HOLLOWED;
 
       // Check if we have PNG sprite frames loaded for this type
       const isBossType = type === 'boss' || type === 'hollowWarden';
@@ -593,23 +652,30 @@
         }
       }
 
-      // If PNG sprite frames are available, render animated sprite
-      // Battle animations use 8fps (125ms) for more dynamic feel
-      if (frames && frames.length > 0) {
-        return (
-          <AnimatedSprite
-            frames={frames}
-            frameRate={125}
-            size={size}
-            flip={isEnemy}
-            filter={useHollowed && !isBossType ? 'saturate(0.5) brightness(0.8)' : 'none'}
-            playing={animated}
-          />
-        );
-      }
+      const body = (frames && frames.length > 0) ? (
+        // Battle animations use 8fps (125ms) for more dynamic feel
+        <AnimatedSprite
+          frames={frames}
+          frameRate={125}
+          size={size}
+          flip={isEnemy}
+          filter={useHollowed && !isBossType ? 'saturate(0.5) brightness(0.8)' : 'none'}
+          playing={animated}
+        />
+      ) : (
+        // Fall back to SVG sprite (no animation)
+        <FallbackCreatureSprite type={type} size={size} isEnemy={isEnemy} />
+      );
 
-      // Fall back to SVG sprite (no animation)
-      return <FallbackCreatureSprite type={type} size={size} isEnemy={isEnemy} />;
+      // Bosses don't carry scars, so skip the overlay entirely for them
+      if (isBossType || !scars || scars.length === 0) return body;
+
+      return (
+        <div style={{ position: 'relative', display: 'inline-block', width: size, height: size }}>
+          {body}
+          <ScarOverlay scars={scars} size={size} isEnemy={isEnemy} />
+        </div>
+      );
     };
 
     // Tile components - area-aware for distinct visual styles
@@ -1180,21 +1246,20 @@
 
 
     // ============= BATTLE HELPERS =============
-    function handleCreatureFaint(state, team, enemy, log) {
+    function handleCreatureFaint(state, team, enemy, log, cause) {
       const difficulty = getDifficulty(state);
       const activeCreature = team[state.activeCreatureIndex];
-      const scar = getRandomScar(difficulty);
+      const scar = getScarForDeathCause(activeCreature, cause, difficulty);
 
       activeCreature.hp = 0;
       activeCreature.scars = [...(activeCreature.scars || []), scar];
 
       log.push(`${activeCreature.nickname || activeCreature.name} has fallen!`);
-      const scarMessages = [
-        `${activeCreature.nickname || activeCreature.name} gained a scar. It's a look.`,
-        `Another scar for ${activeCreature.nickname || activeCreature.name}. Basically tattoos at this point.`
-      ];
-      log.push(scarMessages[Math.floor(Math.random() * scarMessages.length)]);
+      log.push(`The death leaves its mark: ${scar.name}.`);
       log.push(`  → ${scar.name}: ${scar.description}`);
+      if (scar.upsideDescription) {
+        log.push(`  → But the flame remembers: ${scar.upsideDescription}`);
+      }
 
       if (activeCreature.scars.length >= difficulty.hollowedThreshold) {
         log.push(`${activeCreature.nickname || activeCreature.name} has become Hollowed...`);
@@ -1231,7 +1296,8 @@
           souls: 0,
           bankedSouls: difficulty.dropBankedSouls ? 0 : state.bankedSouls,
           droppedSouls,
-          diedToBoss: state.isBossFight
+          diedToBoss: state.isBossFight,
+          pendingMove: null
         };
       }
 
@@ -1241,7 +1307,8 @@
         enemy,
         battleLog: log,
         activeCreatureIndex: availableIndex,
-        turnPhase: 'player'
+        turnPhase: 'player',
+        pendingMove: null
       };
     }
 
@@ -1384,7 +1451,7 @@
 
           // Walking into revealed secret door awards Ashen Seeker title
           if (tile === 'S' && state.secretDoorRevealed) {
-            let sState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false, depositMenuOpen: false };
+            let sState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false, depositMenuOpen: false, kindleMenuOpen: false };
             sState.examineText = {
               name: 'The Hidden Chamber',
               lines: [
@@ -1405,7 +1472,7 @@
             return sState;
           }
 
-          let newState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false, depositMenuOpen: false };
+          let newState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false, depositMenuOpen: false, kindleMenuOpen: false };
 
           if (tile === 'G' && (state.currentMap === 'ashenPath' || state.currentMap === 'hollowDeep' || state.currentMap === 'labyrinth')) {
             const encounter = state.grassEncounters.find(
@@ -1473,9 +1540,13 @@
                 ...BOSS_DIALOGUE.intro
               ],
               turnPhase: 'player',
+              pendingMove: null,
               bossPhase: 1,
               arenaEffect: null,
-              isBossFight: true
+              isBossFight: true,
+              bossTelegraph: null,
+              // 2 so one normal exchange teaches the baseline before the first wind-up
+              bossTelegraphCooldown: 2
             };
           }
 
@@ -1537,10 +1608,14 @@
                 ...HOLLOW_WARDEN_DIALOGUE.intro
               ],
               turnPhase: 'player',
+              pendingMove: null,
               bossPhase: 1,
               arenaEffect: null,
               isBossFight: true,
-              isHollowWardenFight: true
+              isHollowWardenFight: true,
+              bossTelegraph: null,
+              // 2 so one normal exchange teaches the baseline before the first wind-up
+              bossTelegraphCooldown: 2
             };
           }
 
@@ -1624,6 +1699,7 @@
             bonfireMenuOpen: false,
             withdrawMenuOpen: false,
             depositMenuOpen: false,
+            kindleMenuOpen: false,
             saveNotification: saveMessage
           };
 
@@ -1658,7 +1734,8 @@
             ...state,
             bonfireMenuOpen: false,
             withdrawMenuOpen: false,
-            depositMenuOpen: false
+            depositMenuOpen: false,
+            kindleMenuOpen: false
           };
         }
 
@@ -1666,7 +1743,8 @@
           return {
             ...state,
             withdrawMenuOpen: !state.withdrawMenuOpen,
-            depositMenuOpen: false
+            depositMenuOpen: false,
+            kindleMenuOpen: false
           };
         }
 
@@ -1686,8 +1764,61 @@
           return {
             ...state,
             depositMenuOpen: !state.depositMenuOpen,
+            withdrawMenuOpen: false,
+            kindleMenuOpen: false
+          };
+        }
+
+        case 'TOGGLE_KINDLE_MENU': {
+          return {
+            ...state,
+            kindleMenuOpen: !state.kindleMenuOpen,
+            depositMenuOpen: false,
             withdrawMenuOpen: false
           };
+        }
+
+        case 'KINDLE_CREATURE': {
+          const kindleCfg = GAME_CONFIG.souls.kindle;
+          const creature = state.team[action.index];
+          if (!creature) return state;
+
+          const count = creature.kindled?.count || 0;
+          if (count >= kindleCfg.maxKindles) {
+            return { ...state, saveNotification: 'The flame can give this one no more.' };
+          }
+
+          const cost = kindleCfg.baseCost + kindleCfg.costStep * count;
+          if (state.souls < cost) {
+            return { ...state, saveNotification: `Not enough carried souls (need ${cost}).` };
+          }
+
+          const isHp = action.stat === 'hp';
+          const gained = isHp ? kindleCfg.hpPerKindle : kindleCfg.staminaPerKindle;
+          const kindled = {
+            hp: (creature.kindled?.hp || 0) + (isHp ? gained : 0),
+            stamina: (creature.kindled?.stamina || 0) + (isHp ? 0 : gained),
+            count: count + 1
+          };
+
+          const newTeam = [...state.team];
+          newTeam[action.index] = {
+            ...creature,
+            kindled,
+            // The new strength arrives immediately
+            hp: creature.hp > 0 && isHp ? creature.hp + gained : creature.hp,
+            stamina: !isHp ? creature.stamina + gained : creature.stamina
+          };
+
+          const name = creature.nickname || creature.name;
+          const newState = {
+            ...state,
+            team: newTeam,
+            souls: state.souls - cost,
+            saveNotification: `${name} kindled: +${gained} max ${isHp ? 'HP' : 'Stamina'} (${cost} souls)`
+          };
+          saveGame(newState);
+          return newState;
         }
 
         case 'DEPOSIT_SOULS': {
@@ -1703,22 +1834,79 @@
         }
 
         case 'SELECT_MOVE': {
-          const activeCreature = state.team[state.activeCreatureIndex];
-          // Check Flinching scar - strip priority at resolution time
-          const { hasFlinching } = applyScars(activeCreature, STARTERS[activeCreature.id]);
-          const move = action.move.priority && hasFlinching ? { ...action.move, priority: false } : action.move;
+          // Forced = deferred resolution after a faster enemy already acted this round
+          if (action.forced) {
+            state = { ...state, pendingMove: null };
+          }
 
-          if (move.cost > activeCreature.stamina) return state;
+          const activeCreature = state.team[state.activeCreatureIndex];
+          // Flinching strips priority from ATTACKS only. Guard must always stay
+          // reliable, or a telegraphed boss blow becomes unbraceable.
+          const { hasFlinching } = applyScars(activeCreature, STARTERS[activeCreature.id]);
+          const move = (action.move.priority && hasFlinching && action.move.damage > 0)
+            ? { ...action.move, priority: false }
+            : action.move;
+
+          if (move.cost > activeCreature.stamina) {
+            if (action.forced) {
+              // Stamina was drained before the deferred move could resolve
+              return {
+                ...state,
+                battleLog: [...state.battleLog, `${activeCreature.nickname || activeCreature.name} couldn't muster the stamina!`],
+                turnPhase: 'player'
+              };
+            }
+            return state;
+          }
+
+          const playerScarMods = getScarModifiers(activeCreature);
+
+          // Initiative: a faster enemy strikes before non-priority moves resolve.
+          // This is checked FIRST. The freeze rolls below must happen exactly
+          // once per round, at the moment the move actually resolves - rolling
+          // them before the deferral would roll them again on the forced pass.
+          if (!action.forced && !move.priority && state.enemy && state.enemy.hp > 0) {
+            const playerSpeed = getEffectiveSpeed(activeCreature, STARTERS[activeCreature.id]);
+            const enemySpeed = getEffectiveSpeed(state.enemy, state.enemyCreature);
+            if (enemySpeed > playerSpeed) {
+              return {
+                ...state,
+                pendingMove: move,
+                battleLog: [...state.battleLog, `${state.enemyCreature.name} moves first!`],
+                turnPhase: 'enemy'
+              };
+            }
+          }
+
+          // Chill can freeze the creature, consuming its action for the round
+          if (activeCreature.chillTurns > 0 && Math.random() < GAME_CONFIG.statusFx.chillSkipChance) {
+            return {
+              ...state,
+              battleLog: [...state.battleLog, `${activeCreature.nickname || activeCreature.name} is frozen and can't move!`],
+              turnPhase: action.forced ? 'player' : 'enemy'
+            };
+          }
+
+          // Haunted scar: sometimes the memory of death takes the turn instead
+          if (playerScarMods.hauntChance > 0 && Math.random() < playerScarMods.hauntChance) {
+            return {
+              ...state,
+              battleLog: [...state.battleLog, `${activeCreature.nickname || activeCreature.name} freezes, haunted by what it saw beyond the veil...`],
+              turnPhase: action.forced ? 'player' : 'enemy'
+            };
+          }
 
           let newTeam = [...state.team];
           let newEnemy = { ...state.enemy };
           let log = [...state.battleLog];
-          let turnPhase = 'enemy';
+          // Forced moves resolve after the enemy already acted - the round ends here
+          let turnPhase = action.forced ? 'player' : 'enemy';
 
           if (move.effect === 'rest') {
+            // Hesitant scar upside: rest recovers more
             newTeam[state.activeCreatureIndex] = {
               ...activeCreature,
-              stamina: Math.min(activeCreature.stamina + GAME_CONFIG.combat.restRecoveryBase + GAME_CONFIG.combat.staminaPerTurnRecovery,
+              stamina: Math.min(activeCreature.stamina + GAME_CONFIG.combat.restRecoveryBase + GAME_CONFIG.combat.staminaPerTurnRecovery + playerScarMods.restBonus,
                 applyScars(activeCreature, STARTERS[activeCreature.id]).maxStamina),
               winded: false,
               isGuarding: false
@@ -1727,13 +1915,14 @@
             return { ...state, team: newTeam, battleLog: log, turnPhase };
           }
 
-          // Purifying Light - removes all status effects and heals
+          // Purifying Light - removes all status effects and heals (Withered halves it)
           if (move.effect === 'purify') {
             const baseData = STARTERS[activeCreature.id];
             const { maxHp } = applyScars(activeCreature, baseData);
+            const purifyHeal = Math.max(1, Math.floor((move.healAmount || GAME_CONFIG.fallbacks.healAmount) * playerScarMods.healingMult));
             newTeam[state.activeCreatureIndex] = {
               ...activeCreature,
-              hp: Math.min(activeCreature.hp + (move.healAmount || GAME_CONFIG.fallbacks.healAmount), maxHp),
+              hp: Math.min(activeCreature.hp + purifyHeal, maxHp),
               stamina: activeCreature.stamina - move.cost,
               burnTurns: 0,
               poisonTurns: 0,
@@ -1766,8 +1955,28 @@
             return { ...state, team: newTeam, battleLog: log, turnPhase };
           }
 
-          const damage = calculateDamage(move, activeCreature, newEnemy,
-            STARTERS[activeCreature.id], state.enemyCreature);
+          // Blinded scar: attacks can miss outright (stamina still spent)
+          if (playerScarMods.missChance > 0 && Math.random() < playerScarMods.missChance) {
+            newTeam[state.activeCreatureIndex] = {
+              ...activeCreature,
+              stamina: activeCreature.stamina - move.cost,
+              isGuarding: false
+            };
+            if (newTeam[state.activeCreatureIndex].stamina < GAME_CONFIG.combat.windedThreshold) {
+              newTeam[state.activeCreatureIndex].winded = true;
+            }
+            log.push(`${activeCreature.nickname || activeCreature.name}'s ${move.name} misses! (Blinded)`);
+            return { ...state, team: newTeam, battleLog: log, turnPhase };
+          }
+
+          // Thornwall punishes a foe that is guarding or winding up a telegraph
+          const enemyIsExposed = newEnemy.isGuarding || !!state.bossTelegraph;
+          const attackMove = (move.effect === 'punish' && enemyIsExposed)
+            ? { ...move, damage: move.damage + (move.punishBonus || 0) }
+            : move;
+
+          const damage = calculateDamage(attackMove, activeCreature, newEnemy,
+            STARTERS[activeCreature.id], state.enemyCreature, 1.0, state.isBossFight);
 
           newEnemy.hp = Math.max(0, newEnemy.hp - damage);
           newEnemy.isGuarding = false;
@@ -1777,28 +1986,44 @@
           if (effectiveness > 1) effectText = " It's super effective!";
           if (effectiveness < 1) effectText = " It's not very effective...";
 
-          log.push(`${activeCreature.nickname || activeCreature.name} used ${move.name}! ${damage} damage.${effectText}`);
+          log.push(`${activeCreature.nickname || activeCreature.name} used ${attackMove.name}! ${damage} damage.${effectText}`);
 
-          // Apply status effects to enemy based on move
+          if (move.effect === 'punish') {
+            log.push(enemyIsExposed
+              ? `${state.enemyCreature.name} was wide open! Thornwall bites deep.`
+              : `${state.enemyCreature.name} wasn't exposed. The thorns find little purchase.`);
+          }
+
+          // Immolate: the fire that hurts you too
+          if (move.effect === 'recoil' && move.recoilDamage) {
+            newTeam[state.activeCreatureIndex] = {
+              ...newTeam[state.activeCreatureIndex],
+              hp: Math.max(0, activeCreature.hp - move.recoilDamage)
+            };
+            log.push(`${activeCreature.nickname || activeCreature.name} takes ${move.recoilDamage} recoil damage!`);
+          }
+
+          // Apply status effects to enemy based on move (scar immunities block re-marking)
           if (move.effect && move.effectChance && Math.random() * 100 < move.effectChance) {
-            if (move.effect === 'burn' && (!newEnemy.burnTurns || newEnemy.burnTurns === 0)) {
+            const enemyScarMods = getScarModifiers(newEnemy);
+            if (move.effect === 'burn' && (!newEnemy.burnTurns || newEnemy.burnTurns === 0) && !enemyScarMods.immuneBurn) {
               newEnemy.burnTurns = GAME_CONFIG.statusFx.burnDuration;
               log.push(`${state.enemyCreature.name} is burning!`);
             }
-            if (move.effect === 'poison' && (!newEnemy.poisonTurns || newEnemy.poisonTurns === 0)) {
+            if (move.effect === 'poison' && (!newEnemy.poisonTurns || newEnemy.poisonTurns === 0) && !enemyScarMods.immunePoison) {
               newEnemy.poisonTurns = GAME_CONFIG.statusFx.poisonDuration;
               log.push(`${state.enemyCreature.name} is poisoned!`);
             }
-            if (move.effect === 'chill' && (!newEnemy.chillTurns || newEnemy.chillTurns === 0)) {
+            if (move.effect === 'chill' && (!newEnemy.chillTurns || newEnemy.chillTurns === 0) && !enemyScarMods.immuneChill) {
               newEnemy.chillTurns = GAME_CONFIG.statusFx.chillDuration;
               log.push(`${state.enemyCreature.name} is chilled!`);
             }
           }
 
-          // Void Drain - drains stamina from enemy and heals self
+          // Void Drain - drains stamina from enemy and heals self (Withered halves the heal)
           if (move.effect === 'drain') {
             const drainAmount = move.drainStamina || GAME_CONFIG.fallbacks.drainStamina;
-            const healAmount = move.drainHp || GAME_CONFIG.fallbacks.drainHp;
+            const healAmount = Math.max(1, Math.floor((move.drainHp || GAME_CONFIG.fallbacks.drainHp) * playerScarMods.healingMult));
             newEnemy.stamina = Math.max(0, newEnemy.stamina - drainAmount);
             const baseData = STARTERS[activeCreature.id];
             const { maxHp } = applyScars(activeCreature, baseData);
@@ -1818,6 +2043,44 @@
           if (newTeam[state.activeCreatureIndex].stamina < GAME_CONFIG.combat.windedThreshold) {
             newTeam[state.activeCreatureIndex].winded = true;
             log.push(`${activeCreature.nickname || activeCreature.name} is winded!`);
+          }
+
+          // Recoil (Immolate) can kill your own creature. A death is a death: it
+          // always scars, even when the same blow killed the enemy.
+          const selfKO = newTeam[state.activeCreatureIndex].hp <= 0;
+          const selfKOCause = {
+            isBoss: state.isBossFight,
+            killerType: STARTERS[activeCreature.id].type,
+            wasWinded: newTeam[state.activeCreatureIndex].winded,
+            physical: true
+          };
+
+          // Enemy still standing: an ordinary death. Checked before the phase
+          // transition so a self-KO isn't swallowed by the boss transforming.
+          if (newEnemy.hp > 0 && selfKO) {
+            return handleCreatureFaint(state, newTeam, newEnemy, log, selfKOCause);
+          }
+
+          // Trade kill. Both fell. If nothing of ours walks away, the win is
+          // hollow and it is still a game over.
+          let survivorIndex = state.activeCreatureIndex;
+          if (selfKO) {
+            const hasSurvivor = newTeam.some((c, i) => i !== state.activeCreatureIndex && c.hp > 0);
+            if (!hasSurvivor) {
+              return handleCreatureFaint(state, newTeam, newEnemy, log, selfKOCause);
+            }
+            const difficulty = getDifficulty(state);
+            const fallen = { ...newTeam[state.activeCreatureIndex] };
+            const scar = getScarForDeathCause(fallen, selfKOCause, difficulty);
+            fallen.hp = 0;
+            fallen.scars = [...(fallen.scars || []), scar];
+            newTeam[state.activeCreatureIndex] = fallen;
+            log.push(`${fallen.nickname || fallen.name} fell with the enemy.`);
+            log.push(`  → ${scar.name}: ${scar.description}`);
+            if (scar.upsideDescription) {
+              log.push(`  → But the flame remembers: ${scar.upsideDescription}`);
+            }
+            survivorIndex = newTeam.findIndex(c => c.hp > 0);
           }
 
           if (state.isBossFight && state.bossPhase === 1 &&
@@ -1857,7 +2120,8 @@
           }
 
           if (newEnemy.hp <= 0) {
-            const soulsEarned = state.enemyCreature.souls || 10;
+            // Fractured scar upside: the broken draw more souls from the kill
+            const soulsEarned = Math.floor((state.enemyCreature.souls || 10) * playerScarMods.soulsMult);
             log.push(`${state.enemyCreature.name} defeated! Gained ${soulsEarned} souls.`);
 
             if (state.isBossFight) {
@@ -1868,6 +2132,7 @@
                 bossDefeated: state.isHollowWardenFight ? state.bossDefeated : true,
                 hollowWardenDefeated: state.isHollowWardenFight ? true : state.hollowWardenDefeated,
                 team: newTeam,
+                activeCreatureIndex: survivorIndex,
                 battleLog: log
               };
             }
@@ -1885,6 +2150,7 @@
               enemy: null,
               enemyCreature: null,
               team: newTeam,
+              activeCreatureIndex: survivorIndex,
               battleLog: log,
               grassEncounters
             };
@@ -2086,6 +2352,12 @@
             activeCreature.winded = false;
           }
 
+          // Status state BEFORE ticks, so a killing tick still counts as its cause
+          const wasBurning = activeCreature.burnTurns > 0;
+          const wasPoisoned = activeCreature.poisonTurns > 0;
+          const wasChilled = activeCreature.chillTurns > 0;
+          const playerMods = getScarModifiers(activeCreature);
+
           // Process burn damage
           if (activeCreature.burnTurns > 0) {
             activeCreature.hp = Math.max(0, activeCreature.hp - GAME_CONFIG.statusFx.burnDamage);
@@ -2100,14 +2372,15 @@
             log.push(`${activeCreature.nickname || activeCreature.name} takes ${GAME_CONFIG.statusFx.poisonDamage} poison damage!`);
           }
 
-          // Process chill effect
-          let chillSkip = false;
+          // Tick down chill (the freeze roll happens when the player acts, in SELECT_MOVE)
           if (activeCreature.chillTurns > 0) {
             activeCreature.chillTurns--;
-            if (Math.random() < GAME_CONFIG.statusFx.chillSkipChance) {
-              chillSkip = true;
-              log.push(`${activeCreature.nickname || activeCreature.name} is frozen and can't move!`);
-            }
+          }
+
+          // Cursed scar: the darkness gnaws each round
+          if (playerMods.curseDot > 0) {
+            activeCreature.hp = Math.max(0, activeCreature.hp - playerMods.curseDot);
+            log.push(`The curse gnaws at ${activeCreature.nickname || activeCreature.name} for ${playerMods.curseDot} damage.`);
           }
 
           if (state.arenaEffect === 'scorchedEarth' && activeBase.type !== 'fire') {
@@ -2124,7 +2397,15 @@
           newTeam[state.activeCreatureIndex] = activeCreature;
 
           if (activeCreature.hp <= 0) {
-            return handleCreatureFaint(state, newTeam, newEnemy, log);
+            return handleCreatureFaint(state, newTeam, newEnemy, log, {
+              isBoss: state.isBossFight,
+              wasPoisoned,
+              wasChilled,
+              wasWinded: activeCreature.winded,
+              byStatus: wasBurning ? 'burn' : null,
+              killerType: state.arenaEffect === 'scorchedEarth' ? 'fire' :
+                          state.arenaEffect === 'fracturedAura' ? 'darklight' : null
+            });
           }
 
           newEnemy.stamina = Math.min(newEnemy.stamina + GAME_CONFIG.combat.staminaPerTurnRecovery, state.enemyCreature.maxStamina);
@@ -2141,10 +2422,15 @@
             newEnemy.poisonTurns--;
             log.push(`${state.enemyCreature.name} takes ${GAME_CONFIG.statusFx.poisonDamage} poison damage!`);
           }
+          const enemyMods = getScarModifiers(newEnemy);
+          if (enemyMods.curseDot > 0) {
+            newEnemy.hp = Math.max(0, newEnemy.hp - enemyMods.curseDot);
+            log.push(`The curse gnaws at ${state.enemyCreature.name} for ${enemyMods.curseDot} damage.`);
+          }
 
           // Check if enemy died from status effects
           if (newEnemy.hp <= 0) {
-            const soulsEarned = state.enemyCreature.souls || 10;
+            const soulsEarned = Math.floor((state.enemyCreature.souls || 10) * playerMods.soulsMult);
             log.push(`${state.enemyCreature.name} defeated! Gained ${soulsEarned} souls.`);
             if (state.isBossFight) {
               return {
@@ -2177,8 +2463,46 @@
             availableMoves = [{ name: 'Rest', cost: 0, damage: 0, effect: 'rest' }];
           }
 
+          const bossCfg = GAME_CONFIG.bosses;
+          let nextTelegraph = state.bossTelegraph || null;
+          let telegraphCd = state.bossTelegraphCooldown || 0;
+          let releasingTelegraph = null;
+
+          // --- Telegraph state machine (bosses only) ---
+          // Turn A: boss winds up (announces, does nothing else).
+          // Turn B: the blow lands, doubled - unless the player guarded, which
+          // blunts it to a quarter. This is the fight you can learn.
+          if (state.isBossFight && bossData.telegraphMove) {
+            if (nextTelegraph) {
+              releasingTelegraph = { ...bossData.telegraphMove };
+              nextTelegraph = null;
+              telegraphCd = bossCfg.telegraphCooldown;
+            } else {
+              if (telegraphCd > 0) telegraphCd -= 1;
+              const canWindUp = telegraphCd <= 0 &&
+                newEnemy.stamina >= bossData.telegraphMove.cost &&
+                newEnemy.hp > 0;
+              if (canWindUp) {
+                log.push(bossData.telegraphMove.windupText);
+                log.push('(GUARD to brace for it!)');
+                newTeam[state.activeCreatureIndex] = activeCreature;
+                return {
+                  ...state,
+                  team: newTeam,
+                  enemy: newEnemy,
+                  battleLog: log,
+                  bossTelegraph: bossData.telegraphMove.name,
+                  bossTelegraphCooldown: telegraphCd,
+                  turnPhase: state.pendingMove ? 'playerForced' : 'player'
+                };
+              }
+            }
+          }
+
           let selectedMove;
-          if (state.isBossFight) {
+          if (releasingTelegraph) {
+            selectedMove = releasingTelegraph;
+          } else if (state.isBossFight) {
             const playerHpPercent = activeCreature.hp / (maxHp || 1);
             if (state.isHollowWardenFight) {
               // Hollow Warden AI
@@ -2217,30 +2541,68 @@
             newEnemy.isGuarding = true;
             newEnemy.stamina -= selectedMove.cost;
             log.push(`${state.enemyCreature.name} guards.`);
+          } else if (enemyMods.missChance > 0 && Math.random() < enemyMods.missChance) {
+            // Blinded enemies can whiff their attacks
+            newEnemy.stamina -= selectedMove.cost;
+            log.push(`${state.enemyCreature.name}'s ${selectedMove.name} misses! (Blinded)`);
           } else {
             const difficulty = getDifficulty(state);
             const damageMult = state.isBossFight ? difficulty.bossDamageMult : difficulty.wildDamageMult;
-            const damage = calculateDamage(selectedMove, newEnemy, activeCreature,
+            const wasGuarding = activeCreature.isGuarding;
+            // Telegraphs resolve their own guard math, so strip the standard
+            // guard reduction out of the base calc to avoid double-dipping.
+            const damageTarget = selectedMove.telegraph
+              ? { ...activeCreature, isGuarding: false }
+              : activeCreature;
+            let damage = calculateDamage(selectedMove, newEnemy, damageTarget,
               state.enemyCreature, activeBase, damageMult);
+
+            // A telegraphed blow hits like a truck - unless you braced for it
+            if (selectedMove.telegraph) {
+              log.push(selectedMove.releaseText);
+              damage = wasGuarding
+                ? Math.max(1, Math.floor(damage * bossCfg.telegraphGuardReduction))
+                : Math.floor(damage * bossCfg.telegraphDamageMult);
+            }
 
             activeCreature.hp = Math.max(0, activeCreature.hp - damage);
             activeCreature.isGuarding = false;
-            newEnemy.stamina -= selectedMove.cost;
+            // Telegraph releases bypass the affordability filter, so a drained
+            // boss could otherwise go negative
+            newEnemy.stamina = Math.max(0, newEnemy.stamina - selectedMove.cost);
 
             log.push(`${state.enemyCreature.name} used ${selectedMove.name}! ${damage} damage.`);
 
-            // Apply status effects from enemy attacks
+            if (selectedMove.telegraph) {
+              log.push(wasGuarding
+                ? `${activeCreature.nickname || activeCreature.name} braced in time. The blow glances off.`
+                : `${activeCreature.nickname || activeCreature.name} took it full force!`);
+            }
+
+            // Apply status effects from enemy attacks (scar immunities block re-marking)
             if (selectedMove.effect === 'burn' && (!activeCreature.burnTurns || activeCreature.burnTurns === 0)) {
-              activeCreature.burnTurns = GAME_CONFIG.statusFx.burnDuration;
-              log.push(`${activeCreature.nickname || activeCreature.name} is burning!`);
+              if (playerMods.immuneBurn) {
+                log.push(`${activeCreature.nickname || activeCreature.name} is already Burned. Flames find nothing left to take.`);
+              } else {
+                activeCreature.burnTurns = GAME_CONFIG.statusFx.burnDuration;
+                log.push(`${activeCreature.nickname || activeCreature.name} is burning!`);
+              }
             }
             if (selectedMove.effect === 'poison' && (!activeCreature.poisonTurns || activeCreature.poisonTurns === 0)) {
-              activeCreature.poisonTurns = GAME_CONFIG.statusFx.poisonDuration;
-              log.push(`${activeCreature.nickname || activeCreature.name} is poisoned!`);
+              if (playerMods.immunePoison) {
+                log.push(`${activeCreature.nickname || activeCreature.name} is Withered. Poison cannot touch it.`);
+              } else {
+                activeCreature.poisonTurns = GAME_CONFIG.statusFx.poisonDuration;
+                log.push(`${activeCreature.nickname || activeCreature.name} is poisoned!`);
+              }
             }
             if (selectedMove.effect === 'chill' && (!activeCreature.chillTurns || activeCreature.chillTurns === 0)) {
-              activeCreature.chillTurns = GAME_CONFIG.statusFx.chillDuration;
-              log.push(`${activeCreature.nickname || activeCreature.name} is chilled!`);
+              if (playerMods.immuneChill) {
+                log.push(`${activeCreature.nickname || activeCreature.name} is Frostbitten. The cold holds no more fear.`);
+              } else {
+                activeCreature.chillTurns = GAME_CONFIG.statusFx.chillDuration;
+                log.push(`${activeCreature.nickname || activeCreature.name} is chilled!`);
+              }
             }
 
             if (selectedMove.effect === 'recoil') {
@@ -2263,7 +2625,7 @@
           newTeam[state.activeCreatureIndex] = activeCreature;
 
           if (newEnemy.hp <= 0) {
-            const soulsEarned = state.enemyCreature.souls || 10;
+            const soulsEarned = Math.floor((state.enemyCreature.souls || 10) * playerMods.soulsMult);
             log.push(`${state.enemyCreature.name} defeated! Gained ${soulsEarned} souls.`);
 
             if (state.isBossFight) {
@@ -2289,7 +2651,20 @@
           }
 
           if (activeCreature.hp <= 0) {
-            return handleCreatureFaint(state, newTeam, newEnemy, log);
+            const enemyFaster = getEffectiveSpeed(newEnemy, state.enemyCreature) >
+                                getEffectiveSpeed(activeCreature, activeBase);
+            // Carry the resolved telegraph state through the faint, or a KO on
+            // release would leave it primed and the boss would chain it forever.
+            const faintState = { ...state, bossTelegraph: nextTelegraph, bossTelegraphCooldown: telegraphCd };
+            return handleCreatureFaint(faintState, newTeam, newEnemy, log, {
+              isBoss: state.isBossFight,
+              killerType: state.enemyCreature.type,
+              physical: selectedMove.damage > 0 && !selectedMove.effect,
+              wasPoisoned: wasPoisoned || activeCreature.poisonTurns > 0,
+              wasChilled: wasChilled || activeCreature.chillTurns > 0,
+              wasWinded: activeCreature.winded,
+              enemyFaster
+            });
           }
 
           return {
@@ -2297,12 +2672,17 @@
             team: newTeam,
             enemy: newEnemy,
             battleLog: log,
-            turnPhase: 'player'
+            bossTelegraph: nextTelegraph,
+            bossTelegraphCooldown: telegraphCd,
+            // A faster enemy already acted; the player's chosen move now resolves
+            turnPhase: state.pendingMove ? 'playerForced' : 'player'
           };
         }
 
         case 'SWITCH_CREATURE': {
           if (state.team[action.index].hp <= 0) return state;
+          // In battle, switching is only legal while waiting for player input
+          if (state.screen === 'battle' && state.turnPhase !== 'player') return state;
           return {
             ...state,
             activeCreatureIndex: action.index,
@@ -2338,13 +2718,18 @@
             enemyCreature: null,
             battleLog: [],
             turnPhase: 'player',
+            pendingMove: null,
             bossPhase: 1,
             arenaEffect: null,
             isBossFight: false,
+            isHollowWardenFight: false,
+            bossTelegraph: null,
+            bossTelegraphCooldown: 0,
             diedToBoss: false,
             bonfireMenuOpen: false,
             withdrawMenuOpen: false,
-            depositMenuOpen: false
+            depositMenuOpen: false,
+            kindleMenuOpen: false
           };
         }
 
@@ -2458,6 +2843,9 @@
             enemyCreature: wildData,
             battleLog: [`A ${wildData.name} appeared!`],
             turnPhase: 'player',
+            pendingMove: null,
+            bossTelegraph: null,
+            bossTelegraphCooldown: 0,
             currentEncounter: encounter,
             pendingEncounter: null
           };
@@ -2757,6 +3145,52 @@
       );
     }
 
+    // The world is still burning somewhere. Ash drifts over every area, tinted
+    // to that area's palette. Purely decorative, never eats a tap.
+    const AshFall = React.memo(function AshFall({ map }) {
+      const palette = AREA_PALETTES[map] || AREA_PALETTES.ashenPath;
+      // Fixed, hand-picked motes: deterministic, so they don't reshuffle on
+      // every re-render and strobe while the player walks.
+      const MOTES = [
+        { left: 6, delay: 0, dur: 9, size: 3, op: 0.5 },
+        { left: 17, delay: 3.4, dur: 12, size: 2, op: 0.35 },
+        { left: 29, delay: 1.2, dur: 10, size: 2, op: 0.4 },
+        { left: 38, delay: 6.1, dur: 14, size: 3, op: 0.3 },
+        { left: 47, delay: 2.3, dur: 8, size: 2, op: 0.45 },
+        { left: 58, delay: 5.0, dur: 13, size: 3, op: 0.32 },
+        { left: 66, delay: 0.8, dur: 11, size: 2, op: 0.42 },
+        { left: 75, delay: 4.2, dur: 9, size: 3, op: 0.38 },
+        { left: 84, delay: 7.3, dur: 15, size: 2, op: 0.28 },
+        { left: 93, delay: 2.9, dur: 10, size: 3, op: 0.44 }
+      ];
+
+      return (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          overflow: 'hidden',
+          pointerEvents: 'none',
+          zIndex: 5
+        }}>
+          {MOTES.map((m, i) => (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: `${m.left}%`,
+                width: `${m.size}px`,
+                height: `${m.size}px`,
+                backgroundColor: palette.accent,
+                opacity: m.op,
+                animation: `ashFall ${m.dur}s linear ${m.delay}s infinite`
+              }}
+            />
+          ))}
+        </div>
+      );
+    });
+
     function Exploration({ state, dispatch }) {
       const map = state.currentMap === 'ashenPath' ? ASHEN_PATH : state.currentMap === 'hollowDeep' ? HOLLOW_DEEP : state.currentMap === 'labyrinth' ? LABYRINTH : FALLEN_KEEP;
       const mapName = state.currentMap === 'ashenPath' ? 'Ashen Path' : state.currentMap === 'hollowDeep' ? 'The Hollow Deep' : state.currentMap === 'labyrinth' ? 'The Labyrinth' : 'Fallen Keep';
@@ -2933,7 +3367,7 @@
         }
 
         // Block taps while bonfire/deposit/withdraw menus are open
-        if (state.bonfireMenuOpen || state.depositMenuOpen || state.withdrawMenuOpen) return;
+        if (state.bonfireMenuOpen || state.depositMenuOpen || state.withdrawMenuOpen || state.kindleMenuOpen) return;
 
         const px = state.playerPos.x;
         const py = state.playerPos.y;
@@ -2992,7 +3426,8 @@
             <span style={{ color: GBC.textDim, fontSize: 'var(--font-sm)' }}>TEAM {state.team.length}/{GAME_CONFIG.souls.maxTeamSize}</span>
           </div>
 
-          <div style={styles.mapContainer}>
+          <div style={{ ...styles.mapContainer, position: 'relative' }}>
+            <AshFall map={state.currentMap} />
             <div style={{
               ...styles.grid,
               gridTemplateColumns: `repeat(${map[0].length}, var(--tile-size))`
@@ -3105,7 +3540,7 @@
             <div style={styles.bonfireMenu}>
               <div style={{ color: GBC.gold, marginBottom: 'var(--spacing-sm)', fontSize: 'var(--font-sm)' }}>BONFIRE</div>
 
-              {!state.depositMenuOpen && !state.withdrawMenuOpen && (
+              {!state.depositMenuOpen && !state.withdrawMenuOpen && !state.kindleMenuOpen && (
                 <React.Fragment>
                   <div
                     style={styles.bonfireOption}
@@ -3114,6 +3549,15 @@
                     onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
                   >
                     REST - Heal all, respawn enemies
+                  </div>
+
+                  <div
+                    style={styles.bonfireOption}
+                    onClick={() => dispatch({ type: 'TOGGLE_KINDLE_MENU' })}
+                    onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+                    onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+                  >
+                    KINDLE - Spend souls to strengthen
                   </div>
 
                   <div
@@ -3178,6 +3622,77 @@
                     LEAVE
                   </div>
                 </React.Fragment>
+              )}
+
+              {state.kindleMenuOpen && (
+                <div>
+                  <div style={{ color: GBC.textDim, fontSize: 'var(--font-xs)', marginBottom: 'var(--spacing-sm)' }}>
+                    CARRIED: {state.souls} | Feed the flame, forge the body
+                  </div>
+                  {state.team.map((creature, i) => {
+                    const kindleCfg = GAME_CONFIG.souls.kindle;
+                    const count = creature.kindled?.count || 0;
+                    const atCap = count >= kindleCfg.maxKindles;
+                    const cost = kindleCfg.baseCost + kindleCfg.costStep * count;
+                    const canAfford = state.souls >= cost;
+
+                    return (
+                      <div key={i} style={{ ...styles.bonfireOption, marginTop: '4px', cursor: 'default' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span>
+                            <span style={{ color: getTypeColor(creature.type) }}>{getTypeIcon(creature.type)}</span>
+                            {' '}{creature.nickname || creature.name}
+                            <span style={{ color: GBC.textDim, marginLeft: '6px', fontSize: 'var(--font-xs)' }}>
+                              {atCap ? 'FULLY KINDLED' : `${cost} souls (${count}/${kindleCfg.maxKindles})`}
+                            </span>
+                          </span>
+                        </div>
+                        {!atCap && (
+                          <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                            <button
+                              style={{
+                                ...styles.button,
+                                flex: 1,
+                                minHeight: '48px',
+                                padding: 'var(--spacing-xs)',
+                                fontSize: 'var(--font-xs)',
+                                opacity: canAfford ? 1 : 0.4,
+                                cursor: canAfford ? 'pointer' : 'default'
+                              }}
+                              disabled={!canAfford}
+                              onClick={() => { playSfx('soulsGained'); dispatch({ type: 'KINDLE_CREATURE', index: i, stat: 'hp' }); }}
+                            >
+                              +{kindleCfg.hpPerKindle} MAX HP
+                            </button>
+                            <button
+                              style={{
+                                ...styles.button,
+                                flex: 1,
+                                minHeight: '48px',
+                                padding: 'var(--spacing-xs)',
+                                fontSize: 'var(--font-xs)',
+                                opacity: canAfford ? 1 : 0.4,
+                                cursor: canAfford ? 'pointer' : 'default'
+                              }}
+                              disabled={!canAfford}
+                              onClick={() => { playSfx('soulsGained'); dispatch({ type: 'KINDLE_CREATURE', index: i, stat: 'stamina' }); }}
+                            >
+                              +{kindleCfg.staminaPerKindle} MAX SP
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <div
+                    style={{ ...styles.bonfireOption, marginTop: '8px', color: GBC.textDim }}
+                    onClick={() => dispatch({ type: 'TOGGLE_KINDLE_MENU' })}
+                    onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+                    onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+                  >
+                    BACK
+                  </div>
+                </div>
               )}
 
               {state.depositMenuOpen && (
@@ -3364,7 +3879,7 @@
                 }}
               >
                 <div style={styles.creatureSprite}>
-                  <CreatureSprite type={creature.type} size={32} scarCount={creature.scars?.length || 0} isHollowed={isHollowed} />
+                  <CreatureSprite type={creature.type} size={32} scarCount={creature.scars?.length || 0} scars={creature.scars} isHollowed={isHollowed} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
@@ -3447,6 +3962,40 @@
       );
     }
 
+    // Battles used to float in the void. Each area gets a horizon and a
+    // silhouette strip drawn from that area's own palette, so a fight in the
+    // Hollow Deep never looks like a fight on the Ashen Path.
+    function BattleBackdrop({ map, isBoss, bossPhase }) {
+      const palette = AREA_PALETTES[map] || AREA_PALETTES.ashenPath;
+      const sky = isBoss && bossPhase === 2 ? '#2a1010' : palette.pathDark;
+      const ground = palette.pathMid;
+      const ridge = palette.wallDark || palette.pathDark;
+
+      const RIDGES = {
+        ashenPath: 'M0,26 L14,16 L26,24 L40,10 L54,22 L68,14 L82,24 L96,18 L110,26 L120,20 L120,40 L0,40 Z',
+        fallenKeep: 'M0,28 L10,28 L10,12 L20,12 L20,28 L34,28 L34,6 L46,6 L46,28 L62,28 L62,16 L74,16 L74,28 L92,28 L92,10 L104,10 L104,28 L120,28 L120,40 L0,40 Z',
+        hollowDeep: 'M0,30 L12,18 L18,28 L30,8 L42,26 L52,14 L64,28 L76,12 L88,26 L100,16 L112,28 L120,22 L120,40 L0,40 Z',
+        labyrinth: 'M0,24 L16,24 L16,12 L32,12 L32,26 L48,26 L48,10 L64,10 L64,24 L80,24 L80,14 L96,14 L96,26 L120,26 L120,40 L0,40 Z'
+      };
+      const ridgePath = RIDGES[map] || RIDGES.ashenPath;
+
+      return (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+          <svg
+            width="100%"
+            height="100%"
+            viewBox="0 0 120 40"
+            preserveAspectRatio="none"
+            style={{ display: 'block', imageRendering: 'pixelated' }}
+          >
+            <rect x="0" y="0" width="120" height="40" fill={sky} />
+            <path d={ridgePath} fill={ridge} opacity="0.75" />
+            <rect x="0" y="32" width="120" height="8" fill={ground} opacity="0.9" />
+          </svg>
+        </div>
+      );
+    }
+
     function Battle({ state, dispatch }) {
       const activeCreature = state.team[state.activeCreatureIndex];
       const activeBase = STARTERS[activeCreature.id];
@@ -3454,11 +4003,37 @@
 
       const enemyHpPercent = (state.enemy.hp / (state.enemyCreature.maxHp || 1)) * 100;
       const playerHpPercent = (activeCreature.hp / (maxHp || 1)) * 100;
+      const playerSpeed = getEffectiveSpeed(activeCreature, activeBase);
+      const enemySpeed = getEffectiveSpeed(state.enemy, state.enemyCreature);
+      const playerActsFirst = playerSpeed >= enemySpeed;
       const prevLogLengthRef = useRef(state.battleLog.length);
       const [damageNumbers, setDamageNumbers] = useState([]);
       const [screenShake, setScreenShake] = useState(false);
       const [criticalFlash, setCriticalFlash] = useState(false);
+      // Who is lunging / who is reeling, this instant
+      const [playerAnim, setPlayerAnim] = useState('');
+      const [enemyAnim, setEnemyAnim] = useState('');
+      const [showWipe, setShowWipe] = useState(true);
       const damageIdRef = useRef(0);
+
+      // Battles end mid-animation all the time (a KO ends the screen). Track the
+      // effect timers so none of them fire into an unmounted component.
+      const fxTimersRef = useRef([]);
+      const fxTimeout = useCallback((fn, ms) => {
+        const id = setTimeout(fn, ms);
+        fxTimersRef.current.push(id);
+        return id;
+      }, []);
+      useEffect(() => () => {
+        fxTimersRef.current.forEach(clearTimeout);
+        fxTimersRef.current = [];
+      }, []);
+
+      // GBC-style wipe when the encounter opens
+      useEffect(() => {
+        const t = setTimeout(() => setShowWipe(false), 600);
+        return () => clearTimeout(t);
+      }, []);
 
       // Play sound effects and visual effects based on battle log changes
       useEffect(() => {
@@ -3474,15 +4049,25 @@
             const isResisted = log.includes('not very effective');
             const isEnemyDamage = log.includes(state.enemyCreature?.name + ' used');
 
+            // Attacker lunges, defender reels. Player sits left, enemy sits right.
+            if (isEnemyDamage) {
+              setEnemyAnim('lunge-left');
+              setPlayerAnim('hit-flash-left');
+            } else {
+              setPlayerAnim('lunge-right');
+              setEnemyAnim('hit-flash-right');
+            }
+            fxTimeout(() => { setPlayerAnim(''); setEnemyAnim(''); }, 460);
+
             // Play sound effects
             if (isEffective) {
               playSfx('critical');
               setCriticalFlash(true);
-              setTimeout(() => setCriticalFlash(false), 100);
+              fxTimeout(() => setCriticalFlash(false), 100);
             } else if (damage >= 15) {
               playSfx('hitHeavy');
               setScreenShake(true);
-              setTimeout(() => setScreenShake(false), 200);
+              fxTimeout(() => setScreenShake(false), 200);
             } else if (damage >= 8) {
               playSfx('hitMedium');
             } else {
@@ -3509,7 +4094,10 @@
           if (log.includes('chill damage') || log.includes('frozen')) playSfx('chill');
           if (log.includes('burn damage')) playSfx('burn');
 
-          // Check for faint
+          // Check for faint. No dissolve animation here: on a player faint the
+          // reducer has already swapped in the next creature, and on an enemy
+          // defeat the screen changes in the same dispatch, so any animation
+          // would either play on the wrong sprite or never render at all.
           if (log.includes('has fallen') || log.includes('defeated')) {
             playSfx('faint');
           }
@@ -3537,10 +4125,19 @@
           }, 1000);
           return () => clearTimeout(timer);
         }
-      }, [state.turnPhase, dispatch]);
+        if (state.turnPhase === 'playerForced' && state.pendingMove) {
+          const timer = setTimeout(() => {
+            dispatch({ type: 'SELECT_MOVE', move: state.pendingMove, forced: true });
+          }, 1000);
+          return () => clearTimeout(timer);
+        }
+      }, [state.turnPhase, state.pendingMove, dispatch]);
 
+      // Must mirror the reducer exactly: Flinching strips priority from ATTACKS
+      // only. If this also stripped Guard, a Flinching creature could never
+      // brace a telegraphed boss blow.
       const getMoveWithPriority = (move) => {
-        if (move.priority && hasFlinching) {
+        if (move.priority && hasFlinching && move.damage > 0) {
           return { ...move, priority: false };
         }
         return move;
@@ -3553,8 +4150,8 @@
 
           const moves = activeBase.moves;
 
-          // Number keys 1-4 for moves
-          if (e.key >= '1' && e.key <= '4') {
+          // Number keys 1-5 for moves
+          if (e.key >= '1' && e.key <= '5') {
             const moveIndex = parseInt(e.key) - 1;
             if (moveIndex < moves.length) {
               const move = getMoveWithPriority(moves[moveIndex]);
@@ -3589,12 +4186,29 @@
 
       return (
         <div style={styles.battleContainer}>
+          {showWipe && <div className="battle-wipe" />}
           <div style={styles.header}>
             <span style={styles.souls}>CARRIED {state.souls}</span>
             <span style={{ color: state.isBossFight ? GBC.red : GBC.textDim, fontSize: 'var(--font-sm)' }}>
               {state.isBossFight ? 'BOSS' : 'BATTLE'}
             </span>
           </div>
+
+          {/* Telegraph warning - the boss is winding up. GUARD. */}
+          {state.bossTelegraph && (
+            <div style={{
+              textAlign: 'center',
+              padding: 'var(--spacing-xs)',
+              backgroundColor: '#3a1a10',
+              color: GBC.gold,
+              marginBottom: 'var(--spacing-sm)',
+              border: `2px solid ${GBC.gold}`,
+              fontSize: 'var(--font-sm)',
+              animation: 'flicker 0.4s infinite'
+            }}>
+              ⚠ {state.bossTelegraph.toUpperCase()} INCOMING - GUARD!
+            </div>
+          )}
 
           {state.arenaEffect === 'scorchedEarth' && (
             <div style={{
@@ -3613,20 +4227,29 @@
 
           {/* Battle sprite arena */}
           <div
-            style={styles.battleSpriteArea}
+            style={{ ...styles.battleSpriteArea, position: 'relative', overflow: 'hidden' }}
             className={`${screenShake ? 'screen-shake' : ''} ${criticalFlash ? 'critical-flash' : ''}`}
           >
-            <div style={{ textAlign: 'center', position: 'relative' }}>
-              <CreatureSprite type={activeCreature.type} size={48} scarCount={activeCreature.scars?.length || 0} />
+            <BattleBackdrop map={state.currentMap} isBoss={state.isBossFight} bossPhase={state.bossPhase} />
+            <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+              <div className={playerAnim}>
+                <CreatureSprite type={activeCreature.type} size={48} scarCount={activeCreature.scars?.length || 0} scars={activeCreature.scars} />
+              </div>
               <div style={{ fontSize: 'var(--font-xs)', color: GBC.text, marginTop: 'var(--spacing-xs)' }}>
                 {activeCreature.nickname || activeCreature.name}
               </div>
             </div>
-            <div style={{ fontSize: 'var(--font-xl)', color: GBC.textDim }}>VS</div>
+            <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+              <div style={{ fontSize: 'var(--font-xl)', color: GBC.textDim }}>VS</div>
+              <div style={{ fontSize: 'var(--font-xs)', color: playerActsFirst ? GBC.green : GBC.red, marginTop: '2px' }}>
+                {playerActsFirst ? 'YOU LEAD' : 'FOE LEADS'}
+              </div>
+            </div>
             <div
               style={{
                 textAlign: 'center',
                 position: 'relative',
+                zIndex: 1,
                 cursor: state.turnPhase === 'player' ? 'pointer' : 'default',
                 padding: 'var(--spacing-xs)'
               }}
@@ -3645,7 +4268,16 @@
               }}
               title={state.turnPhase === 'player' ? 'Tap to attack' : ''}
             >
-              <CreatureSprite type={enemyType} size={state.isBossFight ? 56 : 48} isEnemy={true} bossPhase={state.bossPhase || 1} />
+              {/* Charging visibly telegraphs the wind-up even if the banner is missed */}
+              <div className={`${enemyAnim} ${state.bossTelegraph ? 'telegraph-charge' : ''}`.trim()}>
+                <CreatureSprite
+                  type={enemyType}
+                  size={state.isBossFight ? 56 : 48}
+                  isEnemy={true}
+                  scars={state.enemy.scars}
+                  bossPhase={state.bossPhase || 1}
+                />
+              </div>
               <div style={{ fontSize: 'var(--font-xs)', color: GBC.text, marginTop: 'var(--spacing-xs)' }}>{state.enemyCreature.name}</div>
               {isTouchDevice() && state.turnPhase === 'player' && (
                 <div style={{ fontSize: 'var(--font-xs)', color: GBC.gold, marginTop: '2px' }}>TAP TO ATTACK</div>
@@ -3686,6 +4318,7 @@
             </div>
             <div style={{ fontSize: 'var(--font-xs)', color: GBC.textDim, marginTop: '3px' }}>
               STA {state.enemy.stamina}/{state.enemyCreature.maxStamina}
+              <span style={{ marginLeft: 'var(--spacing-xs)' }}>SPD {enemySpeed}</span>
               {state.enemy.winded && <span style={{ ...styles.status, ...styles.winded }}>WIND</span>}
               {state.enemy.isGuarding && <span style={{ ...styles.status, backgroundColor: '#1a2a3a', border: `1px solid ${GBC.blue}`, color: GBC.blue }}>GRD</span>}
             </div>
@@ -3722,6 +4355,7 @@
             </div>
             <div style={{ fontSize: 'var(--font-xs)', color: GBC.textDim, marginTop: '3px' }}>
               STA {activeCreature.stamina}/{maxStamina}
+              <span style={{ marginLeft: 'var(--spacing-xs)' }}>SPD {playerSpeed}</span>
               {activeCreature.scars && activeCreature.scars.length > 0 && (
                 <span style={{ marginLeft: 'var(--spacing-xs)' }}>
                   {activeCreature.scars.slice(0, 2).map((scar, j) => (
@@ -4168,7 +4802,7 @@
             backgroundColor: 'rgba(245, 203, 92, 0.1)',
             border: `2px solid ${GBC.gold}`
           }}>
-            <CreatureSprite type={pendingCreature.type} size={32} scarCount={pendingCreature.scars?.length || 0} />
+            <CreatureSprite type={pendingCreature.type} size={32} scarCount={pendingCreature.scars?.length || 0} scars={pendingCreature.scars} />
             <div>
               <div style={{ color: GBC.gold, fontSize: 'var(--font-sm)' }}>
                 {getTypeIcon(pendingCreature.type)} {pendingCreature.name}
@@ -4202,7 +4836,7 @@
                 textAlign: 'center'
               }}>
                 <div style={{ marginBottom: 'var(--spacing-md)' }}>
-                  <CreatureSprite type={selectedCreature.type} size={48} scarCount={selectedCreature.scars?.length || 0} />
+                  <CreatureSprite type={selectedCreature.type} size={48} scarCount={selectedCreature.scars?.length || 0} scars={selectedCreature.scars} />
                 </div>
                 <div style={{ color: GBC.red, fontSize: 'var(--font-sm)', marginBottom: 'var(--spacing-sm)' }}>
                   Release {selectedCreature.nickname || selectedCreature.name} forever?
@@ -4259,7 +4893,7 @@
                     }}
                     onClick={() => handleSelect(i)}
                   >
-                    <CreatureSprite type={creature.type} size={32} scarCount={creature.scars?.length || 0} isHollowed={isHollowed} />
+                    <CreatureSprite type={creature.type} size={32} scarCount={creature.scars?.length || 0} scars={creature.scars} isHollowed={isHollowed} />
                     <div style={{ flex: 1 }}>
                       <div style={{ color: isHollowed ? GBC.textDim : GBC.text, fontSize: 'var(--font-sm)' }}>
                         {getTypeIcon(creature.type)} {creature.nickname || creature.name}
@@ -4332,7 +4966,7 @@
           alignItems: 'center'
         }}>
           <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-            <CreatureSprite type={creature.type} size={64} scarCount={creature.scars?.length || 0} />
+            <CreatureSprite type={creature.type} size={64} scarCount={creature.scars?.length || 0} scars={creature.scars} />
           </div>
 
           <div style={{ color: GBC.gold, fontSize: 'var(--font-md)', marginBottom: 'var(--spacing-sm)' }}>
@@ -4889,7 +5523,7 @@
                 E - Rest at bonfire<br/>
                 X - Examine surroundings<br/>
                 ESC - Pause menu<br/>
-                Click - Select moves
+                1-5 - Select moves (or click)
               </div>
             </div>
 
@@ -4900,6 +5534,24 @@
                 End turn below 5 = "Winded" (take +25% damage)<br/>
                 REST move in battle: Recover 12 SP (skips attack)<br/>
                 Bonfire rest: Fully restores stamina
+              </div>
+            </div>
+
+            <div style={styles.helpSection}>
+              <div style={styles.helpSectionTitle}>SPEED</div>
+              <div style={styles.helpText}>
+                The faster creature strikes first.<br/>
+                Watch for <span style={{ color: GBC.red }}>FOE LEADS</span>: it hits before your move lands.<br/>
+                Quick Strike and Guard always go first.
+              </div>
+            </div>
+
+            <div style={styles.helpSection}>
+              <div style={styles.helpSectionTitle}>BOSSES TELEGRAPH</div>
+              <div style={styles.helpText}>
+                A boss winds up before its signature blow.<br/>
+                When the warning flashes, <span style={{ color: GBC.gold }}>GUARD</span>.<br/>
+                Guard it and it glances off. Ignore it and it doubles.
               </div>
             </div>
 
@@ -4915,7 +5567,10 @@
             <div style={styles.helpSection}>
               <div style={styles.helpSectionTitle}>SCARS</div>
               <div style={styles.helpText}>
-                Creatures gain permanent scars when they faint.<br/>
+                Creatures scar when they faint, and the scar<br/>
+                remembers HOW they died. Burned by fire.<br/>
+                Cursed by the dark. Haunted by a boss.<br/>
+                Every scar wounds, but every scar also gives.<br/>
                 Three scars = Hollowed (75% stats)
               </div>
             </div>
@@ -4923,7 +5578,9 @@
             <div style={styles.helpSection}>
               <div style={styles.helpSectionTitle}>BONFIRE</div>
               <div style={styles.helpText}>
-                Heals team. Banks souls. BUT respawns all enemies.
+                Heals team. Banks souls. BUT respawns all enemies.<br/>
+                KINDLE: spend carried souls to permanently raise<br/>
+                a creature's max HP or stamina.
               </div>
             </div>
 
@@ -5320,9 +5977,12 @@ const DevDashboard = ({ onClose, onModified }) => {
       <div style={{ ...S.sectionTitle, marginTop: 16 }}>SCAR TYPES</div>
       {SCAR_TYPES.map((scar, i) => (
         <div key={scar.id} style={{ marginBottom: 12, padding: 8, background: '#1a1a1a', borderRadius: 3, border: '1px solid #282828' }}>
-          <div style={{ color: '#f6e05e', fontSize: 11, marginBottom: 6 }}>{scar.name} <span style={{ color: '#666', fontSize: 9 }}>({scar.id})</span></div>
+          <div style={{ color: '#f6e05e', fontSize: 11, marginBottom: 6 }}>{scar.name} <span style={{ color: '#666', fontSize: 9 }}>({scar.id})</span> <span style={{ color: '#555', fontSize: 9 }}>{scar.cause}</span></div>
           <div style={{ color: '#888', fontSize: 10, marginBottom: 4 }}>{scar.description}</div>
-          {scar.value !== undefined && (
+          {scar.upsideDescription && (
+            <div style={{ color: '#68d391', fontSize: 10, marginBottom: 4 }}>Upside: {scar.upsideDescription}</div>
+          )}
+          {(scar.effect === 'maxHp' || scar.effect === 'maxStamina') && (
             <ConfigSlider
               label={`Effect value (${scar.effect})`}
               value={scar.value}
@@ -5469,6 +6129,17 @@ const DevDashboard = ({ onClose, onModified }) => {
         onChange={v => updateConfig('souls.captureCapMin', v)} />
       <ConfigSlider label="Capture Cap Max (%)" value={getConfig('souls.captureCapMax')} min={50} max={100} step={1}
         onChange={v => updateConfig('souls.captureCapMax', v)} />
+      <div style={{ ...S.sectionTitle, marginTop: 16 }}>KINDLE (bonfire stat growth)</div>
+      <ConfigSlider label="Base Cost (souls)" value={getConfig('souls.kindle.baseCost')} min={5} max={200} step={5}
+        onChange={v => updateConfig('souls.kindle.baseCost', v)} color={GBC.gold} />
+      <ConfigSlider label="Cost Step per Kindle" value={getConfig('souls.kindle.costStep')} min={0} max={100} step={5}
+        onChange={v => updateConfig('souls.kindle.costStep', v)} color={GBC.gold} />
+      <ConfigSlider label="Max HP per Kindle" value={getConfig('souls.kindle.hpPerKindle')} min={1} max={10} step={1}
+        onChange={v => updateConfig('souls.kindle.hpPerKindle', v)} color={GBC.green} />
+      <ConfigSlider label="Max Stamina per Kindle" value={getConfig('souls.kindle.staminaPerKindle')} min={1} max={10} step={1}
+        onChange={v => updateConfig('souls.kindle.staminaPerKindle', v)} color={GBC.blue} />
+      <ConfigSlider label="Max Kindles per Creature" value={getConfig('souls.kindle.maxKindles')} min={1} max={30} step={1}
+        onChange={v => updateConfig('souls.kindle.maxKindles', v)} />
     </div>
   );
 

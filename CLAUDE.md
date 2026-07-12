@@ -65,7 +65,7 @@ If the prompt is vague or ambiguous, ask for clarification. Do not guess. Do not
 
 ## Tech Stack
 
-- **Single file:** Everything in index.html, no build step
+- **No build step:** Three static files (index.html + gamedata.js + styles.css), open and play
 - **Framework:** React 18 via CDN
 - **Audio:** Tone.js for procedural chiptune synthesis
 - **Rendering:** Inline SVG for pixel art sprites
@@ -83,106 +83,202 @@ If the prompt is vague or ambiguous, ask for clarification. Do not guess. Do not
 - index.html: React components and game engine only. Babel-transpiled.
 - NEVER combine these files. The split is intentional for context window management.
 
+### Character Creation
+
+First screen of every run. Both fields are required:
+
+- **Name:** Free text, trimmed. Appears in battle logs, dialogue, ghosts, and the memorial.
+- **Appearance:** MALE, FEMALE, or OTHER. Each has a distinct sprite silhouette.
+
+Flow: character create → difficulty select → starter select (Cindrath, Marshveil, or Thornwick) → prologue (first run only) → exploration.
+
 ### Battle System
 
-- Turn-based state machine (player turn → enemy turn → resolution)
+- Turn-based with speed initiative (see below)
 - Stamina is battle-only (does NOT affect exploration)
-- Actions cost stamina (2-8 SP per move)
-- Guard: Reduce incoming damage, recover +4 SP
-- Rest: Skip turn, recover +12 SP
-- Stamina below 5 = "Winded" (+25% damage taken)
-- Fleeing: Available once per encounter
+- Player moves cost 0-8 SP; move kits are 5 moves, selected with keys 1-5 (B = Soul Bind, Tab = switch creature)
+- Both sides recover +4 SP at the start of each round
+- Guard: 2 SP, halves incoming damage, priority (always resolves first)
+- Rest: 0 SP, skip turn, recover +12 SP (8 base + the 4 per-round tick; Hesitant scar adds +2)
+- Stamina below 5 = "Winded" (damage taken x1.25); warning shown below 8
+- Fleeing: Offered at the encounter preview (FIGHT or FLEE). Fleeing marks that grass tile as alerted, so you cannot flee the same spot twice
 
-### Type Chart (8 Types)
+### Speed / Initiative
 
-| Type | Strong Against | Weak Against |
-|------|----------------|--------------|
-| Fire | Grass, Steel | Water |
-| Water | Fire | Grass, Light |
-| Grass | Water | Fire |
-| Dark | Light, Spirit | Light |
-| Light | Dark | Dark, Water |
-| Steel | Spirit | Fire |
-| Spirit | Beast | Dark, Steel |
-| Beast | Grass | Spirit |
+Every creature has a `speed` stat. When the player picks a non-priority move, effective speeds are compared: if the enemy is strictly faster, it acts BEFORE the player's chosen move resolves. Ties go to the player. Moves flagged `priority: true` (Quick Strike, Guard) always resolve first regardless of speed.
 
-- Super effective: 1.5x damage
-- Not very effective: 0.5x damage
+Effective speed = species speed + scar modifiers (Frostbitten -2, Flinching upside +2), minimum 1. Fallback for creatures with no speed: 5 (`combat.defaultSpeed`).
+
+| Creature | Speed |
+|----------|-------|
+| Thornwick | 9 |
+| Cindrath | 8 |
+| Umbravine | 7 |
+| Solrath | 6 |
+| Marshveil | 5 |
+
+Wild variants are each 1 slower than the starter version. Bosses: Obsidian Hound 7, Hollow Warden 6.
+
+The Flinching scar strips priority from ATTACKS only. Guard always keeps priority, or telegraphed boss blows would become unbraceable.
+
+### Type Chart (5 Types, Plus darklight)
+
+Five real types: fire, water, grass, dark, light. A sixth type, `darklight`, is used ONLY by the Hollow Warden in phase 2. There is no Steel, Spirit, or Beast.
+
+Multipliers from TYPE_CHART in gamedata.js (attacker row vs defender column):
+
+| Attacker | vs Fire | vs Water | vs Grass | vs Dark | vs Light | vs DarkLight |
+|----------|---------|----------|----------|---------|----------|--------------|
+| Fire | 1.0 | 0.5 | 1.5 | 1.0 | 0.5 | 0.75 |
+| Water | 1.5 | 1.0 | 0.5 | 1.0 | 1.0 | 1.0 |
+| Grass | 0.5 | 1.5 | 1.0 | 0.5 | 1.0 | 0.75 |
+| Dark | 1.0 | 1.0 | 1.5 | 1.0 | 1.5 | 1.25 |
+| Light | 1.5 | 1.0 | 1.0 | 0.5 | 1.0 | 1.25 |
+| DarkLight | 1.25 | 1.0 | 1.25 | 0.75 | 0.75 | 1.0 |
+
+- Super effective: 1.5x. Not very effective: 0.5x. DarkLight matchups use the 0.75x and 1.25x steps.
 
 ### Scar System (Core Differentiator)
 
-When a creature faints (0 HP), it gains a permanent scar based on how it died:
+When a creature faints (0 HP), it gains a permanent scar chosen by HOW it died, not randomly. Every scar carries a wound AND an upside: Hollowed creatures are builds, not trash.
 
-| Scar | Effect | Trigger |
-|------|--------|---------|
-| Fractured | Max HP reduced | Any KO |
-| Hesitant | Max Stamina reduced | KO while exhausted |
-| Flinching | Loses priority | KO'd by faster enemy |
-| Burned | Fire vulnerability +25% | KO'd by fire |
-| Frostbitten | Speed reduced | KO'd by ice/water |
-| Cursed | Dark DoT each turn | KO'd by dark type |
-| Blinded | Accuracy reduced | KO'd by light type |
-| Cracked | Defense reduced | KO'd by physical move |
-| Withered | Healing received reduced | KO'd while poisoned |
-| Haunted | Random flinch chance | KO'd by spirit type |
+| Scar | Cause | Wound | Upside |
+|------|-------|-------|--------|
+| Haunted | KO'd by a boss | 10% chance to freeze in fear | +15% damage vs bosses |
+| Withered | KO'd while poisoned | Healing received halved | Cannot be poisoned again |
+| Burned | KO'd by fire or burn damage | +25% damage taken from fire | Cannot be burned again |
+| Frostbitten | KO'd by water or while chilled | -2 speed | Cannot be chilled again |
+| Cursed | KO'd by dark or darklight | Loses 1 HP each round | +25% damage vs dark |
+| Blinded | KO'd by light or darklight | 15% chance to miss | +25% damage vs light |
+| Hesitant | KO'd while winded | -2 max Stamina (-3 on Hollowed/Broken) | Rest recovers +2 more |
+| Flinching | KO'd by a faster enemy | Attack priority moves lose priority | +2 speed |
+| Cracked | KO'd by a plain physical blow | +10% damage taken | +10% damage dealt |
+| Fractured | Any KO (universal fallback) | -5 max HP (-7 on Hollowed/Broken) | +15% souls earned |
+
+Selection order (getScarForDeathCause): Haunted > Withered > Burned > Frostbitten > Cursed > Blinded > Hesitant > Flinching > Cracked > Fractured. A death can match several causes; duplicates fall through to the next cause. Fractured is the only scar that stacks.
 
 **Scar Thresholds:**
-- 3-4 scars: "Scarred" (cosmetic indicator)
-- 5-6 scars: "Hollowed" (all stats at 75%, visual change)
+- 3+ scars: damage dealt x0.75 (`combat.scarredDamageThreshold` / `scarredDamagePenalty`)
+- Hollowed at `difficulty.hollowedThreshold` scars: 3 on Ashen/Scarred/Hollowed, 1 on Broken. Max HP and max Stamina x0.75, sprite changes.
+- Scars heal at the bonfire ONLY on Ashen difficulty.
 
-Hollowed creatures remain usable. They are trophies of failure, not trash.
+Wild creatures can spawn pre-scarred (10% surface, 20% Hollow Deep, 30% Labyrinth); those scars are random because the death that marked them is unknown.
 
 ### Souls Economy
 
-- **Earn:** Defeating creatures (more from bosses)
+- **Earn:** Defeating creatures (12-28 for wilds, 100/200 for bosses; Fractured upside adds +15% each)
 - **Carried souls:** At risk, drop on death
-- **Banked souls:** Safe at bonfire
+- **Banked souls:** Safe at bonfire (except Hollowed/Broken, where death drops banked too)
 - **Deposit:** At bonfire, move carried → banked (presets: 20, 50, KEEP 20, ALL)
 - **Withdraw:** At bonfire, move banked → carried (presets: 20, 50, KEEP 20, ALL)
 - **Soul Bind:** Capture costs 20 carried souls, low HP = higher success
-- **Die before recovery:** Carried souls lost forever
+- **Kindle:** Permanent stat growth bought with carried souls (see below)
+- **Die before recovery:** A new drop replaces the old one. The previous stash is lost forever
+
+### Kindle (Permanent Progression)
+
+New bonfire option. Spend CARRIED souls to permanently raise one creature's stats:
+
+- +2 max HP or +1 max Stamina per kindle (`souls.kindle.hpPerKindle` / `staminaPerKindle`)
+- Cost starts at 25 souls and rises 15 per purchase on that creature (25, 40, 55, ...)
+- Capped at 10 kindles per creature (HP and Stamina share the counter)
+- The gain applies immediately and is stored as raw values on the creature, so past purchases survive config changes
+
+This is the game's only source of upward progression and the main souls sink besides capture.
+
+### Boss Telegraphs
+
+Each boss has a signature telegraphed attack:
+
+| Boss | Telegraph | Base Damage |
+|------|-----------|-------------|
+| Obsidian Hound | Cinder Maw | 16 |
+| Hollow Warden | Hollow Verdict | 18 |
+
+- The boss winds up for one full turn: log text plus an on-screen warning banner ("INCOMING - GUARD!")
+- Next enemy turn the blow lands at 2x damage (`bosses.telegraphDamageMult`)
+- Guarding during the wind-up reduces it to 0.25x (`bosses.telegraphGuardReduction`); the standard guard halving is stripped so it does not double-dip
+- 3-turn cooldown after release (`bosses.telegraphCooldown`); fights open at cooldown 2 so one normal exchange teaches the baseline first
+
+### Death, Ghosts, and the Fallen
+
+- **Dropped souls:** On a full team wipe, carried souls drop at the death tile (50% on Ashen, 100% otherwise; Hollowed/Broken add banked souls). A visible marker shows on the map. Walk over it to recover.
+- **Ghost:** The last death (any non-permadeath run) is stored in localStorage. A faded figure with the fallen player's name appears at that tile if the name differs from the current run.
+- **Hall of the Fallen:** Broken-difficulty deaths are recorded to a permanent memorial (last 20 runs: name, appearance, play time, final map, team, and scar count). Viewable from the difficulty screen.
+
+### Titles
+
+Unlockable titles, displayed next to the player name:
+
+| Title | Unlock |
+|-------|--------|
+| Ashen Seeker | Found the hidden chamber in the Labyrinth |
+| Unscarred | Completed a run with zero scars |
+| First Flame | Played during the demo period |
+
+Earned titles and the active title persist in the save.
 
 ### Bonfire Mechanics
 
-- Rest: Full heal, full stamina, enemies respawn
+- Rest: Full heal, full stamina, cleanse statuses, enemies respawn (Broken: no HP heal)
 - Save: Auto-save on rest
 - Bank: Deposit carried souls (safe)
 - Withdraw: Pull banked souls to carried (at risk)
+- Kindle: Spend carried souls on permanent stat growth
+- Switch Active: Change which creature leads
 - Warp: Fast travel to unlocked bonfires (future)
 
 ### Exploration
 
-- Tile-based movement (WASD or tap adjacent tile on mobile)
-- Random encounters on grass tiles
-- Fixed encounters (visible enemies on map)
-- Lore pickups: Environmental storytelling via examine
+- Tile-based movement (WASD or tap a tile; BFS pathfinding walks multi-tile taps)
+- Random encounters on grass tiles (60% chance, with a pre-battle FIGHT/FLEE preview)
+- Lore pickups: Environmental storytelling via examine (X key)
 - Shortcuts: One-way unlocks that persist
+- The Labyrinth hides a secret door (see Areas)
+
+### Dev Dashboard
+
+- Open the game with `?dev=true` in the URL, then toggle the dashboard with the backtick key
+- Slide-in panel with tabs: COMBAT, STATUS, SCARS, DIFFICULTY, BOSSES, SOULS, ENCOUNTERS, CREATURES, TYPE CHART, SIMULATOR
+- Live-tunes `window.GAME_CONFIG` and mutates STARTERS, WILD_CREATURES, BOSS, TYPE_CHART, SCAR_TYPES, and DIFFICULTIES in place. No reload needed
+- Export copies the full tuning state to the clipboard as JSON; Import applies pasted JSON
+- Reset per tab or reset all from startup snapshots; a DEV badge appears whenever values have been modified
 
 ---
 
 ## Content (Browser Prototype)
 
 ### Creatures
-- Cindrath (Fire) - Starter
-- Thornwick (Grass) - Starter
-- Marshveil (Water) - Wild
-- Umbravine (Dark) - Wild
-- Solrath (Light) - Wild
+- Cindrath (Fire, speed 8) - Starter
+- Marshveil (Water, speed 5) - Starter
+- Thornwick (Grass, speed 9) - Starter
+- Umbravine (Dark, speed 7) - Wild (Hollow Deep, Labyrinth)
+- Solrath (Light, speed 6) - Wild (Hollow Deep, Labyrinth)
+
+### Signature Moves (each kit is 5 moves: signature, Quick Strike, unique, Guard, Rest)
+- Cindrath: Immolate (8 SP, 22 damage, 6 recoil self-damage; the recoil can KO you, and that death always scars, even on a trade kill. Trade with your last creature and you still lose the run.)
+- Marshveil: Tidal Mend (6 SP, cleanse all statuses + heal 12; Withered halves the heal)
+- Thornwick: Thornwall (6 SP, 9 damage, +12 bonus if the enemy is guarding or winding up a telegraph)
+- Umbravine: Void Drain (8 SP, 8 damage, drains 4 enemy stamina, heals 4 HP)
+- Solrath: Purifying Light (7 SP, cleanse all statuses + heal 10)
 
 ### Areas
-- Ashen Path (starter)
-- Fallen Keep (dungeon)
-- The Hollow Deep (post-game)
+- Ashen Path (6x8) - Starter area, tutorial
+- Fallen Keep (8x12) - Boss dungeon
+- The Hollow Deep (10x16) - Post-game, Dark/Light encounters only
+- The Labyrinth (20x20) - Post-Hollow-Deep maze. Entered from the Hollow Deep's exit gate. Contains its own bonfire, mixed encounters of all 5 species (+8 HP, +4 SP over base, 30% pre-scarred, 25 souls each), 4 lore clues, and a secret door at (15,9) that only opens after examining all 4 clues: Stone Sentinel (16,1), Faded Inscription (1,7), Scattered Remains (4,15), Restless Flame (17,17). Walking through the revealed door awards the Ashen Seeker title. The Ashen Gate at the top row is sealed (future content).
 
 ### Bosses
-- Keeper Varek (Fire, Act 1)
-- Hollow Warden (Dark/Light, post-game)
+- Obsidian Hound (Fire, Fallen Keep) - The fight is introduced as "Keeper Varek blocks your path!"; telegraph: Cinder Maw
+- Hollow Warden (Dark, shifts to DarkLight in phase 2; The Hollow Deep) - telegraph: Hollow Verdict
+
+Both bosses transition at 30% HP (phase heal: Hound +20, Warden +25, skipped on Broken) and gain an arena effect (Scorched Earth / Fractured Aura, 2 damage per turn to off-type creatures).
 
 ### Difficulty Modes
-- Ashen (normal)
-- Scarred (hard)
-- Hollowed (very hard)
-- Broken (permadeath)
+- Ashen (easy)
+- Scarred (normal, default)
+- Hollowed (hard)
+- Broken (nightmare, permadeath)
 
 ---
 
@@ -210,20 +306,55 @@ Hollowed creatures remain usable. They are trophies of failure, not trash.
 
 ---
 
-## Constants (Keep in Sync)
+## Constants (Single Source of Truth: GAME_CONFIG)
+
+All tunable balance values live in `window.GAME_CONFIG` at the top of gamedata.js. The Dev Dashboard mutates this object live at runtime, and `window.GAME_CONFIG_DEFAULTS` holds a frozen snapshot for reset. Do NOT scatter magic numbers; read from GAME_CONFIG.
 
 ```javascript
-const SOUL_BIND_COST = 20;
-const WINDED_THRESHOLD = 5;
-const WINDED_DAMAGE_BONUS = 0.25;
-const SUPER_EFFECTIVE = 1.5;
-const NOT_EFFECTIVE = 0.5;
-const HOLLOWED_STAT_MULT = 0.75;
-const SCAR_THRESHOLD_SCARRED = 3;
-const SCAR_THRESHOLD_HOLLOWED = 5;
+window.GAME_CONFIG = {
+  combat: {
+    guardDamageReduction: 0.5,   // Guard halves incoming damage
+    windedDamageBonus: 1.25,     // Winded creatures take x1.25 damage
+    windedThreshold: 5,          // SP below this = Winded
+    windedWarningThreshold: 8,   // UI warning below this
+    scarredDamagePenalty: 0.75,  // 3+ scars: damage dealt x0.75
+    scarredDamageThreshold: 3,
+    staminaPerTurnRecovery: 4,   // Both sides, every round
+    restRecoveryBase: 8,         // Rest = base + per-turn tick = 12
+    minimumDamage: 1,
+    defaultSpeed: 5
+  },
+  statusFx: {
+    burnDuration: 2, burnDamage: 3,
+    poisonDuration: 3, poisonDamage: 2,
+    chillDuration: 2, chillSkipChance: 0.25,
+    scorchedEarthDamage: 2, fracturedAuraDamage: 2
+  },
+  scars: { hollowedStatMultiplier: 0.75 },
+  souls: {
+    bindCost: 20, maxTeamSize: 5,
+    captureBrackets: { under10: 90, under25: 60, under50: 30, over50: 10 },
+    captureCapMin: 5, captureCapMax: 95,
+    kindle: { baseCost: 25, costStep: 15, hpPerKindle: 2, staminaPerKindle: 1, maxKindles: 10 }
+  },
+  wildEncounters: {
+    grassEncounterChance: 0.6,
+    hpVarianceRange: 11, staminaVarianceRange: 5,
+    surface:   { hpFloor: 20, staminaFloor: 10, preScarChance: 0.1 },
+    deep:      { hpFloor: 25, staminaFloor: 12, preScarChance: 0.2, hpBonus: 5, staminaBonus: 2,
+                 umbravineChance: 0.6, umbravineSouls: 25, solrathSouls: 28 },
+    labyrinth: { hpFloor: 30, staminaFloor: 14, preScarChance: 0.3, hpBonus: 8, staminaBonus: 4, souls: 25 }
+  },
+  bosses: {
+    phaseTransitionThreshold: 0.3,
+    obsidianHoundPhaseHeal: 20, hollowWardenPhaseHeal: 25,
+    telegraphDamageMult: 2.0, telegraphGuardReduction: 0.25, telegraphCooldown: 3
+  },
+  fallbacks: { drainHp: 4, drainStamina: 4, healAmount: 10 }
+};
 ```
 
-If SOUL_BIND_COST changes, update withdraw/deposit preset buttons.
+If `souls.bindCost` changes, update the withdraw/deposit preset buttons. Legacy aliases `MAX_TEAM_SIZE` and `BIND_COST` still exist in gamedata.js but GAME_CONFIG is authoritative. `SCAR_THRESHOLD_HOLLOWED = 5` in gamedata.js is used only for sprite selection; the gameplay Hollowed threshold comes from `difficulty.hollowedThreshold` (3, or 1 on Broken).
 
 ---
 
@@ -231,7 +362,7 @@ If SOUL_BIND_COST changes, update withdraw/deposit preset buttons.
 
 | Decision | Rationale |
 |----------|-----------|
-| Single HTML file | No build step = anyone can fork and run |
+| No build step (3 static files) | Anyone can fork and run; the 3-file split manages context windows |
 | Tone.js in-browser | AudioContext warnings are expected, fixed by tap-to-start |
 | Babel in-browser | Console warning intentional, no-build simplicity |
 | localStorage only | Saves are local, no cloud sync in prototype |
@@ -252,7 +383,10 @@ If SOUL_BIND_COST changes, update withdraw/deposit preset buttons.
 
 ```
 scars-of-ash/
-├── index.html      # THE ENTIRE GAME
+├── index.html      # React components + game engine (Babel-transpiled)
+├── gamedata.js     # Game data, GAME_CONFIG, audio, sprites, utilities, save system
+├── styles.css      # CSS only
+├── assets/         # Logo and sprite images
 ├── CLAUDE.md       # This file
 ├── README.md       # Public-facing docs
 ├── LICENSE         # BBADAHS Games license

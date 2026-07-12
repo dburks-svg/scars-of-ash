@@ -215,12 +215,91 @@
       100% { box-shadow: inset 0 0 0 2px rgba(246, 224, 94, 0); }
     }
 
+    /* --- Battle juice --- */
+
+    /* Attacker lunges at the foe and snaps back */
+    @keyframes lungeRight {
+      0%, 100% { transform: translateX(0); }
+      35% { transform: translateX(14px) scale(1.06); }
+      55% { transform: translateX(10px); }
+    }
+
+    @keyframes lungeLeft {
+      0%, 100% { transform: translateX(0); }
+      35% { transform: translateX(-14px) scale(1.06); }
+      55% { transform: translateX(-10px); }
+    }
+
+    /* Defender takes the hit: white blowout + knockback */
+    @keyframes hitFlashRight {
+      0%, 100% { transform: translateX(0); filter: none; }
+      10% { transform: translateX(8px); filter: brightness(4) saturate(0); }
+      30% { transform: translateX(4px); filter: brightness(2) saturate(0.4); }
+      60% { transform: translateX(-2px); filter: none; }
+    }
+
+    @keyframes hitFlashLeft {
+      0%, 100% { transform: translateX(0); filter: none; }
+      10% { transform: translateX(-8px); filter: brightness(4) saturate(0); }
+      30% { transform: translateX(-4px); filter: brightness(2) saturate(0.4); }
+      60% { transform: translateX(2px); filter: none; }
+    }
+
+    /* Boss winding up a telegraphed blow */
+    @keyframes telegraphCharge {
+      0%, 100% { filter: brightness(1); transform: scale(1); }
+      50% { filter: brightness(1.6) drop-shadow(0 0 8px rgba(246, 224, 94, 0.9)); transform: scale(1.08); }
+    }
+
+    /* GBC-style encounter wipe */
+    @keyframes battleWipe {
+      0% { clip-path: inset(0 0 100% 0); opacity: 1; }
+      45% { clip-path: inset(0 0 0 0); opacity: 1; }
+      100% { clip-path: inset(0 0 0 0); opacity: 0; }
+    }
+
+    /* Drifting ash */
+    @keyframes ashFall {
+      0% { transform: translate(0, -10px); opacity: 0; }
+      15% { opacity: 0.7; }
+      85% { opacity: 0.5; }
+      100% { transform: translate(14px, 105%); opacity: 0; }
+    }
+
+    .lunge-right { animation: lungeRight 0.45s ease-out; }
+    .lunge-left { animation: lungeLeft 0.45s ease-out; }
+    .hit-flash-right { animation: hitFlashRight 0.4s ease-out; }
+    .hit-flash-left { animation: hitFlashLeft 0.4s ease-out; }
+    .telegraph-charge { animation: telegraphCharge 0.7s ease-in-out infinite; }
+    .battle-wipe {
+      position: fixed;
+      inset: 0;
+      background: #0f0f1a;
+      z-index: 9999;
+      pointer-events: none;
+      animation: battleWipe 0.55s ease-in forwards;
+    }
+
     .screen-shake {
       animation: screenShake 0.2s ease-in-out;
     }
 
     .critical-flash {
       animation: criticalFlash 0.1s ease-in-out;
+    }
+
+    /* Respect users who asked for less motion */
+    @media (prefers-reduced-motion: reduce) {
+      .lunge-right, .lunge-left, .hit-flash-right, .hit-flash-left,
+      .telegraph-charge, .screen-shake, .critical-flash {
+        animation: none !important;
+      }
+      /* Killing the wipe's animation alone would leave an opaque panel sitting
+         on screen until React removes it. Hide it outright. */
+      .battle-wipe {
+        animation: none !important;
+        display: none !important;
+      }
     }
 
     .hp-low {
