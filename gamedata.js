@@ -1446,10 +1446,10 @@ var TITLES = [
 
 // ASHEN PATH - 6 wide × 8 tall - Tutorial area, desolate wasteland
 // B = Bonfire (spawn), G = Grass (encounters), P = Path, W = Wall, X = Gate to Fallen Keep
-// N = Sentinel (mandatory fight; passable once defeated)
+// N = Sentinel (mandatory fight; passable once defeated), C = the Keeper NPC
 var ASHEN_PATH = [
   ['W', 'W', 'W', 'W', 'W', 'W'],
-  ['W', 'B', 'P', 'P', 'G', 'W'],
+  ['W', 'B', 'C', 'P', 'G', 'W'],
   ['W', 'P', 'W', 'P', 'P', 'W'],
   ['W', 'G', 'P', 'P', 'W', 'W'],
   ['W', 'P', 'W', 'G', 'P', 'W'],
@@ -1527,6 +1527,37 @@ var LABYRINTH = [
   ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'E', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
   ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W']
 ];
+
+// ============= NARRATIVE FRAMING =============
+// Shown as an examine overlay the moment a new run enters exploration.
+// States the goal so players have an arc to follow (playtest feedback).
+var RUN_GOAL_TEXT = {
+  name: 'The Flame Remembers',
+  lines: [
+    'The fire below the world is guttering.',
+    '',
+    'Walk the Ashen Path. Pay what the doors demand.',
+    'Face what bars the way.',
+    '',
+    'Your creatures will scar. Scars are not failure.',
+    'They are memory. The flame remembers, and so will they.'
+  ]
+};
+
+// The Keeper: a hooded figure beside the first bonfire ('C' tile on Ashen
+// Path). Walking into them shows this dialogue; the tile never opens.
+var KEEPER_DIALOGUE = {
+  name: 'The Keeper',
+  lines: [
+    '"Another walker. The flame drew you, as it drew us all."',
+    '',
+    '"Rest here. Bank what you fear to lose."',
+    '"The doors below drink souls, and the roads have grown teeth."',
+    '',
+    '"Your beasts will break, and mend crooked. Let them."',
+    '"What is scarred cannot be wounded the same way twice."'
+  ]
+};
 
 // ============= SENTINELS =============
 // One mandatory fight per encounter area, standing on that map's 'N' tile.
@@ -1628,6 +1659,7 @@ function findPath(map, startX, startY, endX, endY, secretDoorRevealed) {
       var tile = map[ny][nx];
       if (tile === 'W') continue;
       if (tile === 'S' && !secretDoorRevealed) continue;
+      if (tile === 'C') continue; // NPCs never move; route around them
       visited[ny][nx] = true;
       parent[ny][nx] = { x: cur.x, y: cur.y };
       queue.push({ x: nx, y: ny });
@@ -2759,15 +2791,17 @@ var TILE_LORE = {
     // Old signpost near start (3,1)
     '3,1': {
       name: 'Old Signpost',
+      object: 'signpost',
       lines: [
         '"Cinder\'s Edge - 3 leagues east"',
         '',
         'The wood is burned. The arrow points to nothing but wall.'
       ]
     },
-    // Collapsed statue in corner (6,1)
-    '6,1': {
+    // Collapsed statue (4,2) - was keyed '6,1', off the 6-wide map and unreachable
+    '4,2': {
       name: 'Collapsed Statue',
+      object: 'statue',
       lines: [
         'A Healer\'s Sanctuary sign, half-buried.',
         '',
@@ -2777,6 +2811,7 @@ var TILE_LORE = {
     // Near the gate
     '4,4': {
       name: 'Faded Marks',
+      object: 'generic',
       lines: [
         'Scratches in the stone. Tally marks.',
         '',
@@ -2786,6 +2821,7 @@ var TILE_LORE = {
     // Abandoned Pack
     '2,3': {
       name: 'Abandoned Pack',
+      object: 'chest',
       lines: [
         'Scattered belongings. Someone left in a hurry.',
         '',
@@ -2795,10 +2831,11 @@ var TILE_LORE = {
     // Scorched Tree
     '5,2': {
       name: 'Scorched Tree',
+      object: 'tree',
       lines: [
         'The bark is burned clean through.',
         '',
-        'Whatever did this wasn\'t trying to destroy—it was trying to purify.'
+        'Whatever did this wasn\'t trying to destroy. It was trying to purify.'
       ]
     }
   },
@@ -2806,6 +2843,7 @@ var TILE_LORE = {
     // Scratched message near entrance (2,7)
     '2,7': {
       name: 'Scratched Message',
+      object: 'signpost',
       lines: [
         '"V. guards what remains. Do not wake him.',
         '',
@@ -2815,6 +2853,7 @@ var TILE_LORE = {
     // Broken soul spheres scattered (4,1)
     '4,1': {
       name: 'Broken Shells',
+      object: 'bones',
       lines: [
         'Empty shells. Dozens of them.',
         '',
@@ -2842,6 +2881,7 @@ var TILE_LORE = {
     // Keeper's Quarters
     '4,3': {
       name: 'Keeper\'s Quarters',
+      object: 'chest',
       lines: [
         'A bedroll, long cold.',
         '',
@@ -2862,6 +2902,7 @@ var TILE_LORE = {
     // Shattered Altar
     '2,2': {
       name: 'Shattered Altar',
+      object: 'altar',
       lines: [
         'The light faded here first.',
         '',
@@ -2871,6 +2912,7 @@ var TILE_LORE = {
     // Hollow Roots
     '5,3': {
       name: 'Hollow Roots',
+      object: 'tree',
       lines: [
         'Even the stone bleeds where the dark vines grew.',
         '',
@@ -2886,9 +2928,10 @@ var TILE_LORE = {
         'Nor the last.'
       ]
     },
-    // The Final Gate
-    '1,6': {
+    // The Final Gate (4,14) - was keyed '1,6', a wall tile and unreachable
+    '4,14': {
       name: 'The Final Gate',
+      object: 'generic',
       lines: [
         'Beyond this, only ending.',
         '',
@@ -2920,6 +2963,7 @@ var TILE_LORE = {
     // Clue 1 (16,1) - Statue pointing
     '16,1': {
       name: 'Stone Sentinel',
+      object: 'statue',
       lines: [
         'A worn statue stands watch, arm extended.',
         '',
@@ -2929,6 +2973,7 @@ var TILE_LORE = {
     // Clue 2 (1,7) - Journal/inscription
     '1,7': {
       name: 'Faded Inscription',
+      object: 'signpost',
       lines: [
         '"Where the labyrinth breathes, stone yields."',
         '',
@@ -2938,6 +2983,7 @@ var TILE_LORE = {
     // Clue 3 (4,15) - Bones arranged
     '4,15': {
       name: 'Scattered Remains',
+      object: 'bones',
       lines: [
         'Ancient bones lie in deliberate arrangement.',
         '',
@@ -2947,6 +2993,7 @@ var TILE_LORE = {
     // Clue 4 (17,17) - Flickering torch
     '17,17': {
       name: 'Restless Flame',
+      object: 'torch',
       lines: [
         'A torch flickers without wind.',
         '',

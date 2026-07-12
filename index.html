@@ -385,9 +385,12 @@
         );
       }
 
-      // Fallback: SVG with bob animation for movement
+      // Fallback: SVG bobs while walking, breathes gently while idle
       return (
-        <div style={{ transform: isMoving && bobUp ? 'translateY(-2px)' : 'none' }}>
+        <div style={{
+          transform: isMoving && bobUp ? 'translateY(-2px)' : 'none',
+          animation: isMoving ? 'none' : 'idleBob 2.4s ease-in-out infinite'
+        }}>
           <FallbackPlayerSprite direction={direction} appearance={appearance} />
         </div>
       );
@@ -679,7 +682,7 @@
     };
 
     // Tile components - area-aware for distinct visual styles
-    const GrassTile = ({ area = 'ashenPath' }) => {
+    const GrassTile = ({ area = 'ashenPath', seed = 0 }) => {
       const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
       const isHollow = area === 'hollowDeep';
       const isLabyrinth = area === 'labyrinth';
@@ -694,12 +697,15 @@
           animation: isHollow ? 'voidPulse 3s ease-in-out infinite' :
                      isLabyrinth ? 'mazeGlow 4s ease-in-out infinite' : 'none'
         }}>
-          {/* Grass blades pattern with area-specific colors */}
+          {/* Grass blades pattern; mirrored and desynced per tile so a field
+              of grass does not sway as one repeated block */}
           <svg width="56" height="56" style={{
             position: 'absolute',
             top: 0,
             left: 0,
-            animation: 'grassSway 2s ease-in-out infinite'
+            transform: seed % 2 === 1 ? 'scaleX(-1)' : 'none',
+            animation: 'grassSway 2s ease-in-out infinite',
+            animationDelay: `${(seed % 5) * 0.35}s`
           }}>
             <rect x="6" y="16" width="3" height="12" fill={palette.grassMid}/>
             <rect x="6" y="13" width="3" height="3" fill={palette.grassLight}/>
@@ -747,10 +753,21 @@
       );
     };
 
-    const PathTile = ({ area = 'ashenPath' }) => {
+    const PathTile = ({ area = 'ashenPath', seed = 0 }) => {
       const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
-      const isKeep = area === 'fallenKeep';
       const isLabyrinth = area === 'labyrinth';
+
+      // Deterministic per-tile variety: mirror/rotate the shared texture and
+      // sprinkle occasional details so floors stop reading as wallpaper.
+      // Seeded from tile coordinates, never Math.random(), so nothing
+      // flickers between re-renders.
+      const variant = seed % 3;
+      const textureTransform = variant === 1 ? 'scaleX(-1)' : variant === 2 ? 'rotate(180deg)' : 'none';
+      const hasCrack = seed % 7 === 3;
+      const hasPebbles = seed % 5 === 1;
+      const hasWind = area === 'ashenPath' && seed % 6 === 2;
+      const detailX = 8 + (seed % 4) * 9;
+      const detailY = 12 + (seed % 3) * 11;
 
       return (
         <div style={{
@@ -758,9 +775,10 @@
           height: '100%',
           backgroundColor: palette.pathMid,
           position: 'relative',
+          overflow: 'hidden',
           boxShadow: isLabyrinth ? `inset 0 0 8px ${palette.glow}` : 'none'
         }}>
-          <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
+          <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0, transform: textureTransform }}>
             {/* Stone/dirt texture with area-specific colors */}
             <rect x="3" y="5" width="12" height="6" fill={palette.pathLight}/>
             <rect x="22" y="3" width="14" height="8" fill={palette.pathDark}/>
@@ -778,16 +796,33 @@
               </>
             )}
           </svg>
+          {/* Per-tile details on top of the shared texture */}
+          <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
+            {hasCrack && (
+              <>
+                <rect x={detailX} y={detailY} width="12" height="2" fill={palette.pathDark} opacity="0.8"/>
+                <rect x={detailX + 8} y={detailY + 2} width="8" height="2" fill={palette.pathDark} opacity="0.6"/>
+              </>
+            )}
+            {hasPebbles && (
+              <>
+                <rect x={detailX} y={detailY + 6} width="3" height="3" fill={palette.pathLight}/>
+                <rect x={detailX + 6} y={detailY + 9} width="2" height="2" fill={palette.pathDark}/>
+                <rect x={detailX + 3} y={detailY + 12} width="2" height="2" fill={palette.pathLight}/>
+              </>
+            )}
+          </svg>
           {/* Ashen wind particles for Ashen Path */}
-          {area === 'ashenPath' && Math.random() > 0.7 && (
+          {hasWind && (
             <div style={{
               position: 'absolute',
-              top: '20px',
+              top: `${10 + (seed % 5) * 6}px`,
               left: '10px',
               width: '6px',
               height: '2px',
               backgroundColor: palette.accent,
               animation: 'ashenWind 3s ease-in-out infinite',
+              animationDelay: `${(seed % 4) * 0.7}s`,
               opacity: 0.4
             }}/>
           )}
@@ -1200,6 +1235,45 @@
                 <rect x="18" y="20" width="4" height="2" fill="#1a1a1a"/>
               </svg>
             );
+          case 'signpost':
+            return (
+              <svg width="36" height="44" style={{ imageRendering: 'pixelated' }}>
+                {/* Post */}
+                <rect x="16" y="10" width="4" height="34" fill="#5a4a3a"/>
+                {/* Board with worn text lines */}
+                <rect x="4" y="8" width="28" height="12" fill="#6b5a4a"/>
+                <rect x="7" y="11" width="22" height="2" fill="#3a3530"/>
+                <rect x="7" y="15" width="14" height="2" fill="#3a3530"/>
+              </svg>
+            );
+          case 'statue':
+            return (
+              <svg width="32" height="44" style={{ imageRendering: 'pixelated' }}>
+                {/* Plinth */}
+                <rect x="6" y="36" width="20" height="8" fill="#4a4a50"/>
+                {/* Worn torso and head */}
+                <rect x="10" y="18" width="12" height="18" fill="#6b6b72"/>
+                <rect x="12" y="8" width="8" height="10" fill="#7a7a82"/>
+                {/* Broken outstretched arm */}
+                <rect x="22" y="20" width="8" height="4" fill="#6b6b72"/>
+                {/* Fallen rubble */}
+                <rect x="2" y="40" width="6" height="4" fill="#55555c"/>
+              </svg>
+            );
+          case 'tree':
+            return (
+              <svg width="36" height="48" style={{ imageRendering: 'pixelated' }}>
+                {/* Charred trunk */}
+                <rect x="15" y="16" width="6" height="32" fill="#3a3028"/>
+                <rect x="13" y="4" width="4" height="18" fill="#443830"/>
+                {/* Bare branches */}
+                <rect x="7" y="12" width="10" height="3" fill="#3a3028"/>
+                <rect x="20" y="8" width="10" height="3" fill="#3a3028"/>
+                <rect x="20" y="22" width="8" height="3" fill="#443830"/>
+                {/* A last ember clinging on */}
+                <rect x="27" y="6" width="2" height="2" fill="#ed8936"/>
+              </svg>
+            );
           default:
             return (
               <svg width="32" height="32" style={{ imageRendering: 'pixelated' }}>
@@ -1346,12 +1420,15 @@
             poisonTurns: 0,
             chillTurns: 0
           };
-          // Show prologue on first playthrough
+          // Show prologue on first playthrough; repeat runs get the goal card
           const nextScreen = state.hasSeenPrologue ? 'exploration' : 'prologue';
           return {
             ...state,
             screen: nextScreen,
-            team: [newCreature]
+            team: [newCreature],
+            examineText: nextScreen === 'exploration'
+              ? { name: RUN_GOAL_TEXT.name, lines: RUN_GOAL_TEXT.lines }
+              : state.examineText
           };
         }
 
@@ -1359,7 +1436,9 @@
           return {
             ...state,
             screen: 'exploration',
-            hasSeenPrologue: true
+            hasSeenPrologue: true,
+            // Every run opens by stating the goal (playtest: "no arc to follow")
+            examineText: { name: RUN_GOAL_TEXT.name, lines: RUN_GOAL_TEXT.lines }
           };
         }
 
@@ -1473,6 +1552,15 @@
               sState.saveNotification = 'Title earned: Ashen Seeker';
             }
             return sState;
+          }
+
+          // The Keeper: walking into them talks; the tile never opens
+          if (tile === 'C') {
+            return {
+              ...state,
+              playerDir: dir,
+              examineText: { name: KEEPER_DIALOGUE.name, lines: KEEPER_DIALOGUE.lines }
+            };
           }
 
           // Sentinel bars the tile until defeated: the player does not move, the
@@ -3398,6 +3486,7 @@
       const moveTimeoutRef = useRef(null);
       const autoPathRef = useRef(null);
       const [destFlash, setDestFlash] = useState(null);
+      const [dustPuffs, setDustPuffs] = useState([]);
       const heldMoveRef = useRef(null);
 
       // Cancel any active auto-path
@@ -3424,6 +3513,16 @@
 
         if (posChanged) {
           setIsMoving(true);
+          // Kick up a dust puff on the tile just left behind
+          const puff = {
+            x: prevPosRef.current.x,
+            y: prevPosRef.current.y,
+            id: `${prevPosRef.current.x},${prevPosRef.current.y},${Date.now()}`
+          };
+          setDustPuffs(prev => [...prev.slice(-5), puff]);
+          setTimeout(() => {
+            setDustPuffs(prev => prev.filter(p => p.id !== puff.id));
+          }, 500);
           prevPosRef.current = { x: state.playerPos.x, y: state.playerPos.y };
 
           // Clear any existing timeout
@@ -3582,14 +3681,20 @@
       const areaSentinel = SENTINELS[state.currentMap];
       const sentinelAlive = areaSentinel && !(state.sentinelsDefeated || []).includes(areaSentinel.id);
 
-      // Render tile background with area-specific styling
+      // Render tile background with area-specific styling. Seed gives each
+      // tile a stable texture variant so floors stop looking like wallpaper.
       const renderTileBackground = (tile, x, y) => {
         const area = state.currentMap;
+        const seed = x * 31 + y * 17;
+        // Lore objects render on their tile so the story is discoverable
+        const lore = TILE_LORE[area]?.[`${x},${y}`];
 
         switch(tile) {
           case 'W': return <WallTile area={area} />;
-          case 'P': return <PathTile area={area} />;
-          case 'G': return <GrassTile area={area} />;
+          case 'P': return lore
+            ? <LoreObjectTile objectType={lore.object || 'generic'} area={area} />
+            : <PathTile area={area} seed={seed} />;
+          case 'G': return <GrassTile area={area} seed={seed} />;
           case 'B': return <BonfireTile area={area} />;
           case 'X': return <GateTile area={area} />;
           case 'E': return <GateTile isKeep={true} area={area} />;
@@ -3598,9 +3703,10 @@
           case 'A': return <AshenGateTile area={area} />;
           case 'H': return <SecretDoorTile revealed={false} area={area} />;
           case 'S': return <SecretDoorTile revealed={state.secretDoorRevealed} area={area} />;
-          case 'N': return <PathTile area={area} />;
-          case 'L': return <PathTile area={area} />;
-          default: return <PathTile area={area} />;
+          case 'N': return <PathTile area={area} seed={seed} />;
+          case 'C': return <PathTile area={area} seed={seed} />;
+          case 'L': return <LoreObjectTile objectType={lore?.object || 'generic'} area={area} />;
+          default: return <PathTile area={area} seed={seed} />;
         }
       };
 
@@ -3780,6 +3886,48 @@
                             />
                           </div>
                         </div>
+                      )}
+                      {tile === 'C' && !isPlayer && (
+                        <div style={{
+                          position: 'absolute',
+                          zIndex: 6,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <svg width="32" height="36" style={{ imageRendering: 'pixelated', animation: 'idleBob 2.8s ease-in-out infinite' }}>
+                            {/* Hooded robe */}
+                            <rect x="8" y="4" width="16" height="10" fill="#4a4440"/>
+                            <rect x="6" y="12" width="20" height="20" fill="#3a3430"/>
+                            {/* Shadowed face, two embers watching */}
+                            <rect x="10" y="8" width="12" height="6" fill="#1a1614"/>
+                            <rect x="13" y="10" width="2" height="2" fill="#f6ad55"/>
+                            <rect x="18" y="10" width="2" height="2" fill="#f6ad55"/>
+                            {/* Staff with a kindled tip */}
+                            <rect x="26" y="8" width="3" height="26" fill="#5a4a3a"/>
+                            <rect x="25" y="3" width="5" height="5" fill="#f6e05e"/>
+                          </svg>
+                          <div style={{
+                            fontSize: '6px',
+                            color: GBC.gold,
+                            fontFamily: '"Press Start 2P", monospace',
+                            textShadow: '1px 1px 0 #000',
+                            marginTop: '-2px'
+                          }}>KEEPER</div>
+                        </div>
+                      )}
+                      {dustPuffs.some(pf => pf.x === x && pf.y === y) && (
+                        <div style={{
+                          position: 'absolute',
+                          zIndex: 8,
+                          width: '10px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          backgroundColor: 'rgba(200, 190, 170, 0.5)',
+                          animation: 'dustPuff 0.5s ease-out forwards',
+                          pointerEvents: 'none'
+                        }} />
                       )}
                     </div>
                   );

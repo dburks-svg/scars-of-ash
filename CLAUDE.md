@@ -90,7 +90,7 @@ First screen of every run. Both fields are required:
 - **Name:** Free text, trimmed. Appears in battle logs, dialogue, ghosts, and the memorial.
 - **Appearance:** MALE, FEMALE, or OTHER. Each has a distinct sprite silhouette.
 
-Flow: character create → difficulty select → starter select (Cindrath, Marshveil, or Thornwick) → prologue (first run only) → exploration.
+Flow: character create → difficulty select → starter select (Cindrath, Marshveil, or Thornwick) → prologue (first run only) → exploration. Every run opens with a goal card (`RUN_GOAL_TEXT`, shown as an examine overlay by SELECT_STARTER or CONTINUE_FROM_PROLOGUE) so players have an arc to follow.
 
 ### Battle System
 
@@ -255,7 +255,9 @@ Earned titles and the active title persist in the save.
 - Tile-based movement (WASD or tap a tile; BFS pathfinding walks multi-tile taps)
 - Random encounters on grass tiles (60% chance, with a pre-battle FIGHT/FLEE preview; fleeing costs souls)
 - One mandatory sentinel fight per wild area on an `N` tile (see Sentinels & Sealed Doors)
-- Lore pickups: Environmental storytelling via examine (X key)
+- Lore pickups: Environmental storytelling via examine (X key). Lore tiles render a visible object (signpost, statue, tree, altar, bones, torch, chest via `LoreObjectTile`) with a pulsing gold indicator so the story is discoverable
+- The Keeper: an NPC on the `C` tile beside the first bonfire. Walking into them shows goal-framing dialogue (`KEEPER_DIALOGUE`); the tile never opens and `findPath` routes around `C`
+- Overworld juice: tile textures vary deterministically per tile (seed = x*31 + y*17, never `Math.random()` in tile renders, which would flicker on re-render); walking kicks up dust puffs; idle sprites breathe (`idleBob`/`dustPuff` keyframes in styles.css)
 - Shortcuts: One-way unlocks that persist
 - The Labyrinth hides a secret door (see Areas)
 
@@ -286,7 +288,7 @@ Earned titles and the active title persist in the save.
 - Solrath: Purifying Light (7 SP, cleanse all statuses + heal 10)
 
 ### Areas
-- Ashen Path (6x8) - Starter area, tutorial
+- Ashen Path (6x8) - Starter area, tutorial. The Keeper NPC stands beside the spawn bonfire
 - Fallen Keep (8x12) - Boss dungeon
 - The Hollow Deep (10x16) - Post-game, Dark/Light encounters only
 - The Labyrinth (20x20) - Post-Hollow-Deep maze. Entered from the Hollow Deep's exit gate, which now sits behind the Hollow Warden (the old sentinel-free bypass is walled off). Contains its own bonfire, mixed encounters of all 5 species (+8 HP, +4 SP over base, 30% pre-scarred, 25 souls each), 4 lore clues, and a secret door at (15,9) that only opens after examining all 4 clues: Stone Sentinel (16,1), Faded Inscription (1,7), Scattered Remains (4,15), Restless Flame (17,17). Walking through the revealed door awards the Ashen Seeker title. The Ashen Gate at the top row is sealed (future content).
