@@ -1477,7 +1477,10 @@
               pendingMove: null,
               bossPhase: 1,
               arenaEffect: null,
-              isBossFight: true
+              isBossFight: true,
+              bossTelegraph: null,
+              // 2 so one normal exchange teaches the baseline before the first wind-up
+              bossTelegraphCooldown: 2
             };
           }
 
@@ -1543,7 +1546,10 @@
               bossPhase: 1,
               arenaEffect: null,
               isBossFight: true,
-              isHollowWardenFight: true
+              isHollowWardenFight: true,
+              bossTelegraph: null,
+              // 2 so one normal exchange teaches the baseline before the first wind-up
+              bossTelegraphCooldown: 2
             };
           }
 
@@ -1768,9 +1774,12 @@
           }
 
           const activeCreature = state.team[state.activeCreatureIndex];
-          // Check Flinching scar - strip priority at resolution time
+          // Flinching strips priority from ATTACKS only. Guard must always stay
+          // reliable, or a telegraphed boss blow becomes unbraceable.
           const { hasFlinching } = applyScars(activeCreature, STARTERS[activeCreature.id]);
-          const move = action.move.priority && hasFlinching ? { ...action.move, priority: false } : action.move;
+          const move = (action.move.priority && hasFlinching && action.move.damage > 0)
+            ? { ...action.move, priority: false }
+            : action.move;
 
           if (move.cost > activeCreature.stamina) {
             if (action.forced) {
@@ -1891,7 +1900,13 @@
             return { ...state, team: newTeam, battleLog: log, turnPhase };
           }
 
-          const damage = calculateDamage(move, activeCreature, newEnemy,
+          // Thornwall punishes a foe that is guarding or winding up a telegraph
+          const enemyIsExposed = newEnemy.isGuarding || !!state.bossTelegraph;
+          const attackMove = (move.effect === 'punish' && enemyIsExposed)
+            ? { ...move, damage: move.damage + (move.punishBonus || 0) }
+            : move;
+
+          const damage = calculateDamage(attackMove, activeCreature, newEnemy,
             STARTERS[activeCreature.id], state.enemyCreature, 1.0, state.isBossFight);
 
           newEnemy.hp = Math.max(0, newEnemy.hp - damage);
@@ -1902,7 +1917,22 @@
           if (effectiveness > 1) effectText = " It's super effective!";
           if (effectiveness < 1) effectText = " It's not very effective...";
 
-          log.push(`${activeCreature.nickname || activeCreature.name} used ${move.name}! ${damage} damage.${effectText}`);
+          log.push(`${activeCreature.nickname || activeCreature.name} used ${attackMove.name}! ${damage} damage.${effectText}`);
+
+          if (move.effect === 'punish') {
+            log.push(enemyIsExposed
+              ? `${state.enemyCreature.name} was wide open! Thornwall bites deep.`
+              : `${state.enemyCreature.name} wasn't exposed. The thorns find little purchase.`);
+          }
+
+          // Immolate: the fire that hurts you too
+          if (move.effect === 'recoil' && move.recoilDamage) {
+            newTeam[state.activeCreatureIndex] = {
+              ...newTeam[state.activeCreatureIndex],
+              hp: Math.max(0, activeCreature.hp - move.recoilDamage)
+            };
+            log.push(`${activeCreature.nickname || activeCreature.name} takes ${move.recoilDamage} recoil damage!`);
+          }
 
           // Apply status effects to enemy based on move (scar immunities block re-marking)
           if (move.effect && move.effectChance && Math.random() * 100 < move.effectChance) {
@@ -1944,6 +1974,18 @@
           if (newTeam[state.activeCreatureIndex].stamina < GAME_CONFIG.combat.windedThreshold) {
             newTeam[state.activeCreatureIndex].winded = true;
             log.push(`${activeCreature.nickname || activeCreature.name} is winded!`);
+          }
+
+          // Recoil (Immolate) can kill your own creature. Checked before the phase
+          // transition so a self-KO isn't swallowed by the boss transforming.
+          // The enemy surviving is what makes this a real death, so it earns a scar.
+          if (newEnemy.hp > 0 && newTeam[state.activeCreatureIndex].hp <= 0) {
+            return handleCreatureFaint(state, newTeam, newEnemy, log, {
+              isBoss: state.isBossFight,
+              killerType: STARTERS[activeCreature.id].type,
+              wasWinded: newTeam[state.activeCreatureIndex].winded,
+              physical: true
+            });
           }
 
           if (state.isBossFight && state.bossPhase === 1 &&
@@ -2324,8 +2366,46 @@
             availableMoves = [{ name: 'Rest', cost: 0, damage: 0, effect: 'rest' }];
           }
 
+          const bossCfg = GAME_CONFIG.bosses;
+          let nextTelegraph = state.bossTelegraph || null;
+          let telegraphCd = state.bossTelegraphCooldown || 0;
+          let releasingTelegraph = null;
+
+          // --- Telegraph state machine (bosses only) ---
+          // Turn A: boss winds up (announces, does nothing else).
+          // Turn B: the blow lands, doubled - unless the player guarded, which
+          // blunts it to a quarter. This is the fight you can learn.
+          if (state.isBossFight && bossData.telegraphMove) {
+            if (nextTelegraph) {
+              releasingTelegraph = { ...bossData.telegraphMove };
+              nextTelegraph = null;
+              telegraphCd = bossCfg.telegraphCooldown;
+            } else {
+              if (telegraphCd > 0) telegraphCd -= 1;
+              const canWindUp = telegraphCd <= 0 &&
+                newEnemy.stamina >= bossData.telegraphMove.cost &&
+                newEnemy.hp > 0;
+              if (canWindUp) {
+                log.push(bossData.telegraphMove.windupText);
+                log.push('(GUARD to brace for it!)');
+                newTeam[state.activeCreatureIndex] = activeCreature;
+                return {
+                  ...state,
+                  team: newTeam,
+                  enemy: newEnemy,
+                  battleLog: log,
+                  bossTelegraph: bossData.telegraphMove.name,
+                  bossTelegraphCooldown: telegraphCd,
+                  turnPhase: state.pendingMove ? 'playerForced' : 'player'
+                };
+              }
+            }
+          }
+
           let selectedMove;
-          if (state.isBossFight) {
+          if (releasingTelegraph) {
+            selectedMove = releasingTelegraph;
+          } else if (state.isBossFight) {
             const playerHpPercent = activeCreature.hp / (maxHp || 1);
             if (state.isHollowWardenFight) {
               // Hollow Warden AI
@@ -2371,14 +2451,36 @@
           } else {
             const difficulty = getDifficulty(state);
             const damageMult = state.isBossFight ? difficulty.bossDamageMult : difficulty.wildDamageMult;
-            const damage = calculateDamage(selectedMove, newEnemy, activeCreature,
+            const wasGuarding = activeCreature.isGuarding;
+            // Telegraphs resolve their own guard math, so strip the standard
+            // guard reduction out of the base calc to avoid double-dipping.
+            const damageTarget = selectedMove.telegraph
+              ? { ...activeCreature, isGuarding: false }
+              : activeCreature;
+            let damage = calculateDamage(selectedMove, newEnemy, damageTarget,
               state.enemyCreature, activeBase, damageMult);
+
+            // A telegraphed blow hits like a truck - unless you braced for it
+            if (selectedMove.telegraph) {
+              log.push(selectedMove.releaseText);
+              damage = wasGuarding
+                ? Math.max(1, Math.floor(damage * bossCfg.telegraphGuardReduction))
+                : Math.floor(damage * bossCfg.telegraphDamageMult);
+            }
 
             activeCreature.hp = Math.max(0, activeCreature.hp - damage);
             activeCreature.isGuarding = false;
-            newEnemy.stamina -= selectedMove.cost;
+            // Telegraph releases bypass the affordability filter, so a drained
+            // boss could otherwise go negative
+            newEnemy.stamina = Math.max(0, newEnemy.stamina - selectedMove.cost);
 
             log.push(`${state.enemyCreature.name} used ${selectedMove.name}! ${damage} damage.`);
+
+            if (selectedMove.telegraph) {
+              log.push(wasGuarding
+                ? `${activeCreature.nickname || activeCreature.name} braced in time. The blow glances off.`
+                : `${activeCreature.nickname || activeCreature.name} took it full force!`);
+            }
 
             // Apply status effects from enemy attacks (scar immunities block re-marking)
             if (selectedMove.effect === 'burn' && (!activeCreature.burnTurns || activeCreature.burnTurns === 0)) {
@@ -2454,7 +2556,10 @@
           if (activeCreature.hp <= 0) {
             const enemyFaster = getEffectiveSpeed(newEnemy, state.enemyCreature) >
                                 getEffectiveSpeed(activeCreature, activeBase);
-            return handleCreatureFaint(state, newTeam, newEnemy, log, {
+            // Carry the resolved telegraph state through the faint, or a KO on
+            // release would leave it primed and the boss would chain it forever.
+            const faintState = { ...state, bossTelegraph: nextTelegraph, bossTelegraphCooldown: telegraphCd };
+            return handleCreatureFaint(faintState, newTeam, newEnemy, log, {
               isBoss: state.isBossFight,
               killerType: state.enemyCreature.type,
               physical: selectedMove.damage > 0 && !selectedMove.effect,
@@ -2470,6 +2575,8 @@
             team: newTeam,
             enemy: newEnemy,
             battleLog: log,
+            bossTelegraph: nextTelegraph,
+            bossTelegraphCooldown: telegraphCd,
             // A faster enemy already acted; the player's chosen move now resolves
             turnPhase: state.pendingMove ? 'playerForced' : 'player'
           };
@@ -2514,13 +2621,18 @@
             enemyCreature: null,
             battleLog: [],
             turnPhase: 'player',
+            pendingMove: null,
             bossPhase: 1,
             arenaEffect: null,
             isBossFight: false,
+            isHollowWardenFight: false,
+            bossTelegraph: null,
+            bossTelegraphCooldown: 0,
             diedToBoss: false,
             bonfireMenuOpen: false,
             withdrawMenuOpen: false,
-            depositMenuOpen: false
+            depositMenuOpen: false,
+            kindleMenuOpen: false
           };
         }
 
@@ -2635,6 +2747,8 @@
             battleLog: [`A ${wildData.name} appeared!`],
             turnPhase: 'player',
             pendingMove: null,
+            bossTelegraph: null,
+            bossTelegraphCooldown: 0,
             currentEncounter: encounter,
             pendingEncounter: null
           };
@@ -3819,8 +3933,8 @@
 
           const moves = activeBase.moves;
 
-          // Number keys 1-4 for moves
-          if (e.key >= '1' && e.key <= '4') {
+          // Number keys 1-5 for moves
+          if (e.key >= '1' && e.key <= '5') {
             const moveIndex = parseInt(e.key) - 1;
             if (moveIndex < moves.length) {
               const move = getMoveWithPriority(moves[moveIndex]);
@@ -3861,6 +3975,22 @@
               {state.isBossFight ? 'BOSS' : 'BATTLE'}
             </span>
           </div>
+
+          {/* Telegraph warning - the boss is winding up. GUARD. */}
+          {state.bossTelegraph && (
+            <div style={{
+              textAlign: 'center',
+              padding: 'var(--spacing-xs)',
+              backgroundColor: '#3a1a10',
+              color: GBC.gold,
+              marginBottom: 'var(--spacing-sm)',
+              border: `2px solid ${GBC.gold}`,
+              fontSize: 'var(--font-sm)',
+              animation: 'flicker 0.4s infinite'
+            }}>
+              ⚠ {state.bossTelegraph.toUpperCase()} INCOMING - GUARD!
+            </div>
+          )}
 
           {state.arenaEffect === 'scorchedEarth' && (
             <div style={{

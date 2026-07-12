@@ -70,7 +70,12 @@ window.GAME_CONFIG = {
   bosses: {
     phaseTransitionThreshold: 0.3,
     obsidianHoundPhaseHeal: 20,
-    hollowWardenPhaseHeal: 25
+    hollowWardenPhaseHeal: 25,
+    // Telegraphed attacks: boss winds up for a turn, then unleashes.
+    // Guarding through the wind-up blunts it hard; ignoring it hurts.
+    telegraphDamageMult: 2.0,
+    telegraphGuardReduction: 0.25,
+    telegraphCooldown: 3
   },
   // -- Drain/Heal fallbacks --
   fallbacks: {
@@ -110,16 +115,57 @@ class MusicManager {
     this.initialized = true;
   }
 
+  // A Sequence callback queued in the Web Audio lookahead can still fire after
+  // its track was torn down. Touching a disposed synth throws an uncaught
+  // "Synth was already disposed", so every scheduled note goes through here.
+  static note(synth, note, duration, time) {
+    if (!synth || synth.disposed) return;
+    try {
+      synth.triggerAttackRelease(note, duration, time);
+    } catch (e) {
+      /* node was disposed between the guard and the trigger */
+    }
+  }
+
+  static hit(synth, duration, time) {
+    if (!synth || synth.disposed) return;
+    try {
+      synth.triggerAttackRelease(duration, time);
+    } catch (e) {
+      /* node was disposed between the guard and the trigger */
+    }
+  }
+
   stopAllTracks() {
-    this.activeNodes.forEach(node => {
-      try {
-        if (node.stop) node.stop();
-        if (node.dispose) node.dispose();
-      } catch (e) {}
-    });
-    this.activeNodes = [];
+    // Order matters. Silence the Transport FIRST: a Sequence callback already
+    // queued in the Web Audio lookahead will still fire, and if its synth is
+    // gone it throws "Synth was already disposed" straight into the console.
     Tone.Transport.stop();
     Tone.Transport.cancel();
+
+    const nodes = this.activeNodes;
+    this.activeNodes = [];
+
+    nodes.forEach(node => {
+      try {
+        if (node.stop) node.stop();
+      } catch (e) {
+        /* sequence already stopped */
+      }
+    });
+
+    // Dispose only once every pending envelope release has fired. Notes run as
+    // long as a full measure (the bonfire pad is '1m', ~3.4s at 70bpm), and a
+    // synth disposed with a release still scheduled throws from Tone's timer.
+    setTimeout(() => {
+      nodes.forEach(node => {
+        try {
+          if (node && !node.disposed) node.dispose();
+        } catch (e) {
+          /* node already torn down */
+        }
+      });
+    }, 6000);
   }
 
   async switchTrack(trackName) {
@@ -190,7 +236,7 @@ class MusicManager {
     ];
 
     const melodySeq = new Tone.Sequence((time, note) => {
-      if (note) lead.triggerAttackRelease(note, '8n', time);
+      if (note) MusicManager.note(lead, note, '8n', time);
     }, melodyNotes, '8n');
 
     // Counter melody / harmony (plays on off-beats, lower)
@@ -206,7 +252,7 @@ class MusicManager {
     ];
 
     const harmonySeq = new Tone.Sequence((time, note) => {
-      if (note) harmony.triggerAttackRelease(note, '8n', time);
+      if (note) MusicManager.note(harmony, note, '8n', time);
     }, harmonyNotes, '8n');
 
     // Arpeggiated bass line
@@ -222,7 +268,7 @@ class MusicManager {
     ];
 
     const bassSeq = new Tone.Sequence((time, note) => {
-      if (note) bass.triggerAttackRelease(note, '16n', time);
+      if (note) MusicManager.note(bass, note, '16n', time);
     }, bassPattern, '8n');
 
     this.activeNodes.push(melodySeq, harmonySeq, bassSeq);
@@ -268,7 +314,7 @@ class MusicManager {
     ];
 
     const arpSeq = new Tone.Sequence((time, note) => {
-      if (note) arp.triggerAttackRelease(note, '4n', time);
+      if (note) MusicManager.note(arp, note, '4n', time);
     }, arpNotes, '8n');
 
     // Soft pad chords, one per measure
@@ -281,7 +327,7 @@ class MusicManager {
     let padIndex = 0;
 
     const padLoop = new Tone.Loop(time => {
-      pad.triggerAttackRelease(padChords[padIndex % padChords.length], '1m', time);
+      MusicManager.note(pad, padChords[padIndex % padChords.length], '1m', time);
       padIndex++;
     }, '1m');
 
@@ -290,7 +336,7 @@ class MusicManager {
     let bassIndex = 0;
 
     const bassLoop = new Tone.Loop(time => {
-      bass.triggerAttackRelease(bassNotes[bassIndex % bassNotes.length], '2n', time);
+      MusicManager.note(bass, bassNotes[bassIndex % bassNotes.length], '2n', time);
       bassIndex++;
     }, '1m');
 
@@ -341,7 +387,7 @@ class MusicManager {
     ];
 
     const melodySeq = new Tone.Sequence((time, note) => {
-      if (note) lead.triggerAttackRelease(note, '16n', time);
+      if (note) MusicManager.note(lead, note, '16n', time);
     }, melodyNotes, '8n');
 
     // Driving bass pattern
@@ -353,19 +399,19 @@ class MusicManager {
     ];
 
     const bassSeq = new Tone.Sequence((time, note) => {
-      if (note) bass.triggerAttackRelease(note, '16n', time);
+      if (note) MusicManager.note(bass, note, '16n', time);
     }, bassNotes, '8n');
 
     // Rhythmic pulse on the beat
     const pulsePattern = [1, 0, 1, 0, 1, 0, 1, 0];
     const pulseSeq = new Tone.Sequence((time, hit) => {
-      if (hit) pulse.triggerAttackRelease('C5', '32n', time);
+      if (hit) MusicManager.note(pulse, 'C5', '32n', time);
     }, pulsePattern, '8n');
 
     // Snare on 2 and 4
     const snarePattern = [0, 0, 1, 0, 0, 0, 1, 0];
     const snareSeq = new Tone.Sequence((time, hit) => {
-      if (hit) snare.triggerAttackRelease('16n', time);
+      if (hit) MusicManager.hit(snare, '16n', time);
     }, snarePattern, '8n');
 
     this.activeNodes.push(melodySeq, bassSeq, pulseSeq, snareSeq);
@@ -415,7 +461,7 @@ class MusicManager {
     ];
 
     const melodySeq = new Tone.Sequence((time, note) => {
-      if (note) lead.triggerAttackRelease(note, '16n', time);
+      if (note) MusicManager.note(lead, note, '16n', time);
     }, melodyNotes, '16n');
 
     // Harmony a tritone apart for dissonance
@@ -430,7 +476,7 @@ class MusicManager {
     });
 
     const harmonySeq = new Tone.Sequence((time, note) => {
-      if (note) lead2.triggerAttackRelease(note, '16n', time);
+      if (note) MusicManager.note(lead2, note, '16n', time);
     }, harmonyNotes, '16n');
 
     // Pounding bass
@@ -442,13 +488,13 @@ class MusicManager {
     ];
 
     const bassSeq = new Tone.Sequence((time, note) => {
-      if (note) bass.triggerAttackRelease(note, '16n', time);
+      if (note) MusicManager.note(bass, note, '16n', time);
     }, bassNotes, '16n');
 
     // Fast snare hits
     const snarePattern = [1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1];
     const snareSeq = new Tone.Sequence((time, hit) => {
-      if (hit) snare.triggerAttackRelease('32n', time);
+      if (hit) MusicManager.hit(snare, '32n', time);
     }, snarePattern, '16n');
 
     this.activeNodes.push(melodySeq, harmonySeq, bassSeq, snareSeq);
@@ -484,12 +530,12 @@ class MusicManager {
     ];
 
     const melodySeq = new Tone.Sequence((time, note) => {
-      if (note) lead.triggerAttackRelease(note, '4n', time);
+      if (note) MusicManager.note(lead, note, '4n', time);
     }, melodyNotes, '8n');
 
     const bassNotes = ['A2', 'A2', 'C3', 'C3', 'F2', 'F2', 'E2', 'A2'];
     const bassSeq = new Tone.Sequence((time, note) => {
-      if (note) bass.triggerAttackRelease(note, '4n', time);
+      if (note) MusicManager.note(bass, note, '4n', time);
     }, bassNotes, '2n');
 
     this.activeNodes.push(melodySeq, bassSeq);
@@ -518,8 +564,8 @@ class MusicManager {
     const deathMelody = ['E4', 'D4', 'C4', 'B3', 'A3', null, null, null];
     const deathSeq = new Tone.Sequence((time, note) => {
       if (note) {
-        lead.triggerAttackRelease(note, '2n', time);
-        bass.triggerAttackRelease(Tone.Frequency(note).transpose(-12).toNote(), '2n', time);
+        MusicManager.note(lead, note, '2n', time);
+        MusicManager.note(bass, Tone.Frequency(note).transpose(-12).toNote(), '2n', time);
       }
     }, deathMelody, '2n');
 
@@ -569,6 +615,21 @@ class SfxManager {
 
   setMuted(muted) {
     this.muted = muted;
+  }
+
+  // Tone throws if a node is disposed while it still has scheduled events.
+  // Every SFX routes its teardown through here with a margin past the release
+  // tail, and swallows the race if one still slips through.
+  disposeAfter(nodes, ms) {
+    setTimeout(() => {
+      nodes.forEach(node => {
+        try {
+          if (node && !node.disposed) node.dispose();
+        } catch (e) {
+          /* node already torn down by a prior disposal - nothing to clean up */
+        }
+      });
+    }, ms);
   }
 
   async play(type, options = {}) {
@@ -633,7 +694,7 @@ class SfxManager {
       envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 }
     }).connect(this.masterGain);
     synth.triggerAttackRelease('C5', '16n');
-    setTimeout(() => synth.dispose(), 200);
+    this.disposeAfter([synth], 600);
   }
 
   playHitMedium() {
@@ -642,7 +703,7 @@ class SfxManager {
       envelope: { attack: 0.001, decay: 0.15, sustain: 0, release: 0.1 }
     }).connect(this.masterGain);
     synth.triggerAttackRelease('G3', '8n');
-    setTimeout(() => synth.dispose(), 300);
+    this.disposeAfter([synth], 700);
   }
 
   playHitHeavy() {
@@ -656,11 +717,13 @@ class SfxManager {
     }).connect(new Tone.Gain(0.3).connect(this.masterGain));
     synth.triggerAttackRelease('C2', '8n');
     noise.triggerAttackRelease('16n');
-    setTimeout(() => { synth.dispose(); noise.dispose(); }, 400);
+    this.disposeAfter([synth, noise], 900);
   }
 
   playCritical() {
-    const synth = new Tone.Synth({
+    // PolySynth: these notes overlap, and a mono Synth cannot schedule an
+    // attack before the previous note's release has fired.
+    const synth = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: 'square' },
       envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.1 }
     }).connect(this.masterGain);
@@ -668,11 +731,11 @@ class SfxManager {
     synth.triggerAttackRelease('C5', '16n', now);
     synth.triggerAttackRelease('E5', '16n', now + 0.08);
     synth.triggerAttackRelease('G5', '16n', now + 0.16);
-    setTimeout(() => synth.dispose(), 500);
+    this.disposeAfter([synth], 900);
   }
 
   playFaint() {
-    const synth = new Tone.Synth({
+    const synth = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: 'triangle' },
       envelope: { attack: 0.01, decay: 0.3, sustain: 0.2, release: 0.5 }
     }).connect(this.masterGain);
@@ -680,7 +743,7 @@ class SfxManager {
     synth.triggerAttackRelease('E4', '8n', now);
     synth.triggerAttackRelease('C4', '8n', now + 0.2);
     synth.triggerAttackRelease('A3', '4n', now + 0.4);
-    setTimeout(() => synth.dispose(), 1200);
+    this.disposeAfter([synth], 1800);
   }
 
   playBindAttempt() {
@@ -690,7 +753,7 @@ class SfxManager {
     }).connect(this.masterGain);
     synth.frequency.rampTo('C6', 0.5);
     synth.triggerAttackRelease('C4', '4n');
-    setTimeout(() => synth.dispose(), 800);
+    this.disposeAfter([synth], 1400);
   }
 
   playCaptureSuccess() {
@@ -701,7 +764,7 @@ class SfxManager {
     const now = Tone.now();
     synth.triggerAttackRelease(['C4', 'E4', 'G4'], '8n', now);
     synth.triggerAttackRelease(['C5', 'E5', 'G5'], '4n', now + 0.15);
-    setTimeout(() => synth.dispose(), 800);
+    this.disposeAfter([synth], 1400);
   }
 
   playCaptureFail() {
@@ -715,18 +778,18 @@ class SfxManager {
     }).connect(new Tone.Gain(0.2).connect(this.masterGain));
     synth.triggerAttackRelease('Eb3', '8n');
     noise.triggerAttackRelease('16n');
-    setTimeout(() => { synth.dispose(); noise.dispose(); }, 400);
+    this.disposeAfter([synth, noise], 900);
   }
 
   playSoulsGained() {
-    const synth = new Tone.Synth({
+    const synth = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: 'sine' },
       envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 }
     }).connect(this.masterGain);
     const now = Tone.now();
     synth.triggerAttackRelease('E6', '32n', now);
     synth.triggerAttackRelease('G6', '32n', now + 0.05);
-    setTimeout(() => synth.dispose(), 200);
+    this.disposeAfter([synth], 700);
   }
 
   playMenuClick() {
@@ -735,7 +798,7 @@ class SfxManager {
       envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.05 }
     }).connect(new Tone.Gain(0.3).connect(this.masterGain));
     synth.triggerAttackRelease('A5', '64n');
-    setTimeout(() => synth.dispose(), 100);
+    this.disposeAfter([synth], 400);
   }
 
   playBonfireRest() {
@@ -749,11 +812,11 @@ class SfxManager {
     }).connect(this.masterGain);
     noise.triggerAttackRelease('1n');
     synth.triggerAttackRelease('C4', '2n');
-    setTimeout(() => { noise.dispose(); synth.dispose(); }, 2000);
+    this.disposeAfter([noise, synth], 3000);
   }
 
   playDeath() {
-    const synth = new Tone.Synth({
+    const synth = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: 'triangle' },
       envelope: { attack: 0.1, decay: 0.5, sustain: 0.2, release: 1 }
     }).connect(this.masterGain);
@@ -762,7 +825,7 @@ class SfxManager {
     synth.triggerAttackRelease('Bb3', '4n', now + 0.3);
     synth.triggerAttackRelease('G3', '4n', now + 0.6);
     synth.triggerAttackRelease('D3', '2n', now + 0.9);
-    setTimeout(() => synth.dispose(), 2500);
+    this.disposeAfter([synth], 3500);
   }
 
   playVictory() {
@@ -775,11 +838,11 @@ class SfxManager {
     synth.triggerAttackRelease(['D4', 'F4'], '8n', now + 0.15);
     synth.triggerAttackRelease(['E4', 'G4'], '8n', now + 0.3);
     synth.triggerAttackRelease(['G4', 'C5', 'E5'], '4n', now + 0.45);
-    setTimeout(() => synth.dispose(), 1200);
+    this.disposeAfter([synth], 2000);
   }
 
   playPoison() {
-    const synth = new Tone.Synth({
+    const synth = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: 'sine' },
       envelope: { attack: 0.05, decay: 0.2, sustain: 0.1, release: 0.2 }
     }).connect(this.masterGain);
@@ -787,18 +850,18 @@ class SfxManager {
     synth.triggerAttackRelease('G3', '16n', now);
     synth.triggerAttackRelease('Bb3', '16n', now + 0.08);
     synth.triggerAttackRelease('G3', '16n', now + 0.16);
-    setTimeout(() => synth.dispose(), 400);
+    this.disposeAfter([synth], 1000);
   }
 
   playChill() {
-    const synth = new Tone.Synth({
+    const synth = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: 'sine' },
       envelope: { attack: 0.1, decay: 0.3, sustain: 0.1, release: 0.3 }
     }).connect(this.masterGain);
     const now = Tone.now();
     synth.triggerAttackRelease('E5', '8n', now);
     synth.triggerAttackRelease('B4', '8n', now + 0.15);
-    setTimeout(() => synth.dispose(), 500);
+    this.disposeAfter([synth], 1200);
   }
 
   playBurn() {
@@ -812,7 +875,7 @@ class SfxManager {
     }).connect(new Tone.Gain(0.3).connect(this.masterGain));
     noise.triggerAttackRelease('8n');
     synth.triggerAttackRelease('C4', '16n');
-    setTimeout(() => { noise.dispose(); synth.dispose(); }, 300);
+    this.disposeAfter([noise, synth], 900);
   }
 }
 
@@ -1129,9 +1192,12 @@ var STARTERS = {
     maxHp: 45,
     maxStamina: 20,
     speed: 8,
+    // Immolate: burn your own body for a devastating hit. Fire's identity is
+    // paying in HP for damage - and it is how Cindrath earns its Burned scar.
     moves: [
       { name: 'Ember Slash', cost: 6, damage: 12, priority: false, effect: 'burn', effectChance: 20 },
       { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
+      { name: 'Immolate', cost: 8, damage: 22, effect: 'recoil', recoilDamage: 6 },
       { name: 'Guard', cost: 2, damage: 0, effect: 'guard', priority: true },
       { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
     ]
@@ -1143,9 +1209,12 @@ var STARTERS = {
     maxHp: 50,
     maxStamina: 18,
     speed: 5,
+    // Tidal Mend: the only in-battle cleanse+heal outside Solrath. Marshveil is
+    // the attrition pick - slow, tanky, outlasts.
     moves: [
       { name: 'Tide Crash', cost: 7, damage: 14, priority: false, effect: 'chill', effectChance: 20 },
       { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
+      { name: 'Tidal Mend', cost: 6, damage: 0, effect: 'purify', healAmount: 12 },
       { name: 'Guard', cost: 2, damage: 0, effect: 'guard', priority: true },
       { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
     ]
@@ -1157,9 +1226,12 @@ var STARTERS = {
     maxHp: 40,
     maxStamina: 24,
     speed: 9,
+    // Thornwall: punishes a guarding or winding-up enemy. Thornwick is the
+    // fastest creature, so it is the one that can read the foe and answer.
     moves: [
       { name: 'Vine Lash', cost: 5, damage: 10, priority: false, effect: 'poison', effectChance: 20 },
       { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
+      { name: 'Thornwall', cost: 6, damage: 9, effect: 'punish', punishBonus: 12 },
       { name: 'Guard', cost: 2, damage: 0, effect: 'guard', priority: true },
       { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
     ]
@@ -1174,6 +1246,7 @@ var STARTERS = {
     lore: 'Vines that grew in places the light forgot',
     moves: [
       { name: 'Shadow Lash', cost: 6, damage: 12, priority: false },
+      { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
       { name: 'Void Drain', cost: 8, damage: 8, effect: 'drain', drainHp: 4, drainStamina: 4 },
       { name: 'Guard', cost: 2, damage: 0, effect: 'guard', priority: true },
       { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
@@ -1189,6 +1262,7 @@ var STARTERS = {
     lore: 'Ember of the last dawn, before the ash',
     moves: [
       { name: 'Radiant Burst', cost: 5, damage: 11, priority: false },
+      { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
       { name: 'Purifying Light', cost: 7, damage: 0, effect: 'purify', healAmount: 10 },
       { name: 'Guard', cost: 2, damage: 0, effect: 'guard', priority: true },
       { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
@@ -1278,6 +1352,13 @@ var BOSS = {
     maxStamina: 22,
     speed: 7,
     souls: 100,
+    // Telegraphed: announced one turn early, then lands at double damage.
+    // Guard during the wind-up and it barely scratches.
+    telegraphMove: {
+      name: 'Cinder Maw', cost: 9, damage: 16, telegraph: true,
+      windupText: 'The Obsidian Hound rears back, flame building in its throat...',
+      releaseText: 'CINDER MAW erupts!'
+    },
     moves: [
       { name: 'Ember Slash', cost: 6, damage: 12, priority: false },
       { name: 'Flame Wall', cost: 8, damage: 10, effect: 'burn' },
@@ -1298,6 +1379,11 @@ var BOSS = {
     maxStamina: 24,
     speed: 6,
     souls: 200,
+    telegraphMove: {
+      name: 'Hollow Verdict', cost: 9, damage: 18, telegraph: true,
+      windupText: 'The Hollow Warden raises its broken blade. The air goes silent...',
+      releaseText: 'HOLLOW VERDICT falls!'
+    },
     moves: [
       { name: 'Shadow Lash', cost: 6, damage: 12, priority: false },
       { name: 'Void Grasp', cost: 5, damage: 8, effect: 'drainStamina', drainAmount: 4 },
@@ -3207,6 +3293,10 @@ var initialState = {
   bonfireMenuOpen: false,
   withdrawMenuOpen: false,
   depositMenuOpen: false,
+  kindleMenuOpen: false,
+  pendingMove: null,
+  bossTelegraph: null,
+  bossTelegraphCooldown: 0,
   hasSeenPrologue: false,
   examineText: null,
   playTime: 0,
