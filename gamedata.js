@@ -48,6 +48,10 @@ window.GAME_CONFIG = {
     captureBrackets: { under10: 90, under25: 60, under50: 30, over50: 10 },
     captureCapMin: 5,
     captureCapMax: 95,
+    // Fleeing at the encounter preview costs carried souls (capped at what you carry)
+    fleeCost: 5,
+    // One-time carried-souls toll to unseal each boss door. Paid state persists in the save.
+    gateTolls: { fallenKeep: 50, hollowDeep: 100 },
     // Kindle: permanent stat growth bought with carried souls at bonfires
     kindle: {
       baseCost: 25,
@@ -1442,6 +1446,7 @@ var TITLES = [
 
 // ASHEN PATH - 6 wide × 8 tall - Tutorial area, desolate wasteland
 // B = Bonfire (spawn), G = Grass (encounters), P = Path, W = Wall, X = Gate to Fallen Keep
+// N = Sentinel (mandatory fight; passable once defeated)
 var ASHEN_PATH = [
   ['W', 'W', 'W', 'W', 'W', 'W'],
   ['W', 'B', 'P', 'P', 'G', 'W'],
@@ -1449,7 +1454,7 @@ var ASHEN_PATH = [
   ['W', 'G', 'P', 'P', 'W', 'W'],
   ['W', 'P', 'W', 'G', 'P', 'W'],
   ['W', 'P', 'P', 'P', 'P', 'W'],
-  ['W', 'W', 'P', 'W', 'W', 'W'],
+  ['W', 'W', 'N', 'W', 'W', 'W'],
   ['W', 'W', 'X', 'W', 'W', 'W']
 ];
 
@@ -1474,6 +1479,8 @@ var FALLEN_KEEP = [
 // THE HOLLOW DEEP - 10 wide × 16 tall - Post-game void dungeon
 // E = Entrance (from Fallen Keep), G = Grass (Dark/Light encounters only)
 // B = Bonfire, K = Boss (Hollow Warden), P = Path, W = Wall, X = Exit to Labyrinth
+// N = Sentinel. Row 12's right passage is walled so the sentinel is the only
+// way into the boss row; the Labyrinth gate beyond can no longer bypass the Warden.
 var HOLLOW_DEEP = [
   ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
   ['W', 'P', 'P', 'P', 'G', 'G', 'P', 'P', 'P', 'W'],
@@ -1487,7 +1494,7 @@ var HOLLOW_DEEP = [
   ['W', 'P', 'W', 'P', 'P', 'P', 'W', 'G', 'P', 'W'],
   ['W', 'P', 'W', 'P', 'W', 'P', 'W', 'P', 'P', 'W'],
   ['W', 'G', 'P', 'P', 'W', 'P', 'P', 'P', 'W', 'W'],
-  ['W', 'W', 'W', 'P', 'W', 'W', 'W', 'P', 'W', 'W'],
+  ['W', 'W', 'W', 'N', 'W', 'W', 'W', 'W', 'W', 'W'],
   ['W', 'P', 'P', 'P', 'P', 'K', 'P', 'P', 'P', 'W'],
   ['W', 'W', 'W', 'W', 'P', 'P', 'W', 'W', 'X', 'W'],
   ['W', 'W', 'W', 'W', 'E', 'W', 'W', 'W', 'W', 'W']
@@ -1496,6 +1503,8 @@ var HOLLOW_DEEP = [
 // ============= THE LABYRINTH (Post-Hollow Deep) =============
 // 20x20 maze - Entry from Hollow Deep at bottom, Ashen Gate at top
 // Tile codes: W=Wall, P=Path, E=Entry, B=Bonfire, A=AshenGate, S=SecretDoor, L=LoreObject, G=Grass
+// N=Sentinel. Row 16's side passages are walled so the entry corridor funnels
+// through the sentinel; everything north of the spawn row sits behind it.
 var LABYRINTH = [
   ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'A', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
   ['W', 'P', 'P', 'P', 'P', 'W', 'P', 'P', 'P', 'P', 'P', 'W', 'P', 'P', 'P', 'P', 'L', 'P', 'P', 'W'],
@@ -1513,11 +1522,66 @@ var LABYRINTH = [
   ['W', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'G', 'P', 'P', 'W', 'P', 'P', 'W'],
   ['W', 'P', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'P', 'W', 'W', 'W', 'W', 'W', 'P', 'W'],
   ['W', 'P', 'P', 'P', 'L', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'W'],
-  ['W', 'P', 'W', 'W', 'W', 'W', 'W', 'P', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'P', 'W'],
+  ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'N', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
   ['W', 'G', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'L', 'P', 'W'],
   ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'E', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
   ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W']
 ];
+
+// ============= SENTINELS =============
+// One mandatory fight per encounter area, standing on that map's 'N' tile.
+// Sentinels are visible on the map, block movement until defeated, and start
+// battle directly (no FIGHT/FLEE preview, so they cannot be fled). Defeating
+// or soul-binding one marks it dead permanently (state.sentinelsDefeated).
+// Stats are final values; their scars are flavor + combat modifiers only, so
+// they must NOT use maxHp/maxStamina scar effects (those would double-apply).
+var SENTINELS = {
+  ashenPath: {
+    id: 'sentinelAshenPath',
+    name: 'Ember Sentinel',
+    type: 'fire',
+    maxHp: 34,
+    maxStamina: 16,
+    speed: 7,
+    souls: 40,
+    scars: [SCAR_TYPES.find(s => s.id === 'cracked')],
+    moves: [
+      { name: 'Ashen Claw', cost: 6, damage: 11, priority: false },
+      { name: 'Quick Strike', cost: 3, damage: 4, priority: true },
+      { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
+    ]
+  },
+  hollowDeep: {
+    id: 'sentinelHollowDeep',
+    name: 'Hollow Sentinel',
+    type: 'dark',
+    maxHp: 44,
+    maxStamina: 18,
+    speed: 6,
+    souls: 55,
+    scars: [SCAR_TYPES.find(s => s.id === 'cursed')],
+    moves: [
+      { name: 'Void Rend', cost: 6, damage: 12, priority: false },
+      { name: 'Quick Strike', cost: 3, damage: 4, priority: true },
+      { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
+    ]
+  },
+  labyrinth: {
+    id: 'sentinelLabyrinth',
+    name: 'Lumen Sentinel',
+    type: 'light',
+    maxHp: 50,
+    maxStamina: 18,
+    speed: 6,
+    souls: 70,
+    scars: [SCAR_TYPES.find(s => s.id === 'blinded')],
+    moves: [
+      { name: 'Judgement Ray', cost: 7, damage: 13, priority: false },
+      { name: 'Quick Strike', cost: 3, damage: 4, priority: true },
+      { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
+    ]
+  }
+};
 
 // ============= BFS PATHFINDING =============
 // Returns array of {x,y} positions from first step to destination (excludes start).
@@ -3041,6 +3105,8 @@ var getSaveData = (state) => {
     bossDefeated: state.bossDefeated,
     hollowWardenDefeated: state.hollowWardenDefeated,
     shortcutUnlocked: state.shortcutUnlocked,
+    tollsPaid: state.tollsPaid,
+    sentinelsDefeated: state.sentinelsDefeated,
     grassEncounters: state.grassEncounters,
     lastBonfire: state.lastBonfire,
     hasSeenPrologue: state.hasSeenPrologue,
@@ -3272,6 +3338,10 @@ var initialState = {
   bossDefeated: false,
   bossPhase: 1,
   arenaEffect: null,
+  tollsPaid: [],
+  sentinelsDefeated: [],
+  isSentinelFight: false,
+  currentSentinelId: null,
   grassEncounters: [
     // Ashen Path encounters (6x8 map)
     { x: 4, y: 1, map: 'ashenPath', active: true },

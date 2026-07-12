@@ -101,7 +101,7 @@ Flow: character create → difficulty select → starter select (Cindrath, Marsh
 - Guard: 2 SP, halves incoming damage, priority (always resolves first)
 - Rest: 0 SP, skip turn, recover +12 SP (8 base + the 4 per-round tick; Hesitant scar adds +2)
 - Stamina below 5 = "Winded" (damage taken x1.25); warning shown below 8
-- Fleeing: Offered at the encounter preview (FIGHT or FLEE). Fleeing marks that grass tile as alerted, so you cannot flee the same spot twice
+- Fleeing: Offered at the encounter preview (FIGHT or FLEE). Costs `souls.fleeCost` carried souls (5, capped at what you carry) and marks that grass tile as alerted, so you cannot flee the same spot twice
 
 ### Speed / Initiative
 
@@ -166,14 +166,36 @@ Wild creatures can spawn pre-scarred (10% surface, 20% Hollow Deep, 30% Labyrint
 
 ### Souls Economy
 
-- **Earn:** Defeating creatures (12-28 for wilds, 100/200 for bosses; Fractured upside adds +15% each)
+- **Earn:** Defeating creatures (12-28 for wilds, 40/55/70 for sentinels, 100/200 for bosses; Fractured upside adds +15% each)
 - **Carried souls:** At risk, drop on death
 - **Banked souls:** Safe at bonfire (except Hollowed/Broken, where death drops banked too)
 - **Deposit:** At bonfire, move carried → banked (presets: 20, 50, KEEP 20, ALL)
 - **Withdraw:** At bonfire, move banked → carried (presets: 20, 50, KEEP 20, ALL)
 - **Soul Bind:** Capture costs 20 carried souls, low HP = higher success
 - **Kindle:** Permanent stat growth bought with carried souls (see below)
+- **Door tolls:** Boss doors demand a one-time carried-souls payment (see Sentinels & Sealed Doors)
+- **Fleeing:** Costs `souls.fleeCost` carried souls per flee
 - **Die before recovery:** A new drop replaces the old one. The previous stash is lost forever
+
+### Sentinels & Sealed Doors (Encounter Stakes)
+
+Added July 2026 after playtests showed every fight was skippable, so the scar/souls loop never engaged. Avoidance stays possible for grass; it just stops being free.
+
+**Sentinels** (`SENTINELS` in gamedata.js, one per wild area, standing on that map's `N` tile):
+
+| Area | Sentinel | Type | HP/SP | Speed | Souls | Scar |
+|------|----------|------|-------|-------|-------|------|
+| Ashen Path (2,6) | Ember Sentinel | Fire | 34/16 | 7 | 40 | Cracked |
+| Hollow Deep (3,12) | Hollow Sentinel | Dark | 44/18 | 6 | 55 | Cursed |
+| Labyrinth (7,16) | Lumen Sentinel | Light | 50/18 | 6 | 70 | Blinded |
+
+- Visible on the map (scarred sprite), blocks its tile; walking into it starts battle directly. No FIGHT/FLEE preview, so it cannot be fled
+- Defeating OR soul-binding it marks it dead permanently (`state.sentinelsDefeated`, persisted); the tile then behaves as path
+- Each sits on a true chokepoint (verified by BFS): Ashen gate, the only entry to the Hollow Deep boss row, and the Labyrinth's only route north of the spawn corridor
+- Map edits sealed the old side routes; the Hollow Warden can no longer be bypassed to reach the Labyrinth (previously the gate at (8,14) had no boss check)
+- Sentinel scars must NOT use maxHp/maxStamina effects (their stats are final values; those effects would double-apply)
+
+**Sealed boss doors** (`souls.gateTolls`): stepping at the boss `K` tile with the toll unpaid blocks movement and shows a message. With enough carried souls the step pays the toll (once, persisted in `state.tollsPaid`, survives death); the NEXT step starts the fight, so paying and fighting are two deliberate moves. Fallen Keep 50, Hollow Deep 100. A toll of 0 disables the gate.
 
 ### Kindle (Permanent Progression)
 
@@ -231,7 +253,8 @@ Earned titles and the active title persist in the save.
 ### Exploration
 
 - Tile-based movement (WASD or tap a tile; BFS pathfinding walks multi-tile taps)
-- Random encounters on grass tiles (60% chance, with a pre-battle FIGHT/FLEE preview)
+- Random encounters on grass tiles (60% chance, with a pre-battle FIGHT/FLEE preview; fleeing costs souls)
+- One mandatory sentinel fight per wild area on an `N` tile (see Sentinels & Sealed Doors)
 - Lore pickups: Environmental storytelling via examine (X key)
 - Shortcuts: One-way unlocks that persist
 - The Labyrinth hides a secret door (see Areas)
@@ -266,7 +289,7 @@ Earned titles and the active title persist in the save.
 - Ashen Path (6x8) - Starter area, tutorial
 - Fallen Keep (8x12) - Boss dungeon
 - The Hollow Deep (10x16) - Post-game, Dark/Light encounters only
-- The Labyrinth (20x20) - Post-Hollow-Deep maze. Entered from the Hollow Deep's exit gate. Contains its own bonfire, mixed encounters of all 5 species (+8 HP, +4 SP over base, 30% pre-scarred, 25 souls each), 4 lore clues, and a secret door at (15,9) that only opens after examining all 4 clues: Stone Sentinel (16,1), Faded Inscription (1,7), Scattered Remains (4,15), Restless Flame (17,17). Walking through the revealed door awards the Ashen Seeker title. The Ashen Gate at the top row is sealed (future content).
+- The Labyrinth (20x20) - Post-Hollow-Deep maze. Entered from the Hollow Deep's exit gate, which now sits behind the Hollow Warden (the old sentinel-free bypass is walled off). Contains its own bonfire, mixed encounters of all 5 species (+8 HP, +4 SP over base, 30% pre-scarred, 25 souls each), 4 lore clues, and a secret door at (15,9) that only opens after examining all 4 clues: Stone Sentinel (16,1), Faded Inscription (1,7), Scattered Remains (4,15), Restless Flame (17,17). Walking through the revealed door awards the Ashen Seeker title. The Ashen Gate at the top row is sealed (future content).
 
 ### Bosses
 - Obsidian Hound (Fire, Fallen Keep) - The fight is introduced as "Keeper Varek blocks your path!"; telegraph: Cinder Maw
@@ -335,6 +358,8 @@ window.GAME_CONFIG = {
     bindCost: 20, maxTeamSize: 5,
     captureBrackets: { under10: 90, under25: 60, under50: 30, over50: 10 },
     captureCapMin: 5, captureCapMax: 95,
+    fleeCost: 5,                 // Souls taken when fleeing an encounter preview
+    gateTolls: { fallenKeep: 50, hollowDeep: 100 },  // One-time boss door tolls
     kindle: { baseCost: 25, costStep: 15, hpPerKindle: 2, staminaPerKindle: 1, maxKindles: 10 }
   },
   wildEncounters: {
