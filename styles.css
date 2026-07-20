@@ -320,6 +320,16 @@
 
     .ambient-mote { position: absolute; pointer-events: none; }
     .tile-reveal { animation: tileReveal 0.45s ease-out; }
+
+    /* Fog cover fading off a tile that was just charted */
+    @keyframes fogLift {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    .fog-lift {
+      animation: fogLift 0.45s ease-out forwards;
+      pointer-events: none;
+    }
     .pulse-overlay-void {
       position: absolute;
       inset: 0;
@@ -369,6 +379,12 @@
       .battle-wipe {
         animation: none !important;
         display: none !important;
+      }
+      /* Same trap: fog-lift fills forward to transparent, so with its
+         animation removed it would sit opaque on the tile forever */
+      .fog-lift {
+        animation: none !important;
+        opacity: 0 !important;
       }
     }
 
