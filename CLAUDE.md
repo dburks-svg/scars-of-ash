@@ -261,6 +261,15 @@ Etrian-style charting, added July 2026. Config lives in `GAME_CONFIG.cartography
 - Header shows `CHART {pct}%` per map (`showChartPercent`, walkable tiles only, via `getChartPercent`/`MAP_WALKABLE_COUNTS`).
 - Helpers in gamedata.js: `revealAround` (pure, returns same reference when nothing new), `MAPS_BY_ID`.
 
+### Gathering Points
+
+Etrian-style chop/mine/take nodes, added July 2026. Config in `GAME_CONFIG.gathering`; data in `GATHER_POINTS` (gamedata.js), keyed `'x,y'` per map exactly like TILE_LORE, no new map chars.
+
+- 7 nodes: Ashen Path 1, Fallen Keep 1, Hollow Deep 2, Labyrinth 3. Each `{ name, kind: chop|mine|take }`; kind only picks the sprite. A load-time assertion console.warns if a node is not on a plain P tile or collides with lore.
+- Examining the node (X key or tap-own-tile; a banner prompts when standing on one) rolls `ambushChance` (0.25): ambush goes STRAIGHT to battle (no preview, so no fleeing; battles are only fleeable at the encounter preview) and does NOT deplete the node. Otherwise it yields `soulsMin..soulsMax` (8-18) carried souls and depletes.
+- Depleted nodes render desaturated with no pulse; `gatheredPoints` (keys `'mapId:x,y'`) persists in saves and resets on bonfire rest (`respawnOnRest`), matching the enemies-respawn contract.
+- Per-node `souls: {min,max}` override supported. Dev Dashboard: GATHERING section on the EXPLORATION tab.
+
 ### Exploration
 
 - Tile-based movement (WASD or tap a tile; BFS pathfinding walks multi-tile taps)
@@ -392,6 +401,10 @@ window.GAME_CONFIG = {
   cartography: {
     enabled: true, revealRadius: 1, dimExplored: true,
     exploredDimOpacity: 0.35, showChartPercent: true
+  },
+  gathering: {
+    enabled: true, soulsMin: 8, soulsMax: 18,
+    ambushChance: 0.25, respawnOnRest: true
   }
 };
 ```

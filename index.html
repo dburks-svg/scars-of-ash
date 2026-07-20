@@ -1294,6 +1294,90 @@
       );
     });
 
+    // Gathering node tile - chop/mine/take spots that yield souls on examine.
+    // Depleted nodes render desaturated with no pulse until a bonfire rest.
+    const GatherObjectTile = React.memo(({ kind = 'take', depleted = false, area = 'ashenPath', seed = 0 }) => {
+      const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
+      const flip = seed % 2 === 1;
+
+      const renderNode = () => {
+        switch (kind) {
+          case 'chop':
+            // Gnarled stump with a live root
+            return (
+              <svg width="40" height="40" style={{ imageRendering: 'pixelated', transform: flip ? 'scaleX(-1)' : 'none' }}>
+                <rect x="10" y="18" width="20" height="16" fill="#4a3a2a"/>
+                <rect x="12" y="14" width="16" height="6" fill="#5d4a35"/>
+                <rect x="14" y="16" width="12" height="2" fill="#6d5a42"/>
+                <rect x="4" y="30" width="12" height="4" fill="#3a2e20"/>
+                <rect x="26" y="32" width="10" height="3" fill="#3a2e20"/>
+                <rect x="17" y="8" width="3" height="8" fill={palette.grassMid}/>
+                <rect x="16" y="5" width="5" height="4" fill={palette.grassLight}/>
+              </svg>
+            );
+          case 'mine':
+            // Glinting vein in broken rock
+            return (
+              <svg width="40" height="40" style={{ imageRendering: 'pixelated', transform: flip ? 'scaleX(-1)' : 'none' }}>
+                <rect x="6" y="16" width="28" height="18" fill="#4a4a52"/>
+                <rect x="10" y="12" width="20" height="8" fill="#5a5a64"/>
+                <rect x="14" y="18" width="3" height="10" fill={palette.accent}/>
+                <rect x="20" y="14" width="3" height="6" fill={palette.accent} opacity="0.8"/>
+                <rect x="25" y="20" width="4" height="8" fill={palette.accent} opacity="0.6"/>
+                <rect x="17" y="24" width="2" height="2" fill="#ffffff" opacity="0.9"/>
+              </svg>
+            );
+          default:
+            // 'take': a heaped cinder cache
+            return (
+              <svg width="40" height="40" style={{ imageRendering: 'pixelated', transform: flip ? 'scaleX(-1)' : 'none' }}>
+                <rect x="8" y="26" width="24" height="8" fill="#3a332c"/>
+                <rect x="12" y="20" width="16" height="8" fill="#4a4038"/>
+                <rect x="16" y="16" width="8" height="6" fill="#5a5048"/>
+                <rect x="18" y="22" width="4" height="4" fill={palette.accent} opacity="0.9"/>
+                <rect x="24" y="27" width="3" height="3" fill={palette.accent} opacity="0.6"/>
+                <rect x="13" y="28" width="2" height="2" fill={palette.accent} opacity="0.5"/>
+              </svg>
+            );
+        }
+      };
+
+      return (
+        <div style={{
+          width: '100%',
+          height: '100%',
+          backgroundColor: palette.pathMid,
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          {/* Base path texture */}
+          <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
+            <rect x="3" y="5" width="12" height="6" fill={palette.pathLight}/>
+            <rect x="22" y="3" width="14" height="8" fill={palette.pathDark}/>
+            <rect x="44" y="8" width="9" height="6" fill={palette.pathLight}/>
+          </svg>
+          <div style={{ position: 'relative', zIndex: 2, filter: depleted ? 'grayscale(80%) brightness(0.7)' : 'none' }}>
+            {renderNode()}
+          </div>
+          {/* Harvest indicator, gone while depleted */}
+          {!depleted && (
+            <div style={{
+              position: 'absolute',
+              bottom: '4px',
+              width: '8px',
+              height: '8px',
+              backgroundColor: GBC.gold,
+              borderRadius: '50%',
+              animation: 'gatherPulse 1.8s ease-in-out infinite',
+              boxShadow: '0 0 6px rgba(246, 224, 94, 0.8)'
+            }}/>
+          )}
+        </div>
+      );
+    });
+
     // Lore object indicator tile - shows examinable props
     const LoreObjectTile = React.memo(({ objectType = 'generic', area = 'ashenPath' }) => {
       const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
@@ -1588,6 +1672,84 @@
         case 'EXAMINE_TILE': {
           const key = `${state.playerPos.x},${state.playerPos.y}`;
           const lore = TILE_LORE[state.currentMap]?.[key];
+
+          // Gathering node: harvest for souls, spring an ambush, or find it
+          // spent. Deliberate EO-style gathering: examining is a choice,
+          // walking over the node never interrupts.
+          const gather = GAME_CONFIG.gathering.enabled ? GATHER_POINTS[state.currentMap]?.[key] : null;
+          if (gather) {
+            const gatherKey = `${state.currentMap}:${key}`;
+            if ((state.gatheredPoints || []).includes(gatherKey)) {
+              return {
+                ...state,
+                examineText: {
+                  name: gather.name,
+                  lines: ['The vein is spent.', '', 'Rest at a bonfire and the ash regrows.']
+                }
+              };
+            }
+            if (Math.random() < GAME_CONFIG.gathering.ambushChance) {
+              // The node is NOT depleted: win the fight and try again.
+              // Straight to battle (no preview), so there is no fleeing.
+              const wildData = state.currentMap === 'labyrinth' ? getRandomLabyrinthWild() : state.currentMap === 'hollowDeep' ? getRandomDeepWild() : getRandomWild();
+              let actualMaxHp = wildData.maxHp;
+              let actualMaxStamina = wildData.maxStamina;
+              if (wildData.scars) {
+                wildData.scars.forEach(scar => {
+                  if (scar.effect === 'maxHp') actualMaxHp = Math.max(15, actualMaxHp + scar.value);
+                  if (scar.effect === 'maxStamina') actualMaxStamina = Math.max(8, actualMaxStamina + scar.value);
+                });
+              }
+              return {
+                ...state,
+                screen: 'battle',
+                enemy: {
+                  ...wildData,
+                  maxHp: actualMaxHp,
+                  maxStamina: actualMaxStamina,
+                  hp: actualMaxHp,
+                  stamina: actualMaxStamina,
+                  winded: false,
+                  isGuarding: false
+                },
+                enemyCreature: wildData,
+                battleLog: [
+                  'Something was waiting in the ash!',
+                  `A ${wildData.name} lunges from the ${gather.name}!`
+                ],
+                turnPhase: 'player',
+                pendingMove: null,
+                bossTelegraph: null,
+                bossTelegraphCooldown: 0,
+                currentEncounter: null,
+                pendingEncounter: null,
+                bonfireMenuOpen: false,
+                withdrawMenuOpen: false,
+                depositMenuOpen: false,
+                kindleMenuOpen: false
+              };
+            }
+            const min = gather.souls?.min ?? GAME_CONFIG.gathering.soulsMin;
+            const max = gather.souls?.max ?? GAME_CONFIG.gathering.soulsMax;
+            const gained = min + Math.floor(Math.random() * (max - min + 1));
+            return {
+              ...state,
+              souls: state.souls + gained,
+              gatheredPoints: [...(state.gatheredPoints || []), gatherKey],
+              examineText: {
+                name: gather.name,
+                lines: [
+                  gather.kind === 'chop' ? 'You cut deep into the growth.'
+                    : gather.kind === 'mine' ? 'You pry the vein open.'
+                    : 'You sift through the ash.',
+                  '',
+                  `${gained} souls glimmer in your hand.`,
+                  '',
+                  'The node is spent. Rest at a bonfire and the ash regrows.'
+                ]
+              }
+            };
+          }
 
           // Labyrinth secret room clue tracking
           const LABYRINTH_CLUES = ['16,1', '1,7', '4,15', '17,17'];
@@ -2040,6 +2202,9 @@
 
           const grassEncounters = state.grassEncounters.map(e => ({ ...e, active: true }));
 
+          // Resting respawns enemies; the ash regrows over gather nodes too
+          const gatheredPoints = GAME_CONFIG.gathering.respawnOnRest ? [] : (state.gatheredPoints || []);
+
           const bonfireMessages = [
             "Progress saved. Enemies respawned. Life is compromise.",
             "Rested. Ready to make the same mistakes."
@@ -2052,6 +2217,7 @@
             ...state,
             team,
             grassEncounters,
+            gatheredPoints,
             lastBonfire: { map: state.currentMap, pos: { ...state.playerPos } },
             bonfireMenuOpen: false,
             withdrawMenuOpen: false,
@@ -3219,6 +3385,7 @@
             activeTitle: saveData.activeTitle || null,
             cluesFound: saveData.cluesFound || [],
             secretDoorRevealed: saveData.secretDoorRevealed || false,
+            gatheredPoints: saveData.gatheredPoints || [],
             // Old saves have no chart; reveal the loaded position so nobody
             // wakes up fully blind. Recharting the rest is on-theme.
             visitedTiles: revealAround(
@@ -3929,12 +4096,17 @@
         const litLeft = x > 0 && (map[y][x - 1] === 'T' || map[y][x - 1] === 'B');
         const litRight = x < map[y].length - 1 && (map[y][x + 1] === 'T' || map[y][x + 1] === 'B');
         const lit = litLeft ? 'left' : litRight ? 'right' : null;
+        // Gathering nodes live on plain P tiles (load-time assertion in
+        // gamedata.js guarantees no lore collision)
+        const gatherNode = GAME_CONFIG.gathering.enabled ? GATHER_POINTS[area]?.[`${x},${y}`] : null;
 
         switch(tile) {
           case 'W': return <WallTile area={area} seed={seed} openBelow={openBelow} />;
           case 'P': return lore
             ? <LoreObjectTile objectType={lore.object || 'generic'} area={area} />
-            : <PathTile area={area} seed={seed} wallAbove={wallAbove} lit={lit} />;
+            : gatherNode
+              ? <GatherObjectTile kind={gatherNode.kind} depleted={(state.gatheredPoints || []).includes(`${area}:${x},${y}`)} area={area} seed={seed} />
+              : <PathTile area={area} seed={seed} wallAbove={wallAbove} lit={lit} />;
           case 'G': return <GrassTile area={area} seed={seed} wallAbove={wallAbove} />;
           case 'B': return <BonfireTile area={area} />;
           case 'X': return <GateTile area={area} />;
@@ -3980,10 +4152,11 @@
           if (currentTileType === 'B') {
             dispatch({ type: 'INTERACT_BONFIRE' });
           } else {
-            // Check for lore tile
+            // Check for lore or gathering on this tile
             const key = `${px},${py}`;
             const hasLore = TILE_LORE[state.currentMap]?.[key];
-            if (hasLore) {
+            const hasGather = GAME_CONFIG.gathering.enabled && GATHER_POINTS[state.currentMap]?.[key];
+            if (hasLore || hasGather) {
               dispatch({ type: 'EXAMINE_TILE' });
             } else {
               // Open pause menu
@@ -4219,6 +4392,22 @@
               fontSize: 'var(--font-sm)'
             }}>
               {isTouchDevice() ? 'Tap here to rest' : 'Press E to rest at bonfire'}
+            </div>
+          )}
+
+          {GAME_CONFIG.gathering.enabled &&
+            GATHER_POINTS[state.currentMap]?.[`${state.playerPos.x},${state.playerPos.y}`] &&
+            !(state.gatheredPoints || []).includes(`${state.currentMap}:${state.playerPos.x},${state.playerPos.y}`) && (
+            <div style={{
+              textAlign: 'center',
+              color: GBC.gold,
+              marginBottom: 'var(--spacing-sm)',
+              padding: 'var(--spacing-xs)',
+              backgroundColor: GBC.bgPanel,
+              border: `2px solid ${GBC.border}`,
+              fontSize: 'var(--font-sm)'
+            }}>
+              {isTouchDevice() ? 'Tap here to gather' : 'Press X to gather'}
             </div>
           )}
 
@@ -6492,6 +6681,7 @@ const DevDashboard = ({ onClose, onModified }) => {
         break;
       case 'EXPLORATION':
         window.GAME_CONFIG.cartography = JSON.parse(JSON.stringify(cfg.cartography));
+        window.GAME_CONFIG.gathering = JSON.parse(JSON.stringify(cfg.gathering));
         break;
       case 'ENCOUNTERS':
         window.GAME_CONFIG.wildEncounters = JSON.parse(JSON.stringify(cfg.wildEncounters));
@@ -6818,6 +7008,17 @@ const DevDashboard = ({ onClose, onModified }) => {
           onChange={v => updateConfig('cartography.revealRadius', v)} />
         <ConfigSlider label="Charted Dim Opacity" value={getConfig('cartography.exploredDimOpacity')} min={0} max={0.8} step={0.05}
           onChange={v => updateConfig('cartography.exploredDimOpacity', v)} />
+        <div style={{ ...S.sectionTitle, marginTop: 16 }}>GATHERING</div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+          {boolBtn('gathering.enabled', 'NODES')}
+          {boolBtn('gathering.respawnOnRest', 'RESPAWN ON REST')}
+        </div>
+        <ConfigSlider label="Souls Min" value={getConfig('gathering.soulsMin')} min={1} max={50} step={1}
+          onChange={v => updateConfig('gathering.soulsMin', v)} color={GBC.gold} />
+        <ConfigSlider label="Souls Max" value={getConfig('gathering.soulsMax')} min={1} max={80} step={1}
+          onChange={v => updateConfig('gathering.soulsMax', v)} color={GBC.gold} />
+        <ConfigSlider label="Ambush Chance" value={getConfig('gathering.ambushChance')} min={0} max={1} step={0.05}
+          onChange={v => updateConfig('gathering.ambushChance', v)} color={GBC.red} />
       </div>
     );
   };
