@@ -313,7 +313,7 @@ Both bosses transition at 30% HP (phase heal: Hound +20, Warden +25, skipped on 
 - **Failure is interesting:** Scarred roster tells a story
 - **Difficulty is intentional, not tedious:** Challenging but fair
 - **Story is environmental:** Lore through examine, not cutscenes
-- **GBC aesthetic:** 16-32 colors, pixel art, chiptune audio
+- **Retro pixel lushness:** Crisp pixel art with 16/32-bit-era richness. Each area is a stratum with its own palette, ambient particles, lighting, and exploration theme (Etrian Odyssey direction, July 2026; the earlier strict GBC 16-32 color ceiling is retired). Soft gradients and glow are allowed as lighting; sprites stay crisp and deterministic.
 - **Dark but not edgy:** Melancholic, not grimdark
 - **Fun for kids and adults:** No gore, just consequences
 
@@ -457,7 +457,7 @@ A playable prototype to validate:
 - Scar system feels meaningful
 - Battle loop is engaging
 - Souls economy creates tension
-- GBC aesthetic works
+- The retro pixel look and per-area atmosphere work
 
 ## What This Is Not
 
