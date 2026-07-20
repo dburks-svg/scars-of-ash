@@ -1721,12 +1721,17 @@
                 pendingMove: null,
                 bossTelegraph: null,
                 bossTelegraphCooldown: 0,
+                bossPhase: 1,
+                arenaEffect: null,
+                isBossFight: false,
+                isHollowWardenFight: false,
                 currentEncounter: null,
                 pendingEncounter: null,
                 bonfireMenuOpen: false,
                 withdrawMenuOpen: false,
                 depositMenuOpen: false,
-                kindleMenuOpen: false
+                kindleMenuOpen: false,
+                titlesMenuOpen: false
               };
             }
             const min = gather.souls?.min ?? GAME_CONFIG.gathering.soulsMin;
@@ -1894,6 +1899,10 @@
                 pendingMove: null,
                 bossTelegraph: null,
                 bossTelegraphCooldown: 0,
+                bossPhase: 1,
+                arenaEffect: null,
+                isBossFight: false,
+                isHollowWardenFight: false,
                 isSentinelFight: true,
                 currentSentinelId: sentinel.id,
                 currentEncounter: null,
@@ -1937,18 +1946,23 @@
                 pendingMove: null,
                 bossTelegraph: null,
                 bossTelegraphCooldown: 0,
+                bossPhase: 1,
+                arenaEffect: null,
+                isBossFight: false,
+                isHollowWardenFight: false,
                 currentFoeId: blockingFoe.id,
                 currentEncounter: null,
                 pendingEncounter: null,
                 bonfireMenuOpen: false,
                 withdrawMenuOpen: false,
                 depositMenuOpen: false,
-                kindleMenuOpen: false
+                kindleMenuOpen: false,
+                titlesMenuOpen: false
               };
             }
           }
 
-          let newState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false, depositMenuOpen: false, kindleMenuOpen: false };
+          let newState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false, depositMenuOpen: false, kindleMenuOpen: false, titlesMenuOpen: false };
 
           if (tile === 'G' && (state.currentMap === 'ashenPath' || state.currentMap === 'hollowDeep' || state.currentMap === 'labyrinth')) {
             const encounter = state.grassEncounters.find(
@@ -2204,8 +2218,10 @@
 
           // FOEs move one tile per player step, Etrian-style. Skipped when
           // this step already opened another screen (encounter preview, boss
-          // intro): one threat at a time.
-          if (GAME_CONFIG.foes.enabled && newState.screen === 'exploration') {
+          // intro): one threat at a time. Also skipped on a map transition:
+          // patrols were just rebuilt at their posts and the player hasn't
+          // taken a step on the new map yet.
+          if (GAME_CONFIG.foes.enabled && newState.screen === 'exploration' && newState.currentMap === state.currentMap) {
             const stepped = stepFoes(
               newState.currentMap,
               newState.foePositions || getInitialFoePositions(),
@@ -2235,6 +2251,10 @@
                 pendingMove: null,
                 bossTelegraph: null,
                 bossTelegraphCooldown: 0,
+                bossPhase: 1,
+                arenaEffect: null,
+                isBossFight: false,
+                isHollowWardenFight: false,
                 currentFoeId: huntingFoe.id,
                 currentEncounter: null,
                 pendingEncounter: null
@@ -2471,7 +2491,12 @@
                 turnPhase: 'player'
               };
             }
-            return state;
+            // Normally unreachable (UI disables unaffordable moves), but
+            // never fail silently: say why nothing happened
+            return {
+              ...state,
+              battleLog: [...state.battleLog, `Not enough stamina for ${move.name}!`]
+            };
           }
 
           const playerScarMods = getScarModifiers(activeCreature);
@@ -2521,7 +2546,9 @@
             // Hesitant scar upside: rest recovers more
             newTeam[state.activeCreatureIndex] = {
               ...activeCreature,
-              stamina: Math.min(activeCreature.stamina + GAME_CONFIG.combat.restRecoveryBase + GAME_CONFIG.combat.staminaPerTurnRecovery + playerScarMods.restBonus,
+              // Rest grants only the base; the per-round tick in ENEMY_TURN
+              // completes the spec's +12 total (base 8 + tick 4)
+              stamina: Math.min(activeCreature.stamina + GAME_CONFIG.combat.restRecoveryBase + playerScarMods.restBonus,
                 applyScars(activeCreature, STARTERS[activeCreature.id]).maxStamina),
               winded: false,
               isGuarding: false
@@ -3229,7 +3256,8 @@
           }
 
           if (selectedMove.effect === 'rest') {
-            newEnemy.stamina = Math.min(newEnemy.stamina + GAME_CONFIG.combat.restRecoveryBase + GAME_CONFIG.combat.staminaPerTurnRecovery, state.enemyCreature.maxStamina);
+            // Base only: the enemy's own per-round tick completes the +12
+            newEnemy.stamina = Math.min(newEnemy.stamina + GAME_CONFIG.combat.restRecoveryBase, state.enemyCreature.maxStamina);
             log.push(`${state.enemyCreature.name} rests.`);
           } else if (selectedMove.effect === 'guard') {
             newEnemy.isGuarding = true;
@@ -3445,14 +3473,45 @@
             bonfireMenuOpen: false,
             withdrawMenuOpen: false,
             depositMenuOpen: false,
-            kindleMenuOpen: false
+            kindleMenuOpen: false,
+            titlesMenuOpen: false
           };
+        }
+
+        case 'CONTINUE_FROM_VICTORY': {
+          // Back to the world after a boss falls: the Hollow Deep opens behind
+          // the Hound, the Labyrinth behind the Warden. Clear every battle flag
+          // so later wild fights don't inherit boss arenas, and save so the
+          // gate-opening progress can't be lost to a page refresh.
+          const newState = {
+            ...state,
+            screen: 'exploration',
+            enemy: null,
+            enemyCreature: null,
+            battleLog: [],
+            turnPhase: 'player',
+            pendingMove: null,
+            bossPhase: 1,
+            arenaEffect: null,
+            isBossFight: false,
+            isHollowWardenFight: false,
+            isSentinelFight: false,
+            currentSentinelId: null,
+            currentFoeId: null,
+            bossTelegraph: null,
+            bossTelegraphCooldown: 0
+          };
+          saveGame(newState);
+          return newState;
         }
 
         case 'RESTART': {
           return {
             ...initialState,
-            hasSeenPrologue: true // Skip prologue on subsequent playthroughs
+            hasSeenPrologue: true, // Skip prologue on subsequent playthroughs
+            // Titles are meta-unlocks: they survive NEW GAME+
+            titles: state.titles,
+            activeTitle: state.activeTitle
           };
         }
 
@@ -3478,6 +3537,16 @@
         case 'LOAD_GAME': {
           const saveData = action.saveData;
           if (!saveData) return state;
+          // A truncated or hand-edited save must fail loudly at the title
+          // screen, not throw mid-reducer on a missing core field
+          if (!saveData.currentMap || !MAPS_BY_ID[saveData.currentMap] ||
+              !saveData.playerPos || typeof saveData.playerPos.x !== 'number' ||
+              !Array.isArray(saveData.team) || saveData.team.length === 0) {
+            return {
+              ...state,
+              saveNotification: 'Save data is damaged and could not be loaded.'
+            };
+          }
 
           return {
             ...initialState,
@@ -3498,7 +3567,7 @@
             shortcutUnlocked: saveData.shortcutUnlocked,
             tollsPaid: saveData.tollsPaid || [],
             sentinelsDefeated: saveData.sentinelsDefeated || [],
-            grassEncounters: saveData.grassEncounters,
+            grassEncounters: saveData.grassEncounters || initialState.grassEncounters,
             lastBonfire: saveData.lastBonfire,
             hasSeenPrologue: saveData.hasSeenPrologue,
             playTime: saveData.playTime || 0,
@@ -3575,6 +3644,10 @@
             pendingMove: null,
             bossTelegraph: null,
             bossTelegraphCooldown: 0,
+            bossPhase: 1,
+            arenaEffect: null,
+            isBossFight: false,
+            isHollowWardenFight: false,
             currentEncounter: encounter,
             pendingEncounter: null
           };
@@ -3997,9 +4070,24 @@
       // mass reveal flash by treating everything as already-known
       const prevChart = prevChartRef.current.map === state.currentMap ? prevChartRef.current.chart : chart;
 
+      // Living FOEs on this map, paired with their current patrol position
+      const liveFoes = GAME_CONFIG.foes.enabled
+        ? FOES.filter(f => f.area === state.currentMap && !(state.foesDefeated || []).includes(f.id))
+            .map(f => ({ foe: f, pos: (state.foePositions || {})[f.id] }))
+            .filter(f => f.pos)
+        : [];
+      // Closest living FOE drives the danger drone and cancels tap-walking
+      const foeThreatRange = liveFoes.reduce((closest, f) => {
+        const d = Math.max(Math.abs(f.pos.x - state.playerPos.x), Math.abs(f.pos.y - state.playerPos.y));
+        return d < closest ? d : closest;
+      }, Infinity);
+
       // A hunter nearby: the music thickens and tap-to-walk hands control
       // back, so nobody auto-walks into a FOE they never saw coming
       const foeNear = GAME_CONFIG.foes.enabled && foeThreatRange <= GAME_CONFIG.foes.autoPathCancelRange;
+
+      // Confirmation for the risky ALL presets at the bonfire (deposit/withdraw)
+      const [confirmDialog, setConfirmDialog] = useState(null);
 
       // Track movement for walk animation
       const [isMoving, setIsMoving] = useState(false);
@@ -4220,18 +4308,6 @@
       // This map's sentinel, if it still stands (renders on its 'N' tile)
       const areaSentinel = SENTINELS[state.currentMap];
       const sentinelAlive = areaSentinel && !(state.sentinelsDefeated || []).includes(areaSentinel.id);
-
-      // Living FOEs on this map, paired with their current patrol position
-      const liveFoes = GAME_CONFIG.foes.enabled
-        ? FOES.filter(f => f.area === state.currentMap && !(state.foesDefeated || []).includes(f.id))
-            .map(f => ({ foe: f, pos: (state.foePositions || {})[f.id] }))
-            .filter(f => f.pos)
-        : [];
-      // Closest living FOE drives the danger drone and cancels tap-walking
-      const foeThreatRange = liveFoes.reduce((closest, f) => {
-        const d = Math.max(Math.abs(f.pos.x - state.playerPos.x), Math.abs(f.pos.y - state.playerPos.y));
-        return d < closest ? d : closest;
-      }, Infinity);
 
       // Render tile background with area-specific styling. Seed gives each
       // tile a stable texture variant so floors stop looking like wallpaper.
@@ -4751,10 +4827,10 @@
                   {(() => {
                     const available = state.souls;
                     const presets = [
-                      { label: '20', amount: Math.min(20, available) },
-                      { label: '50', amount: Math.min(50, available) },
-                      { label: 'KEEP 20', amount: Math.max(0, available - 20) },
-                      { label: 'ALL', amount: available }
+                      { label: '20', amount: Math.min(20, available), needsConfirm: false },
+                      { label: '50', amount: Math.min(50, available), needsConfirm: false },
+                      { label: 'KEEP 20', amount: Math.max(0, available - 20), needsConfirm: false },
+                      { label: 'ALL', amount: available, needsConfirm: true }
                     ];
                     return presets.map(p => (
                       <div
@@ -4766,7 +4842,18 @@
                           cursor: p.amount <= 0 ? 'default' : 'pointer'
                         }}
                         onClick={() => {
-                          if (p.amount > 0) {
+                          if (p.amount <= 0) return;
+                          if (p.needsConfirm) {
+                            setConfirmDialog({
+                              message: `Deposit all ${p.amount} souls?`,
+                              onConfirm: () => {
+                                playSfx('bonfireRest');
+                                dispatch({ type: 'DEPOSIT_SOULS', amount: p.amount });
+                                setConfirmDialog(null);
+                              },
+                              onCancel: () => setConfirmDialog(null)
+                            });
+                          } else {
                             playSfx('bonfireRest');
                             dispatch({ type: 'DEPOSIT_SOULS', amount: p.amount });
                           }
@@ -4897,6 +4984,14 @@
             }}>
               WASD: Move | E: Rest | X: Examine | ESC: Menu
             </div>
+          )}
+
+          {confirmDialog && (
+            <ConfirmDialog
+              message={confirmDialog.message}
+              onConfirm={confirmDialog.onConfirm}
+              onCancel={confirmDialog.onCancel}
+            />
           )}
         </div>
       );
@@ -5269,7 +5364,22 @@
               fontSize: 'var(--font-sm)',
               animation: 'flicker 0.5s infinite'
             }}>
-              SCORCHED EARTH - 2 DMG/TURN
+              SCORCHED EARTH - {GAME_CONFIG.statusFx.scorchedEarthDamage} DMG/TURN
+            </div>
+          )}
+
+          {state.arenaEffect === 'fracturedAura' && (
+            <div style={{
+              textAlign: 'center',
+              padding: 'var(--spacing-xs)',
+              backgroundColor: '#1a1024',
+              color: GBC.dark,
+              marginBottom: 'var(--spacing-sm)',
+              border: `2px solid ${GBC.dark}`,
+              fontSize: 'var(--font-sm)',
+              animation: 'flicker 0.5s infinite'
+            }}>
+              FRACTURED AURA - {GAME_CONFIG.statusFx.fracturedAuraDamage} DMG/TURN
             </div>
           )}
 
@@ -5599,6 +5709,12 @@
           </div>
 
           <div style={{ display: 'flex', gap: 'var(--spacing-md)', justifyContent: 'center', marginTop: 'var(--spacing-lg)' }}>
+            <button
+              style={styles.button}
+              onClick={() => dispatch({ type: 'CONTINUE_FROM_VICTORY' })}
+            >
+              CONTINUE
+            </button>
             <button
               style={styles.button}
               onClick={() => dispatch({ type: 'RESTART' })}
@@ -7797,8 +7913,10 @@ const DevDashboard = ({ onClose, onModified }) => {
       const prevScarsRef = useRef(state.team.reduce((sum, c) => sum + (c.scars?.length || 0), 0));
 
       useEffect(() => {
-        // Track run start when moving from starter to exploration
-        if (prevScreenRef.current === 'starter' && state.screen === 'exploration') {
+        // Track run start when entering exploration from starter select, or
+        // from the prologue (the very first run routes starter → prologue →
+        // exploration and must still count)
+        if ((prevScreenRef.current === 'starter' || prevScreenRef.current === 'prologue') && state.screen === 'exploration') {
           recordRunStart();
         }
         // Track death when going to gameOver

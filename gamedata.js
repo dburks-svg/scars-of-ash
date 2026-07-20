@@ -556,11 +556,10 @@ class MusicManager {
   }
 
   // FOE proximity drone. Layers a tremolo fifth OVER the current track;
-  // ramps in and out so it never pops. No caller yet: the FOE exploration
-  // system (PR D of the Etrian pass) calls setDanger(near) when a patrolling
-  // elite closes in. Deliberately outside activeNodes so switchTrack's
-  // teardown and this drone cannot double-dispose each other; stopAllTracks
-  // clears it via clearDanger().
+  // ramps in and out so it never pops. The Exploration screen calls
+  // setDanger(near) when a patrolling elite closes in. Deliberately outside
+  // activeNodes so switchTrack's teardown and this drone cannot
+  // double-dispose each other; stopAllTracks clears it via clearDanger().
   setDanger(active) {
     if (!this.initialized || this.muted) {
       if (!active) this.clearDanger();
@@ -1765,13 +1764,13 @@ var BOSS = {
     moves: [
       { name: 'Ember Slash', cost: 6, damage: 12, priority: false },
       { name: 'Flame Wall', cost: 8, damage: 10, effect: 'burn' },
-      { name: 'Guard', cost: 2, damage: 0, effect: 'guard' }
+      { name: 'Guard', cost: 2, damage: 0, effect: 'guard', priority: true }
     ],
     phase2Moves: [
       { name: 'Ember Slash', cost: 6, damage: 12, priority: false },
       { name: 'Flame Wall', cost: 8, damage: 10, effect: 'burn' },
       { name: 'Desperation Fang', cost: 10, damage: 20, effect: 'recoil', recoilDamage: 5 },
-      { name: 'Guard', cost: 2, damage: 0, effect: 'guard' }
+      { name: 'Guard', cost: 2, damage: 0, effect: 'guard', priority: true }
     ]
   },
   hollowWarden: {
@@ -1790,13 +1789,13 @@ var BOSS = {
     moves: [
       { name: 'Shadow Lash', cost: 6, damage: 12, priority: false },
       { name: 'Void Grasp', cost: 5, damage: 8, effect: 'drainStamina', drainAmount: 4 },
-      { name: 'Guard', cost: 2, damage: 0, effect: 'guard' }
+      { name: 'Guard', cost: 2, damage: 0, effect: 'guard', priority: true }
     ],
     phase2Moves: [
       { name: 'Shattered Light', cost: 7, damage: 14, priority: false }, // Super effective vs Fire and Grass
       { name: 'Desperate Void', cost: 8, damage: 18, effect: 'recoil', recoilDamage: 6 },
       { name: 'Void Grasp', cost: 5, damage: 8, effect: 'drainStamina', drainAmount: 4 },
-      { name: 'Guard', cost: 2, damage: 0, effect: 'guard' }
+      { name: 'Guard', cost: 2, damage: 0, effect: 'guard', priority: true }
     ],
     phase2Type: 'darklight' // Dual type in phase 2
   }
@@ -3073,7 +3072,9 @@ var BIND_COST = 20;
 
 var getRandomWild = () => {
   var cfg = window.GAME_CONFIG.wildEncounters;
-  const wilds = Object.values(WILD_CREATURES);
+  // Surface pool: fire/water/grass only. Umbravine (dark) and Solrath
+  // (light) belong to the Hollow Deep and Labyrinth spawners.
+  const wilds = Object.values(WILD_CREATURES).filter(w => w.type !== 'dark' && w.type !== 'light');
   const baseCreature = wilds[Math.floor(Math.random() * wilds.length)];
 
   const hpVariance = Math.floor(Math.random() * cfg.hpVarianceRange) - Math.floor(cfg.hpVarianceRange / 2);
@@ -3193,7 +3194,7 @@ var getCaptureChance = (currentHp, maxHp, captureBonus = 0) => {
   let chance;
   if (hpPercent < 10) chance = cfg.captureBrackets.under10;
   else if (hpPercent < 25) chance = cfg.captureBrackets.under25;
-  else if (hpPercent <= 50) chance = cfg.captureBrackets.under50;
+  else if (hpPercent < 50) chance = cfg.captureBrackets.under50;
   else chance = cfg.captureBrackets.over50;
   return Math.max(cfg.captureCapMin, Math.min(cfg.captureCapMax, chance + captureBonus));
 };
@@ -3341,8 +3342,8 @@ var TILE_LORE = {
         'Or didn\'t leave at all.'
       ]
     },
-    // Scorched Tree
-    '5,2': {
+    // Scorched Tree (3,2) - was keyed '5,2', a wall tile and unreachable
+    '3,2': {
       name: 'Scorched Tree',
       object: 'tree',
       lines: [
@@ -3373,7 +3374,7 @@ var TILE_LORE = {
         'Whatever was inside left long ago. Or never survived.'
       ]
     },
-    // Near boss room (1,5)
+    // Near boss room (3,5)
     '3,5': {
       name: 'Old Banner',
       lines: [
@@ -3391,8 +3392,8 @@ var TILE_LORE = {
         'Something burns eternal beyond this door.'
       ]
     },
-    // Keeper's Quarters
-    '4,3': {
+    // Keeper's Quarters (4,4) - was keyed '4,3', a wall tile and unreachable
+    '4,4': {
       name: 'Keeper\'s Quarters',
       object: 'chest',
       lines: [
@@ -3401,8 +3402,8 @@ var TILE_LORE = {
         'The keeper hasn\'t slept in years.'
       ]
     },
-    // Trophy Wall
-    '2,5': {
+    // Trophy Wall (2,6) - was keyed '2,5', a wall tile and unreachable
+    '2,6': {
       name: 'Trophy Wall',
       lines: [
         'Scratches in the stone. Names? Warnings?',
@@ -3412,8 +3413,8 @@ var TILE_LORE = {
     }
   },
   hollowDeep: {
-    // Shattered Altar
-    '2,2': {
+    // Shattered Altar (2,1) - was keyed '2,2', a wall tile and unreachable
+    '2,1': {
       name: 'Shattered Altar',
       object: 'altar',
       lines: [
@@ -3534,9 +3535,11 @@ var FOES = [
     speed: 7,
     souls: 90,
     scars: [SCAR_TYPES.find(s => s.id === 'cursed')],
+    // Route starts at x6: the map entry drops the player at (3,7), and the
+    // post must sit outside aggroRange so arrival never forces the fight
     route: [
-      { x: 3, y: 7 }, { x: 4, y: 7 }, { x: 5, y: 7 }, { x: 6, y: 7 },
-      { x: 5, y: 7 }, { x: 4, y: 7 }
+      { x: 6, y: 7 }, { x: 7, y: 7 }, { x: 8, y: 7 },
+      { x: 7, y: 7 }
     ],
     moves: [
       { name: 'Umbral Rake', cost: 6, damage: 14, priority: false },
@@ -3739,6 +3742,22 @@ var GATHER_POINTS = {
   });
 })();
 
+// Dev-time sanity: lore is examined on-tile, so a lore key on a wall (or off
+// the map) is dead content nobody can ever read. Loud, not silent.
+(function () {
+  Object.keys(TILE_LORE).forEach(function (mapId) {
+    var map = MAPS_BY_ID[mapId];
+    if (!map) return;
+    Object.keys(TILE_LORE[mapId]).forEach(function (key) {
+      var parts = key.split(',');
+      var tile = map[+parts[1]] && map[+parts[1]][+parts[0]];
+      if (!tile || tile === 'W') {
+        console.warn('TILE_LORE: ' + mapId + ' ' + key + ' is unreachable (found "' + (tile || 'off-map') + '")');
+      }
+    });
+  });
+})();
+
 // Boss dialogue collections
 var BOSS_DIALOGUE = {
   intro: [
@@ -3875,6 +3894,7 @@ var SAVE_KEY = 'scarsOfAshSaveData';
 
 var getSaveData = (state) => {
   return {
+    version: 1, // Schema version: bump on breaking changes so loads can migrate
     currentMap: state.currentMap,
     playerPos: state.playerPos,
     playerDir: state.playerDir,
