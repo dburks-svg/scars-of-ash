@@ -4181,6 +4181,7 @@ var initialState = {
   withdrawMenuOpen: false,
   depositMenuOpen: false,
   kindleMenuOpen: false,
+  titlesMenuOpen: false,
   pendingMove: null,
   bossTelegraph: null,
   bossTelegraphCooldown: 0,

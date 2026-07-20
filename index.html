@@ -1537,6 +1537,19 @@
 
 
     // ============= BATTLE HELPERS =============
+    // Unscarred: the Hollow Warden falls and no creature carries a mark.
+    // Returns extra fields to merge into a boss-victory state (or nothing).
+    function bossVictoryTitleFields(state, newTeam) {
+      if (!state.isHollowWardenFight) return {};
+      if (state.titles.includes('unscarred')) return {};
+      if (!newTeam.every(c => (c.scars || []).length === 0)) return {};
+      return {
+        titles: [...state.titles, 'unscarred'],
+        activeTitle: 'unscarred',
+        saveNotification: 'Title earned: Unscarred'
+      };
+    }
+
     function handleCreatureFaint(state, team, enemy, log, cause) {
       const difficulty = getDifficulty(state);
       const activeCreature = team[state.activeCreatureIndex];
@@ -1639,10 +1652,15 @@
           };
           // Show prologue on first playthrough; repeat runs get the goal card
           const nextScreen = state.hasSeenPrologue ? 'exploration' : 'prologue';
+          // First Flame: it IS the demo period - lighting a starter earns it
+          const earnsFirstFlame = !state.titles.includes('first_flame');
           return {
             ...state,
             screen: nextScreen,
             team: [newCreature],
+            titles: earnsFirstFlame ? [...state.titles, 'first_flame'] : state.titles,
+            activeTitle: state.activeTitle || 'first_flame',
+            saveNotification: earnsFirstFlame ? 'Title earned: First Flame' : state.saveNotification,
             visitedTiles: revealAround(
               state.visitedTiles, state.currentMap,
               state.playerPos.x, state.playerPos.y,
@@ -1843,7 +1861,7 @@
 
           // Walking into revealed secret door awards Ashen Seeker title
           if (tile === 'S' && state.secretDoorRevealed) {
-            let sState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false, depositMenuOpen: false, kindleMenuOpen: false };
+            let sState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false, depositMenuOpen: false, kindleMenuOpen: false, titlesMenuOpen: false };
             sState.examineText = {
               name: 'The Hidden Chamber',
               lines: [
@@ -1910,7 +1928,8 @@
                 bonfireMenuOpen: false,
                 withdrawMenuOpen: false,
                 depositMenuOpen: false,
-                kindleMenuOpen: false
+                kindleMenuOpen: false,
+                titlesMenuOpen: false
               };
             }
           }
@@ -2335,6 +2354,7 @@
             withdrawMenuOpen: false,
             depositMenuOpen: false,
             kindleMenuOpen: false,
+            titlesMenuOpen: false,
             saveNotification: saveMessage
           };
 
@@ -2370,7 +2390,8 @@
             bonfireMenuOpen: false,
             withdrawMenuOpen: false,
             depositMenuOpen: false,
-            kindleMenuOpen: false
+            kindleMenuOpen: false,
+            titlesMenuOpen: false
           };
         }
 
@@ -2379,7 +2400,8 @@
             ...state,
             withdrawMenuOpen: !state.withdrawMenuOpen,
             depositMenuOpen: false,
-            kindleMenuOpen: false
+            kindleMenuOpen: false,
+            titlesMenuOpen: false
           };
         }
 
@@ -2400,7 +2422,8 @@
             ...state,
             depositMenuOpen: !state.depositMenuOpen,
             withdrawMenuOpen: false,
-            kindleMenuOpen: false
+            kindleMenuOpen: false,
+            titlesMenuOpen: false
           };
         }
 
@@ -2409,7 +2432,18 @@
             ...state,
             kindleMenuOpen: !state.kindleMenuOpen,
             depositMenuOpen: false,
-            withdrawMenuOpen: false
+            withdrawMenuOpen: false,
+            titlesMenuOpen: false
+          };
+        }
+
+        case 'TOGGLE_TITLES_MENU': {
+          return {
+            ...state,
+            titlesMenuOpen: !state.titlesMenuOpen,
+            depositMenuOpen: false,
+            withdrawMenuOpen: false,
+            kindleMenuOpen: false
           };
         }
 
@@ -2775,7 +2809,8 @@
                 hollowWardenDefeated: state.isHollowWardenFight ? true : state.hollowWardenDefeated,
                 team: newTeam,
                 activeCreatureIndex: survivorIndex,
-                battleLog: log
+                battleLog: log,
+                ...bossVictoryTitleFields(state, newTeam)
               };
             }
 
@@ -3134,7 +3169,8 @@
                 bossDefeated: state.isHollowWardenFight ? state.bossDefeated : true,
                 hollowWardenDefeated: state.isHollowWardenFight ? true : state.hollowWardenDefeated,
                 team: newTeam,
-                battleLog: log
+                battleLog: log,
+                ...bossVictoryTitleFields(state, newTeam)
               };
             }
             if (state.currentSentinelId) {
@@ -3358,7 +3394,8 @@
                 bossDefeated: state.isHollowWardenFight ? state.bossDefeated : true,
                 hollowWardenDefeated: state.isHollowWardenFight ? true : state.hollowWardenDefeated,
                 team: newTeam,
-                battleLog: log
+                battleLog: log,
+                ...bossVictoryTitleFields(state, newTeam)
               };
             }
 
@@ -4664,7 +4701,7 @@
             <div style={styles.bonfireMenu}>
               <div style={{ color: GBC.gold, marginBottom: 'var(--spacing-sm)', fontSize: 'var(--font-sm)' }}>BONFIRE</div>
 
-              {!state.depositMenuOpen && !state.withdrawMenuOpen && !state.kindleMenuOpen && (
+              {!state.depositMenuOpen && !state.withdrawMenuOpen && !state.kindleMenuOpen && !state.titlesMenuOpen && (
                 <React.Fragment>
                   <div
                     style={styles.bonfireOption}
@@ -4701,6 +4738,17 @@
                   >
                     WITHDRAW - Banked → Carried
                   </div>
+
+                  {state.titles.length > 0 && (
+                    <div
+                      style={styles.bonfireOption}
+                      onClick={() => dispatch({ type: 'TOGGLE_TITLES_MENU' })}
+                      onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+                      onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+                    >
+                      TITLES - Choose what you are called
+                    </div>
+                  )}
 
                   {state.team.length > 1 && (
                     <div style={{ marginTop: 'var(--spacing-sm)' }}>
@@ -4925,6 +4973,55 @@
                   <div
                     style={{ ...styles.bonfireOption, marginTop: '8px', color: GBC.textDim }}
                     onClick={() => dispatch({ type: 'TOGGLE_WITHDRAW_MENU' })}
+                    onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+                    onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+                  >
+                    BACK
+                  </div>
+                </div>
+              )}
+
+              {state.titlesMenuOpen && (
+                <div>
+                  <div style={{ color: GBC.textDim, fontSize: 'var(--font-xs)', marginBottom: 'var(--spacing-sm)' }}>
+                    WEAR A TITLE:
+                  </div>
+                  {state.titles.map(titleId => {
+                    const titleData = TITLES.find(t => t.id === titleId);
+                    if (!titleData) return null;
+                    const isWorn = state.activeTitle === titleId;
+                    return (
+                      <div
+                        key={titleId}
+                        style={{
+                          ...styles.bonfireOption,
+                          marginTop: '4px',
+                          borderColor: isWorn ? GBC.gold : GBC.border
+                        }}
+                        onClick={() => dispatch({ type: 'SET_ACTIVE_TITLE', titleId })}
+                        onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+                        onMouseOut={e => e.currentTarget.style.borderColor = isWorn ? GBC.gold : GBC.border}
+                      >
+                        {titleData.name}{isWorn ? ' ✦' : ''} - {titleData.description}
+                      </div>
+                    );
+                  })}
+                  <div
+                    style={{
+                      ...styles.bonfireOption,
+                      marginTop: '4px',
+                      borderColor: state.activeTitle === null ? GBC.gold : GBC.border,
+                      color: GBC.textDim
+                    }}
+                    onClick={() => dispatch({ type: 'SET_ACTIVE_TITLE', titleId: null })}
+                    onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+                    onMouseOut={e => e.currentTarget.style.borderColor = state.activeTitle === null ? GBC.gold : GBC.border}
+                  >
+                    NONE - Walk unnamed
+                  </div>
+                  <div
+                    style={{ ...styles.bonfireOption, marginTop: '8px', color: GBC.textDim }}
+                    onClick={() => dispatch({ type: 'TOGGLE_TITLES_MENU' })}
                     onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
                     onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
                   >
