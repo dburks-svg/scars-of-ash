@@ -102,6 +102,10 @@ class MusicManager {
     this.masterGain = null;
     this.tracks = {};
     this.activeNodes = [];
+    // Danger drone lives outside activeNodes: it layers OVER the current
+    // track and survives nothing - track switches clear it too.
+    this.dangerNodes = [];
+    this.dangerActive = false;
   }
 
   async init() {
@@ -147,6 +151,8 @@ class MusicManager {
     Tone.Transport.stop();
     Tone.Transport.cancel();
 
+    this.clearDanger();
+
     const nodes = this.activeNodes;
     this.activeNodes = [];
 
@@ -184,6 +190,15 @@ class MusicManager {
     switch (trackName) {
       case 'exploration':
         this.playExploration();
+        break;
+      case 'exploreKeep':
+        this.playExploreKeep();
+        break;
+      case 'exploreHollow':
+        this.playExploreHollow();
+        break;
+      case 'exploreLabyrinth':
+        this.playExploreLabyrinth();
         break;
       case 'bonfire':
         this.playBonfire();
@@ -275,13 +290,308 @@ class MusicManager {
       if (note) MusicManager.note(bass, note, '16n', time);
     }, bassPattern, '8n');
 
-    this.activeNodes.push(melodySeq, harmonySeq, bassSeq);
+    // Soft haze under the melody: one warm triad per measure
+    const pad = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.4, decay: 0.5, sustain: 0.4, release: 1 }
+    }).connect(new Tone.Gain(0.06).connect(this.reverb));
+    const padChords = [['A3', 'C4', 'E4'], ['E3', 'G3', 'B3'], ['F3', 'A3', 'C4'], ['G3', 'B3', 'D4']];
+    let padIndex = 0;
+    const padLoop = new Tone.Loop(time => {
+      MusicManager.note(pad, padChords[padIndex % padChords.length], '1m', time);
+      padIndex++;
+    }, '1m');
+
+    this.activeNodes.push(melodySeq, harmonySeq, bassSeq, pad, padLoop);
 
     Tone.Transport.bpm.value = 70;
     melodySeq.start(0);
     harmonySeq.start(0);
     bassSeq.start(0);
+    padLoop.start(0);
     Tone.Transport.start();
+  }
+
+  playExploreKeep() {
+    // "Halls of the Fallen" - 60 BPM processional in D minor (Dm Bb F A).
+    // Cold stone and torch gold: sparse square lead, stately pad, a bell
+    // through the delay like something remembering the garrison.
+
+    const lead = new Tone.Synth({
+      oscillator: { type: 'square', width: 0.3 },
+      envelope: { attack: 0.02, decay: 0.15, sustain: 0.35, release: 0.4 }
+    }).connect(new Tone.Gain(0.12).connect(this.masterGain));
+
+    const pad = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.5, decay: 0.5, sustain: 0.4, release: 1 }
+    }).connect(new Tone.Gain(0.08).connect(this.reverb));
+
+    const bass = new Tone.Synth({
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.02, decay: 0.2, sustain: 0.4, release: 0.3 }
+    }).connect(new Tone.Gain(0.2).connect(this.masterGain));
+
+    const bell = new Tone.Synth({
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.01, decay: 0.4, sustain: 0.1, release: 2 }
+    }).connect(new Tone.Gain(0.05).connect(this.delay));
+
+    this.activeNodes.push(lead, pad, bass, bell);
+
+    // Sparse processional melody: quarters and rests, 8 bars
+    const melodyNotes = [
+      // Dm
+      'D4', null, 'F4', 'E4', 'D4', null, 'A3', null,
+      // Bb
+      'Bb3', null, 'D4', 'C4', 'A3', null, null, null,
+      // F
+      'F4', null, 'A4', 'G4', 'F4', null, 'C4', null,
+      // A
+      'A3', null, 'C#4', 'E4', 'A4', null, null, null
+    ];
+    const melodySeq = new Tone.Sequence((time, note) => {
+      if (note) MusicManager.note(lead, note, '4n', time);
+    }, melodyNotes, '4n');
+
+    // One chord per measure
+    const padChords = [['D3', 'F3', 'A3'], ['Bb2', 'D3', 'F3'], ['F3', 'A3', 'C4'], ['A2', 'C#3', 'E3']];
+    let padIndex = 0;
+    const padLoop = new Tone.Loop(time => {
+      MusicManager.note(pad, padChords[padIndex % padChords.length], '1m', time);
+      padIndex++;
+    }, '1m');
+
+    // Bass on beats 1 and 3 only: footfalls of a dead procession
+    const bassNotes = ['D2', 'A2', 'Bb1', 'F2', 'F2', 'C3', 'A1', 'E2'];
+    const bassSeq = new Tone.Sequence((time, note) => {
+      if (note) MusicManager.note(bass, note, '4n', time);
+    }, bassNotes, '2n');
+
+    // A bell every two measures, answering itself
+    const bellNotes = ['A4', 'D5'];
+    let bellIndex = 0;
+    const bellLoop = new Tone.Loop(time => {
+      MusicManager.note(bell, bellNotes[bellIndex % bellNotes.length], '2n', time);
+      bellIndex++;
+    }, '2m');
+
+    this.activeNodes.push(melodySeq, padLoop, bassSeq, bellLoop);
+
+    Tone.Transport.bpm.value = 60;
+    melodySeq.start(0);
+    padLoop.start(0);
+    bassSeq.start(0);
+    bellLoop.start(0);
+    Tone.Transport.start();
+  }
+
+  playExploreHollow() {
+    // "Where Light Forgets" - 52 BPM in C Phrygian (Cm Dbmaj7 Cm Bbm).
+    // Mostly space. A sliding sine voice, wide slow chords, a sub note per
+    // measure, and a distant drip through the delay.
+
+    const lead = new Tone.Synth({
+      portamento: 0.05,
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.1, decay: 0.3, sustain: 0.5, release: 1 }
+    }).connect(new Tone.Gain(0.1).connect(this.reverb));
+
+    const pad = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.8, decay: 0.6, sustain: 0.4, release: 1.5 }
+    }).connect(new Tone.Gain(0.07).connect(this.reverb));
+
+    const sub = new Tone.Synth({
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.1, decay: 0.4, sustain: 0.5, release: 1 }
+    }).connect(new Tone.Gain(0.22).connect(this.masterGain));
+
+    const drip = new Tone.Synth({
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.005, decay: 0.15, sustain: 0, release: 0.3 }
+    }).connect(new Tone.Gain(0.06).connect(this.delay));
+
+    this.activeNodes.push(lead, pad, sub, drip);
+
+    // Long notes, long silences; the Db-C fall is the Phrygian dread
+    const melodyNotes = [
+      'C4', null, 'Db4', 'C4', null, null, 'Eb4', null,
+      'C4', null, 'Bb3', null, 'C4', null, null, null
+    ];
+    const melodySeq = new Tone.Sequence((time, note) => {
+      if (note) MusicManager.note(lead, note, '2n', time);
+    }, melodyNotes, '2n');
+
+    const padChords = [['C3', 'Eb3', 'G3'], ['Db3', 'F3', 'Ab3', 'C4'], ['C3', 'Eb3', 'G3'], ['Bb2', 'Db3', 'F3']];
+    let padIndex = 0;
+    const padLoop = new Tone.Loop(time => {
+      MusicManager.note(pad, padChords[padIndex % padChords.length], '1m', time);
+      padIndex++;
+    }, '1m');
+
+    const subNotes = ['C1', 'Db1', 'C1', 'Bb0'];
+    let subIndex = 0;
+    const subLoop = new Tone.Loop(time => {
+      MusicManager.note(sub, subNotes[subIndex % subNotes.length], '1m', time);
+      subIndex++;
+    }, '1m');
+
+    // Two falling blips every two measures: water somewhere it should not be
+    const dripLoop = new Tone.Loop(time => {
+      MusicManager.note(drip, 'G5', '16n', time);
+      MusicManager.note(drip, 'Eb5', '16n', time + Tone.Time('8n').toSeconds());
+    }, '2m');
+
+    this.activeNodes.push(melodySeq, padLoop, subLoop, dripLoop);
+
+    Tone.Transport.bpm.value = 52;
+    melodySeq.start(0);
+    padLoop.start(0);
+    subLoop.start(0);
+    dripLoop.start(0);
+    Tone.Transport.start();
+  }
+
+  playExploreLabyrinth() {
+    // "The Green That Remembers" - 88 BPM, E minor with a major lift
+    // (Em C G D). Lilting and almost beautiful; one chromatic passing D#
+    // per phrase keeps it slightly wrong. You are being watched by plants.
+
+    const lead = new Tone.Synth({
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.01, decay: 0.12, sustain: 0.35, release: 0.25 }
+    }).connect(new Tone.Gain(0.13).connect(this.masterGain));
+
+    const harmony = new Tone.Synth({
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.01, decay: 0.12, sustain: 0.3, release: 0.25 }
+    }).connect(new Tone.Gain(0.07).connect(this.masterGain));
+
+    const bass = new Tone.Synth({
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.01, decay: 0.15, sustain: 0.3, release: 0.1 }
+    }).connect(new Tone.Gain(0.2).connect(this.masterGain));
+
+    const hat = new Tone.NoiseSynth({
+      noise: { type: 'pink' },
+      envelope: { attack: 0.001, decay: 0.03, sustain: 0, release: 0.02 }
+    }).connect(new Tone.Gain(0.04).connect(this.masterGain));
+
+    this.activeNodes.push(lead, harmony, bass, hat);
+
+    // Lilting 8th-note melody; the D#4 is the wrongness
+    const melodyNotes = [
+      // Em
+      'E4', 'G4', 'F#4', 'G4', 'B4', 'G4', 'E4', null,
+      // C
+      'C4', 'E4', 'D#4', 'E4', 'G4', 'E4', 'C4', null,
+      // G
+      'G4', 'B4', 'A4', 'G4', 'D4', 'G4', 'B4', null,
+      // D
+      'D4', 'F#4', 'A4', 'F#4', 'E4', 'D4', 'B3', null
+    ];
+    const melodySeq = new Tone.Sequence((time, note) => {
+      if (note) MusicManager.note(lead, note, '8n', time);
+    }, melodyNotes, '8n');
+
+    // A third below, sparser
+    const harmonyNotes = [
+      'G3', null, 'B3', null, 'D4', null, 'G3', null,
+      'A3', null, 'C4', null, 'E4', null, 'A3', null,
+      'B3', null, 'D4', null, 'B3', null, 'D4', null,
+      'F#3', null, 'A3', null, 'G3', null, 'F#3', null
+    ];
+    const harmonySeq = new Tone.Sequence((time, note) => {
+      if (note) MusicManager.note(harmony, note, '8n', time);
+    }, harmonyNotes, '8n');
+
+    // Arpeggiated bass, same shape as the Ashen Path walk
+    const bassPattern = [
+      'E2', 'B2', 'E2', 'G2', 'E2', 'B2', 'E2', 'B2',
+      'C2', 'G2', 'C2', 'E2', 'C2', 'G2', 'C2', 'G2',
+      'G2', 'D3', 'G2', 'B2', 'G2', 'D3', 'G2', 'D3',
+      'D2', 'A2', 'D2', 'F#2', 'D2', 'A2', 'B2', 'E2'
+    ];
+    const bassSeq = new Tone.Sequence((time, note) => {
+      if (note) MusicManager.note(bass, note, '16n', time);
+    }, bassPattern, '8n');
+
+    // Offbeat hat pushes the walk forward
+    const hatPattern = [null, 'x', null, 'x', null, 'x', null, 'x'];
+    const hatSeq = new Tone.Sequence((time, step) => {
+      if (step) MusicManager.hit(hat, '16n', time);
+    }, hatPattern, '8n');
+
+    this.activeNodes.push(melodySeq, harmonySeq, bassSeq, hatSeq);
+
+    Tone.Transport.bpm.value = 88;
+    melodySeq.start(0);
+    harmonySeq.start(0);
+    bassSeq.start(0);
+    hatSeq.start(0);
+    Tone.Transport.start();
+  }
+
+  // FOE proximity drone. Layers a tremolo fifth OVER the current track;
+  // ramps in and out so it never pops. No caller yet: the FOE exploration
+  // system (PR D of the Etrian pass) calls setDanger(near) when a patrolling
+  // elite closes in. Deliberately outside activeNodes so switchTrack's
+  // teardown and this drone cannot double-dispose each other; stopAllTracks
+  // clears it via clearDanger().
+  setDanger(active) {
+    if (!this.initialized || this.muted) {
+      if (!active) this.clearDanger();
+      return;
+    }
+    if (active === this.dangerActive) return;
+    if (!active) {
+      this.clearDanger();
+      return;
+    }
+    this.dangerActive = true;
+
+    const gain = new Tone.Gain(0).connect(this.masterGain);
+    const low = new Tone.Synth({
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.5, decay: 0, sustain: 1, release: 1 }
+    }).connect(gain);
+    const high = new Tone.Synth({
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.5, decay: 0, sustain: 1, release: 1 }
+    }).connect(gain);
+    // 4 Hz tremolo between near-silence and a low murmur
+    const lfo = new Tone.LFO(4, 0.015, 0.08);
+    lfo.connect(gain.gain);
+    lfo.start();
+    low.triggerAttack('D2');
+    high.triggerAttack('A2');
+    this.dangerNodes = [low, high, lfo, gain];
+  }
+
+  clearDanger() {
+    this.dangerActive = false;
+    const nodes = this.dangerNodes;
+    this.dangerNodes = [];
+    if (nodes.length === 0) return;
+    nodes.forEach(node => {
+      try {
+        if (node.triggerRelease) node.triggerRelease();
+        if (node.stop) node.stop();
+      } catch (e) {
+        console.debug('danger drone release race', e);
+      }
+    });
+    // Dispose after the 1s release tail has fully faded
+    setTimeout(() => {
+      nodes.forEach(node => {
+        try {
+          if (node && !node.disposed) node.dispose();
+        } catch (e) {
+          console.debug('danger drone teardown race', e);
+        }
+      });
+    }, 1500);
   }
 
   playBonfire() {
@@ -608,6 +918,9 @@ class SfxManager {
     this.initialized = false;
     this.muted = false;
     this.masterGain = null;
+    // Footstep throttle: held-key movement steps every 110ms; anything
+    // faster than one step sound per 120ms turns into a machine gun
+    this.lastFootstepTime = 0;
   }
 
   async init() {
@@ -689,7 +1002,71 @@ class SfxManager {
       case 'burn':
         this.playBurn();
         break;
+      case 'footstep':
+        this.playFootstep(options);
+        break;
     }
+  }
+
+  // Soft area-flavored footstep. Ash scuffs, keep stone clicks, the Hollow
+  // echoes, Labyrinth grass swishes. alt nudges pitch so left/right feet
+  // do not sound identical.
+  playFootstep({ area = 'ashenPath', alt = false } = {}) {
+    const now = Date.now();
+    if (now - this.lastFootstepTime < 120) return;
+    this.lastFootstepTime = now;
+
+    const nodes = [];
+    const step = (noiseType, decay, noiseGain, thumpNote) => {
+      const noise = new Tone.NoiseSynth({
+        noise: { type: noiseType },
+        envelope: { attack: 0.001, decay: decay, sustain: 0, release: 0.02 }
+      }).connect(new Tone.Gain(noiseGain).connect(this.masterGain));
+      noise.triggerAttackRelease('32n');
+      nodes.push(noise);
+      if (thumpNote) {
+        const thump = new Tone.Synth({
+          oscillator: { type: 'sine' },
+          envelope: { attack: 0.001, decay: 0.06, sustain: 0, release: 0.05 }
+        }).connect(new Tone.Gain(0.1).connect(this.masterGain));
+        thump.triggerAttackRelease(Tone.Frequency(thumpNote).transpose(alt ? 1 : 0), '32n');
+        nodes.push(thump);
+      }
+    };
+
+    switch (area) {
+      case 'fallenKeep':
+        // Hard stone click
+        step('white', 0.03, 0.09, 'G2');
+        break;
+      case 'hollowDeep': {
+        // Damp step with a short echo trailing into the dark
+        const echo = new Tone.FeedbackDelay({ delayTime: 0.09, feedback: 0.25, wet: 0.5 }).connect(this.masterGain);
+        const noise = new Tone.NoiseSynth({
+          noise: { type: 'brown' },
+          envelope: { attack: 0.001, decay: 0.09, sustain: 0, release: 0.02 }
+        }).connect(new Tone.Gain(0.1).connect(echo));
+        noise.triggerAttackRelease('32n');
+        nodes.push(noise, echo);
+        const thump = new Tone.Synth({
+          oscillator: { type: 'sine' },
+          envelope: { attack: 0.001, decay: 0.08, sustain: 0, release: 0.05 }
+        }).connect(new Tone.Gain(0.1).connect(this.masterGain));
+        thump.triggerAttackRelease(Tone.Frequency('E1').transpose(alt ? 1 : 0), '32n');
+        nodes.push(thump);
+        break;
+      }
+      case 'labyrinth':
+        // Grass swish, no thump
+        step('pink', 0.07, 0.1, null);
+        break;
+      default:
+        // Ashen Path: soft ash scuff
+        step('brown', 0.06, 0.12, 'C2');
+        break;
+    }
+
+    this.disposeAfter(nodes, 800);
   }
 
   playHitLight() {
@@ -1698,68 +2075,115 @@ var GBC = {
   grassLight: '#48bb78',
 };
 
-// Area-specific tile palettes
+// Area-specific tile palettes. Each area is a "stratum" with one strong color
+// identity; keys beyond the shared set (wallEdge, pathShadow, mist, deep,
+// motes, motes2) feed the depth/vignette/particle layers.
 var AREA_PALETTES = {
-  // Ashen Path - desolate, burned, gray-brown tones
+  // Ashen Path - "The Burned Meadow": warm gray stone, ember orange, dead sage
   ashenPath: {
-    wallDark: '#1f1a15',
-    wallMid: '#3d3530',
-    wallLight: '#5a5048',
-    pathDark: '#4a4035',
-    pathMid: '#6b5d50',
-    pathLight: '#8c7a6a',
-    grassDark: '#3d4a35',
-    grassMid: '#526b45',
-    grassLight: '#688c58',
-    accent: '#8b7355',
-    glow: 'rgba(139, 115, 85, 0.3)'
+    wallDark: '#241b14',
+    wallMid: '#453729',
+    wallLight: '#6b5a45',
+    wallEdge: '#8a765c',
+    pathDark: '#4f4237',
+    pathMid: '#6f5f4e',
+    pathLight: '#93816b',
+    pathShadow: '#352c24',
+    grassDark: '#4a4733',
+    grassMid: '#6b6845',
+    grassLight: '#8f8858',
+    accent: '#d9822b',
+    ember: '#f2b04e',
+    glow: 'rgba(217, 130, 43, 0.35)',
+    mist: 'rgba(214, 170, 120, 0.06)',
+    deep: '#14100c',
+    motes: '#e8a05a',
+    motes2: '#b0a08a'
   },
-  // Fallen Keep - dark stone, torchlit oranges
+  // Fallen Keep - "Cold Stone and Torch Gold": blue-violet stone so torchlight pops
   fallenKeep: {
-    wallDark: '#1a1520',
-    wallMid: '#2e2535',
-    wallLight: '#453850',
-    pathDark: '#3a2a25',
-    pathMid: '#5c4035',
-    pathLight: '#7a5545',
+    wallDark: '#131020',
+    wallMid: '#2a2440',
+    wallLight: '#454069',
+    wallEdge: '#5d5a85',
+    pathDark: '#2c2233',
+    pathMid: '#47394d',
+    pathLight: '#665a6e',
+    pathShadow: '#1e1826',
     grassDark: '#3d3530',
     grassMid: '#524540',
     grassLight: '#6b5850',
-    accent: '#ed8936',
-    glow: 'rgba(237, 137, 54, 0.4)',
-    torch: '#f6ad55'
+    accent: '#f0a048',
+    glow: 'rgba(240, 160, 72, 0.45)',
+    torch: '#ffb454',
+    torchCore: '#ffe9b0',
+    mist: 'rgba(90, 90, 160, 0.08)',
+    deep: '#0b0916',
+    motes: '#ffb454',
+    motes2: '#ff8a3d'
   },
-  // Hollow Deep - void purples, sickly greens
+  // Hollow Deep - "The Abyss Breathes": void purple, abyssal teal
   hollowDeep: {
-    wallDark: '#0d0a14',
-    wallMid: '#1a1528',
-    wallLight: '#2d2540',
-    pathDark: '#1a1a25',
-    pathMid: '#252535',
-    pathLight: '#353548',
-    grassDark: '#1a2a20',
-    grassMid: '#253830',
-    grassLight: '#354840',
-    accent: '#9f7aea',
-    glow: 'rgba(159, 122, 234, 0.5)',
-    void: '#6b46c1'
+    wallDark: '#0b0716',
+    wallMid: '#1c1330',
+    wallLight: '#332052',
+    wallEdge: '#4b3175',
+    pathDark: '#131226',
+    pathMid: '#232140',
+    pathLight: '#38355c',
+    pathShadow: '#0d0c1c',
+    grassDark: '#12251f',
+    grassMid: '#1e3a30',
+    grassLight: '#2f5446',
+    accent: '#a78bfa',
+    glow: 'rgba(167, 139, 250, 0.5)',
+    void: '#7c5cbf',
+    abyss: '#3ec6b8',
+    mist: 'rgba(124, 92, 191, 0.10)',
+    deep: '#060410',
+    motes: '#8fe3d9',
+    motes2: '#a78bfa'
   },
-  // The Labyrinth - ancient gold, mysterious blues
+  // The Labyrinth - "Verdant and Wrong": lush greens over old gold
   labyrinth: {
-    wallDark: '#151a25',
-    wallMid: '#202838',
-    wallLight: '#303a50',
-    pathDark: '#252520',
-    pathMid: '#3a3830',
-    pathLight: '#504a40',
-    grassDark: '#2a3530',
-    grassMid: '#3a4a40',
-    grassLight: '#4a5a50',
-    accent: '#d69e2e',
-    glow: 'rgba(214, 158, 46, 0.3)',
-    ancient: '#c9a227',
-    mystery: '#4a6fa5'
+    wallDark: '#0f2318',
+    wallMid: '#1d4030',
+    wallLight: '#33664a',
+    wallEdge: '#4d8a60',
+    pathDark: '#33402b',
+    pathMid: '#4c5c3c',
+    pathLight: '#6f8054',
+    pathShadow: '#22301f',
+    grassDark: '#1e4a2e',
+    grassMid: '#2f6e42',
+    grassLight: '#4c9a58',
+    bloom: '#d8e26a',
+    accent: '#e8c84a',
+    glow: 'rgba(232, 200, 74, 0.3)',
+    ancient: '#e8c84a',
+    mystery: '#4a6fa5',
+    mist: 'rgba(80, 180, 110, 0.08)',
+    deep: '#081510',
+    motes: '#b8d872',
+    motes2: '#7db86a'
   }
+};
+
+// Per-area ambient particle behavior, consumed by AshFall in index.html.
+// anim must be a keyframe defined in styles.css.
+var AREA_PARTICLES = {
+  ashenPath:  { anim: 'ashFall',   from: 'top',    round: false, glowPx: 0, durMul: 1.0 },
+  fallenKeep: { anim: 'emberRise', from: 'bottom', round: true,  glowPx: 4, durMul: 0.8 },
+  hollowDeep: { anim: 'voidDrift', from: 'bottom', round: true,  glowPx: 6, durMul: 1.6 },
+  labyrinth:  { anim: 'sporeFall', from: 'top',    round: true,  glowPx: 0, durMul: 1.4 }
+};
+
+// Which MusicManager track plays while exploring each area
+var EXPLORATION_TRACKS = {
+  ashenPath: 'exploration',
+  fallenKeep: 'exploreKeep',
+  hollowDeep: 'exploreHollow',
+  labyrinth: 'exploreLabyrinth'
 };
 
 

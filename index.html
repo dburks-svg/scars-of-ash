@@ -681,11 +681,16 @@
       );
     };
 
-    // Tile components - area-aware for distinct visual styles
-    const GrassTile = ({ area = 'ashenPath', seed = 0 }) => {
+    // Tile components - area-aware for distinct visual styles.
+    // All are React.memo with primitive props: the whole grid re-renders on
+    // every step, so memoization is what pays for the visual detail.
+    const GrassTile = React.memo(({ area = 'ashenPath', seed = 0, wallAbove = false }) => {
       const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
       const isHollow = area === 'hollowDeep';
       const isLabyrinth = area === 'labyrinth';
+      const hasBloom = isLabyrinth && seed % 3 === 0;
+      const bloomX = 10 + (seed % 5) * 8;
+      const bloomY = 14 + (seed % 4) * 9;
 
       return (
         <div style={{
@@ -693,9 +698,7 @@
           height: '100%',
           backgroundColor: palette.grassDark,
           position: 'relative',
-          overflow: 'hidden',
-          animation: isHollow ? 'voidPulse 3s ease-in-out infinite' :
-                     isLabyrinth ? 'mazeGlow 4s ease-in-out infinite' : 'none'
+          overflow: 'hidden'
         }}>
           {/* Grass blades pattern; mirrored and desynced per tile so a field
               of grass does not sway as one repeated block */}
@@ -722,6 +725,13 @@
             <rect x="34" y="32" width="3" height="14" fill={palette.grassMid}/>
             <rect x="45" y="36" width="3" height="14" fill={palette.grassMid}/>
           </svg>
+          {/* Labyrinth blooms: pretty flowers in a place that should not have them */}
+          {hasBloom && (
+            <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
+              <rect x={bloomX} y={bloomY} width="3" height="3" fill={palette.bloom}/>
+              <rect x={bloomX + 1} y={bloomY - 2} width="1" height="2" fill={palette.grassLight}/>
+            </svg>
+          )}
           {/* Void particles for Hollow Deep */}
           {isHollow && (
             <>
@@ -749,23 +759,45 @@
               }}/>
             </>
           )}
+          {/* Area pulse: static shadow, opacity-only animation (compositor
+              friendly; the old voidPulse/mazeGlow animated box-shadow) */}
+          {isHollow && <div className="pulse-overlay-void"/>}
+          {isLabyrinth && <div className="pulse-overlay-maze"/>}
+          {/* Ambient occlusion under walls: floors sit lower than stone */}
+          {wallAbove && (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '10px',
+              background: `linear-gradient(180deg, ${palette.pathShadow}, transparent)`,
+              opacity: 0.8,
+              pointerEvents: 'none'
+            }}/>
+          )}
         </div>
       );
-    };
+    });
 
-    const PathTile = ({ area = 'ashenPath', seed = 0 }) => {
+    const PathTile = React.memo(({ area = 'ashenPath', seed = 0, wallAbove = false, lit = null }) => {
       const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
       const isLabyrinth = area === 'labyrinth';
+      const isKeep = area === 'fallenKeep';
+      const isHollow = area === 'hollowDeep';
 
       // Deterministic per-tile variety: mirror/rotate the shared texture and
       // sprinkle occasional details so floors stop reading as wallpaper.
       // Seeded from tile coordinates, never Math.random(), so nothing
       // flickers between re-renders.
-      const variant = seed % 3;
-      const textureTransform = variant === 1 ? 'scaleX(-1)' : variant === 2 ? 'rotate(180deg)' : 'none';
+      const variant = seed % 4;
+      const textureTransform = variant === 1 ? 'scaleX(-1)' : variant === 2 ? 'rotate(180deg)' : variant === 3 ? 'rotate(90deg)' : 'none';
       const hasCrack = seed % 7 === 3;
       const hasPebbles = seed % 5 === 1;
       const hasWind = area === 'ashenPath' && seed % 6 === 2;
+      const hasLeaves = isLabyrinth && seed % 5 === 2;
+      const hasJoints = isKeep && seed % 4 === 2;
+      const hasSpeckle = isHollow && seed % 8 === 5;
       const detailX = 8 + (seed % 4) * 9;
       const detailY = 12 + (seed % 3) * 11;
 
@@ -811,6 +843,28 @@
                 <rect x={detailX + 3} y={detailY + 12} width="2" height="2" fill={palette.pathLight}/>
               </>
             )}
+            {/* Labyrinth leaf litter and root */}
+            {hasLeaves && (
+              <>
+                <rect x={detailX} y={detailY} width="4" height="2" fill={palette.grassMid} opacity="0.8"/>
+                <rect x={detailX + 7} y={detailY + 4} width="3" height="2" fill={palette.grassLight} opacity="0.7"/>
+                <rect x={detailX - 2} y={detailY + 8} width="10" height="2" fill={palette.grassDark} opacity="0.9"/>
+              </>
+            )}
+            {/* Fallen Keep flagstone joint lines */}
+            {hasJoints && (
+              <>
+                <rect x="0" y={detailY} width="56" height="1" fill={palette.pathDark} opacity="0.7"/>
+                <rect x={detailX + 10} y={detailY} width="1" height={56 - detailY} fill={palette.pathDark} opacity="0.6"/>
+              </>
+            )}
+            {/* Hollow Deep abyssal speckle */}
+            {hasSpeckle && (
+              <>
+                <rect x={detailX} y={detailY} width="2" height="2" fill={palette.abyss} opacity="0.5"/>
+                <rect x={detailX + 9} y={detailY + 7} width="1" height="1" fill={palette.abyss} opacity="0.4"/>
+              </>
+            )}
           </svg>
           {/* Ashen wind particles for Ashen Path */}
           {hasWind && (
@@ -826,15 +880,49 @@
               opacity: 0.4
             }}/>
           )}
+          {/* Ambient occlusion under walls */}
+          {wallAbove && (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '10px',
+              background: `linear-gradient(180deg, ${palette.pathShadow}, transparent)`,
+              opacity: 0.8,
+              pointerEvents: 'none'
+            }}/>
+          )}
+          {/* Torch or bonfire light spilling onto the floor from a neighbor */}
+          {lit && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              background: `radial-gradient(circle at ${lit === 'left' ? '0%' : '100%'} 50%, ${palette.glow} 0%, transparent 65%)`,
+              pointerEvents: 'none'
+            }}/>
+          )}
         </div>
       );
-    };
+    });
 
-    const WallTile = ({ area = 'ashenPath' }) => {
+    const WallTile = React.memo(({ area = 'ashenPath', seed = 0, openBelow = false }) => {
       const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
       const isKeep = area === 'fallenKeep';
       const isHollow = area === 'hollowDeep';
       const isLabyrinth = area === 'labyrinth';
+      const isAshen = area === 'ashenPath';
+
+      // Seeded brick variety: same transforms as PathTile so walls stop
+      // repeating as one block. Deterministic, never Math.random().
+      const variant = seed % 3;
+      const textureTransform = variant === 1 ? 'scaleX(-1)' : variant === 2 ? 'rotate(180deg)' : 'none';
+      const hasScorch = isAshen && seed % 6 === 2;
+      const hasChip = isKeep && seed % 5 === 3;
+      const hasVein = isHollow && seed % 6 === 1;
+      const hasMoss = isLabyrinth && seed % 4 === 1;
+      const detailX = 6 + (seed % 5) * 9;
+      const detailY = 8 + (seed % 4) * 10;
 
       return (
         <div style={{
@@ -842,10 +930,11 @@
           height: '100%',
           backgroundColor: palette.wallDark,
           position: 'relative',
+          overflow: 'hidden',
           boxShadow: isHollow ? `inset 0 0 12px ${palette.glow}` :
                      isLabyrinth ? `inset 0 0 6px ${palette.glow}` : 'none'
         }}>
-          <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
+          <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0, transform: textureTransform }}>
             {/* Brick pattern with area-specific colors */}
             <rect x="0" y="0" width="26" height="13" fill={palette.wallMid} stroke={palette.wallDark} strokeWidth="1"/>
             <rect x="28" y="0" width="28" height="13" fill={palette.wallMid} stroke={palette.wallDark} strokeWidth="1"/>
@@ -872,11 +961,54 @@
               </>
             )}
           </svg>
+          {/* Seeded per-area wall details, drawn untransformed on top */}
+          <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
+            {hasScorch && (
+              <>
+                <rect x={detailX} y={detailY} width="10" height="8" fill="#0f0b08" opacity="0.55"/>
+                <rect x={detailX + 2} y={detailY - 3} width="6" height="4" fill="#0f0b08" opacity="0.35"/>
+              </>
+            )}
+            {hasChip && (
+              <>
+                <rect x={detailX} y={detailY} width="5" height="4" fill={palette.wallDark}/>
+                <rect x={detailX + 1} y={detailY + 4} width="3" height="2" fill={palette.wallEdge} opacity="0.5"/>
+              </>
+            )}
+            {hasVein && (
+              <>
+                <rect x={detailX} y={detailY} width="2" height="10" fill={palette.abyss} opacity="0.5"/>
+                <rect x={detailX + 2} y={detailY + 8} width="6" height="2" fill={palette.abyss} opacity="0.35"/>
+              </>
+            )}
+            {hasMoss && (
+              <>
+                <rect x={detailX} y={detailY} width="8" height="3" fill={palette.grassLight} opacity="0.6"/>
+                <rect x={detailX + 2} y={detailY + 3} width="4" height="5" fill={palette.grassMid} opacity="0.5"/>
+                <rect x={detailX - 2} y={detailY + 2} width="2" height="7" fill={palette.grassDark} opacity="0.6"/>
+              </>
+            )}
+          </svg>
+          {/* Bottom face where the wall meets open floor: walls read as
+              solid volumes standing above the ground (the EO depth cue) */}
+          {openBelow && (
+            <div style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: '8px',
+              pointerEvents: 'none'
+            }}>
+              <div style={{ height: '2px', backgroundColor: palette.wallEdge, opacity: 0.9 }}/>
+              <div style={{ height: '6px', background: `linear-gradient(180deg, ${palette.wallDark}, #000000)`, opacity: 0.7 }}/>
+            </div>
+          )}
         </div>
       );
-    };
+    });
 
-    const BonfireTile = ({ area = 'ashenPath' }) => {
+    const BonfireTile = React.memo(({ area = 'ashenPath' }) => {
       const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
 
       return (
@@ -930,19 +1062,19 @@
             animation: 'ember 1.2s infinite',
             animationDelay: '0.3s'
           }}/>
-          {/* Area-specific glow */}
+          {/* Warm layered firelight pooling on the ground */}
           <div style={{
             position: 'absolute',
             width: '100%',
             height: '100%',
-            boxShadow: `inset 0 0 20px rgba(237, 137, 54, 0.3)`,
+            background: 'radial-gradient(circle at 50% 55%, rgba(255, 233, 176, 0.28) 0%, rgba(237, 137, 54, 0.22) 40%, transparent 75%)',
             pointerEvents: 'none'
           }}/>
         </div>
       );
-    };
+    });
 
-    const GateTile = ({ isKeep = false, area = 'ashenPath' }) => {
+    const GateTile = React.memo(({ isKeep = false, area = 'ashenPath' }) => {
       const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
 
       return (
@@ -970,9 +1102,9 @@
           </svg>
         </div>
       );
-    };
+    });
 
-    const BossRoomTile = ({ area = 'ashenPath' }) => {
+    const BossRoomTile = React.memo(({ area = 'ashenPath' }) => {
       const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
       const isHollow = area === 'hollowDeep';
       const eyeColor = isHollow ? '#9f7aea' : '#c53030';
@@ -1012,10 +1144,10 @@
           </svg>
         </div>
       );
-    };
+    });
 
     // Torch tile for Fallen Keep atmosphere
-    const TorchTile = ({ area = 'fallenKeep' }) => {
+    const TorchTile = React.memo(({ area = 'fallenKeep' }) => {
       const palette = AREA_PALETTES[area] || AREA_PALETTES.fallenKeep;
 
       return (
@@ -1048,20 +1180,21 @@
             <rect x="7" y="2" width="6" height="6" fill="#f6e05e"/>
             <rect x="8" y="0" width="4" height="4" fill="#faf089"/>
           </svg>
-          {/* Light glow effect */}
+          {/* Layered torchlight: bright core, warm falloff */}
           <div style={{
             position: 'absolute',
             width: '100%',
             height: '100%',
-            background: `radial-gradient(circle at 50% 30%, ${palette.glow} 0%, transparent 60%)`,
+            background: `radial-gradient(circle at 50% 30%, ${palette.torchCore || palette.torch || palette.accent} 0%, ${palette.glow} 30%, transparent 65%)`,
+            opacity: 0.5,
             pointerEvents: 'none'
           }}/>
         </div>
       );
-    };
+    });
 
     // Ashen Gate - massive door at end of Labyrinth
-    const AshenGateTile = ({ area = 'labyrinth' }) => {
+    const AshenGateTile = React.memo(({ area = 'labyrinth' }) => {
       const palette = AREA_PALETTES.labyrinth;
 
       return (
@@ -1104,10 +1237,10 @@
           }}/>
         </div>
       );
-    };
+    });
 
     // Secret door tile - hidden until revealed
-    const SecretDoorTile = ({ revealed = false, area = 'labyrinth' }) => {
+    const SecretDoorTile = React.memo(({ revealed = false, area = 'labyrinth' }) => {
       const palette = AREA_PALETTES[area] || AREA_PALETTES.labyrinth;
 
       if (!revealed) {
@@ -1159,10 +1292,10 @@
           }}/>
         </div>
       );
-    };
+    });
 
     // Lore object indicator tile - shows examinable props
-    const LoreObjectTile = ({ objectType = 'generic', area = 'ashenPath' }) => {
+    const LoreObjectTile = React.memo(({ objectType = 'generic', area = 'ashenPath' }) => {
       const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
 
       const renderObject = () => {
@@ -1316,7 +1449,7 @@
           }}/>
         </div>
       );
-    };
+    });
 
 
     // ============= BATTLE HELPERS =============
@@ -3424,10 +3557,12 @@
       );
     }
 
-    // The world is still burning somewhere. Ash drifts over every area, tinted
-    // to that area's palette. Purely decorative, never eats a tap.
+    // Each area has its own weather: drifting ash, rising embers, void motes,
+    // falling spores. Behavior comes from AREA_PARTICLES; colors from the
+    // area palette. Purely decorative, never eats a tap.
     const AshFall = React.memo(function AshFall({ map }) {
       const palette = AREA_PALETTES[map] || AREA_PALETTES.ashenPath;
+      const cfg = AREA_PARTICLES[map] || AREA_PARTICLES.ashenPath;
       // Fixed, hand-picked motes: deterministic, so they don't reshuffle on
       // every re-render and strobe while the player walks.
       const MOTES = [
@@ -3451,22 +3586,68 @@
           pointerEvents: 'none',
           zIndex: 5
         }}>
-          {MOTES.map((m, i) => (
-            <div
-              key={i}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: `${m.left}%`,
-                width: `${m.size}px`,
-                height: `${m.size}px`,
-                backgroundColor: palette.accent,
-                opacity: m.op,
-                animation: `ashFall ${m.dur}s linear ${m.delay}s infinite`
-              }}
-            />
-          ))}
+          {MOTES.map((m, i) => {
+            const color = i % 2 === 1 ? (palette.motes2 || palette.accent) : (palette.motes || palette.accent);
+            return (
+              <div
+                key={i}
+                className="ambient-mote"
+                style={{
+                  position: 'absolute',
+                  top: cfg.from === 'top' ? 0 : 'auto',
+                  bottom: cfg.from === 'bottom' ? 0 : 'auto',
+                  left: `${m.left}%`,
+                  width: `${m.size}px`,
+                  height: `${m.size}px`,
+                  backgroundColor: color,
+                  color: color,
+                  borderRadius: cfg.round ? '50%' : 0,
+                  boxShadow: cfg.glowPx ? `0 0 ${cfg.glowPx}px currentColor` : 'none',
+                  opacity: m.op,
+                  animation: `${cfg.anim} ${Math.round(m.dur * cfg.durMul * 10) / 10}s linear ${m.delay}s infinite`
+                }}
+              />
+            );
+          })}
         </div>
+      );
+    });
+
+    // Stratum framing: colored ambient light wash plus edge darkening, so the
+    // map reads like a dungeon seen by lantern light. Never eats a tap.
+    const MapVignette = React.memo(function MapVignette({ map }) {
+      const palette = AREA_PALETTES[map] || AREA_PALETTES.ashenPath;
+      return (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 6,
+          background: `radial-gradient(ellipse at 50% 42%, transparent 52%, ${palette.deep} 135%), linear-gradient(${palette.mist}, ${palette.mist})`
+        }}/>
+      );
+    });
+
+    // Four corner brackets: the EO "dungeon viewed through an explorer's
+    // window" framing, tinted to the area accent.
+    const MapFrameCorners = React.memo(function MapFrameCorners({ map }) {
+      const accent = (AREA_PALETTES[map] || AREA_PALETTES.ashenPath).accent;
+      const corner = (pos) => ({
+        position: 'absolute',
+        width: '10px',
+        height: '10px',
+        pointerEvents: 'none',
+        zIndex: 7,
+        ...pos
+      });
+      const edge = `2px solid ${accent}`;
+      return (
+        <>
+          <div style={{ ...corner({ top: '2px', left: '2px' }), borderTop: edge, borderLeft: edge }}/>
+          <div style={{ ...corner({ top: '2px', right: '2px' }), borderTop: edge, borderRight: edge }}/>
+          <div style={{ ...corner({ bottom: '2px', left: '2px' }), borderBottom: edge, borderLeft: edge }}/>
+          <div style={{ ...corner({ bottom: '2px', right: '2px' }), borderBottom: edge, borderRight: edge }}/>
+        </>
       );
     });
 
@@ -3513,6 +3694,12 @@
 
         if (posChanged) {
           setIsMoving(true);
+          // Soft area-flavored footstep; the SfxManager throttles itself so
+          // held-key movement does not machine-gun
+          playSfx('footstep', {
+            area: state.currentMap,
+            alt: (state.playerPos.x + state.playerPos.y) % 2 === 0
+          });
           // Kick up a dust puff on the tile just left behind
           const puff = {
             x: prevPosRef.current.x,
@@ -3683,18 +3870,27 @@
 
       // Render tile background with area-specific styling. Seed gives each
       // tile a stable texture variant so floors stop looking like wallpaper.
+      // Neighbor checks add depth: floors darken under walls (ambient
+      // occlusion), walls show a face where floor opens below them, and
+      // torch/bonfire light spills onto adjacent floor. All derived from the
+      // static map, so memoized tiles never go stale.
       const renderTileBackground = (tile, x, y) => {
         const area = state.currentMap;
         const seed = x * 31 + y * 17;
         // Lore objects render on their tile so the story is discoverable
         const lore = TILE_LORE[area]?.[`${x},${y}`];
+        const wallAbove = y > 0 && map[y - 1][x] === 'W';
+        const openBelow = y < map.length - 1 && map[y + 1][x] !== 'W';
+        const litLeft = x > 0 && (map[y][x - 1] === 'T' || map[y][x - 1] === 'B');
+        const litRight = x < map[y].length - 1 && (map[y][x + 1] === 'T' || map[y][x + 1] === 'B');
+        const lit = litLeft ? 'left' : litRight ? 'right' : null;
 
         switch(tile) {
-          case 'W': return <WallTile area={area} />;
+          case 'W': return <WallTile area={area} seed={seed} openBelow={openBelow} />;
           case 'P': return lore
             ? <LoreObjectTile objectType={lore.object || 'generic'} area={area} />
-            : <PathTile area={area} seed={seed} />;
-          case 'G': return <GrassTile area={area} seed={seed} />;
+            : <PathTile area={area} seed={seed} wallAbove={wallAbove} lit={lit} />;
+          case 'G': return <GrassTile area={area} seed={seed} wallAbove={wallAbove} />;
           case 'B': return <BonfireTile area={area} />;
           case 'X': return <GateTile area={area} />;
           case 'E': return <GateTile isKeep={true} area={area} />;
@@ -3703,10 +3899,10 @@
           case 'A': return <AshenGateTile area={area} />;
           case 'H': return <SecretDoorTile revealed={false} area={area} />;
           case 'S': return <SecretDoorTile revealed={state.secretDoorRevealed} area={area} />;
-          case 'N': return <PathTile area={area} seed={seed} />;
-          case 'C': return <PathTile area={area} seed={seed} />;
+          case 'N': return <PathTile area={area} seed={seed} wallAbove={wallAbove} lit={lit} />;
+          case 'C': return <PathTile area={area} seed={seed} wallAbove={wallAbove} lit={lit} />;
           case 'L': return <LoreObjectTile objectType={lore?.object || 'generic'} area={area} />;
-          default: return <PathTile area={area} seed={seed} />;
+          default: return <PathTile area={area} seed={seed} wallAbove={wallAbove} lit={lit} />;
         }
       };
 
@@ -3779,10 +3975,11 @@
           </div>
 
           <div style={{ ...styles.mapContainer, position: 'relative' }}>
-            <AshFall map={state.currentMap} />
             <div style={{
               ...styles.grid,
-              gridTemplateColumns: `repeat(${map[0].length}, var(--tile-size))`
+              position: 'relative',
+              gridTemplateColumns: `repeat(${map[0].length}, var(--tile-size))`,
+              boxShadow: `${styles.grid.boxShadow}, 0 0 24px ${(AREA_PALETTES[state.currentMap] || AREA_PALETTES.ashenPath).glow}, 0 6px 16px rgba(0, 0, 0, 0.6)`
             }}>
               {map.map((row, y) =>
                 row.map((tile, x) => {
@@ -3933,6 +4130,9 @@
                   );
                 })
               )}
+              <AshFall map={state.currentMap} />
+              <MapVignette map={state.currentMap} />
+              <MapFrameCorners map={state.currentMap} />
             </div>
           </div>
 
@@ -7057,7 +7257,7 @@ const DevDashboard = ({ onClose, onModified }) => {
           return 'battle';
         }
         if (state.screen === 'exploration') {
-          return isOnBonfire() ? 'bonfire' : 'exploration';
+          return isOnBonfire() ? 'bonfire' : (EXPLORATION_TRACKS[state.currentMap] || 'exploration');
         }
         return null;
       })();
