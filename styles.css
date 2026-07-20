@@ -215,6 +215,22 @@
       50% { transform: scale(1.3); opacity: 1; }
     }
 
+    /* FOE aura: amber while patrolling, faster and red once it has your
+       scent. Drop-shadow only, so it reads through fog dim without
+       repainting the tile underneath. */
+    @keyframes foePulsePatrol {
+      0%, 100% { filter: drop-shadow(0 0 3px rgba(240, 160, 72, 0.55)); }
+      50% { filter: drop-shadow(0 0 8px rgba(240, 160, 72, 0.9)); }
+    }
+
+    @keyframes foePulseChase {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(220, 60, 60, 0.7)); }
+      50% { filter: drop-shadow(0 0 11px rgba(255, 90, 90, 1)); }
+    }
+
+    .foe-aura-patrol { animation: foePulsePatrol 2.2s ease-in-out infinite; }
+    .foe-aura-chase { animation: foePulseChase 0.9s ease-in-out infinite; }
+
     /* Destination flash for tap-to-path */
     @keyframes destinationFlash {
       0%, 20% { box-shadow: inset 0 0 0 2px rgba(246, 224, 94, 0.7); }
@@ -379,6 +395,16 @@
       .telegraph-charge, .screen-shake, .critical-flash,
       .ambient-mote, .tile-reveal, .pulse-overlay-void, .pulse-overlay-maze {
         animation: none !important;
+      }
+      /* FOE auras keep a static glow: the threat cue must survive
+         reduced-motion, it is gameplay information, not decoration */
+      .foe-aura-patrol {
+        animation: none !important;
+        filter: drop-shadow(0 0 6px rgba(240, 160, 72, 0.8)) !important;
+      }
+      .foe-aura-chase {
+        animation: none !important;
+        filter: drop-shadow(0 0 9px rgba(255, 90, 90, 0.95)) !important;
       }
       /* Killing the wipe's animation alone would leave an opaque panel sitting
          on screen until React removes it. Hide it outright. */

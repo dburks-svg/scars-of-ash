@@ -261,6 +261,23 @@ Etrian-style charting, added July 2026. Config lives in `GAME_CONFIG.cartography
 - Header shows `CHART {pct}%` per map (`showChartPercent`, walkable tiles only, via `getChartPercent`/`MAP_WALKABLE_COUNTS`).
 - Helpers in gamedata.js: `revealAround` (pure, returns same reference when nothing new), `MAPS_BY_ID`.
 
+### FOEs (Patrolling Elites)
+
+Etrian-style roaming elites, added July 2026. Data in `FOES` (gamedata.js), config in `GAME_CONFIG.foes`. Sentinels are unchanged: they remain static chokepoint gatekeepers. FOEs are a separate roaming class and never occupy `N`, `B`, `K`, `X`, `E`, `A`, `S`, `C`, or `L` tiles (`FOE_FORBIDDEN_TILES`), so the "wild areas cannot be skipped for free" guarantee survives by construction.
+
+| FOE | Area | Type | HP/SP | Speed | Souls | Scar |
+|-----|------|------|-------|-------|-------|------|
+| Hollow Stalker | Hollow Deep (row 7 corridor) | Dark | 60/20 | 7 | 90 | Cursed |
+| Gilded Warden | Labyrinth (row 7 corridor) | Light | 70/20 | 6 | 110 | Blinded |
+| Ash Revenant | Labyrinth (row 13 corridor) | Fire | 66/18 | 7 | 100 | Burned |
+
+- **Movement:** one tile per player step, run by `stepFoes` at the end of MOVE_PLAYER (skipped when that step already opened another screen). Patrol follows a hand-authored ping-pong `route`; within `aggroRange` (2, Chebyshev) it switches to chase, stepping along `findPath`. Fully deterministic (fixed-order BFS, no `Math.random`); a blocked FOE waits. A load-time validator console.warns on non-walkable or non-adjacent route tiles.
+- **Contact:** walking into a FOE, or a FOE stepping onto the player, starts an un-fleeable battle (no preview). FOE collision resolves before the grass encounter roll, so contact on a `G` tile is never a wild encounter.
+- **Permanence:** defeating OR soul-binding a FOE marks it dead forever (`foesDefeated`, persisted). They gate nothing, so permanence is what makes them elite. Souls sit between sentinel tier (40-70) and boss tier (100-200).
+- **Positions are never saved.** `foePositions` rebuilds from `getInitialFoePositions()` on run start, load, map entry, bonfire rest, and death, so patrols cannot be save-scummed.
+- **Feedback:** amber aura while patrolling, faster red aura while chasing (`foe-aura-patrol`/`foe-aura-chase`); auras keep a static glow under reduced-motion because the threat cue is gameplay information. Within `autoPathCancelRange` (2) tap-to-walk cancels (held keys are untouched) and `musicManager.setDanger` layers a tremolo drone over the area theme.
+- Hidden under fog; visible as markers on charted dim tiles, exactly like EO's map dots.
+
 ### Gathering Points
 
 Etrian-style chop/mine/take nodes, added July 2026. Config in `GAME_CONFIG.gathering`; data in `GATHER_POINTS` (gamedata.js), keyed `'x,y'` per map exactly like TILE_LORE, no new map chars.
@@ -405,7 +422,8 @@ window.GAME_CONFIG = {
   gathering: {
     enabled: true, soulsMin: 8, soulsMax: 18,
     ambushChance: 0.25, respawnOnRest: true
-  }
+  },
+  foes: { enabled: true, aggroRange: 2, autoPathCancelRange: 2 }
 };
 ```
 

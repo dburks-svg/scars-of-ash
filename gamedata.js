@@ -102,6 +102,12 @@ window.GAME_CONFIG = {
     soulsMax: 18,
     ambushChance: 0.25,       // examine roll: something was waiting in the ash
     respawnOnRest: true       // nodes regrow when enemies respawn
+  },
+  // -- FOEs (Etrian-style patrolling elites) --
+  foes: {
+    enabled: true,
+    aggroRange: 2,            // Chebyshev distance where patrol becomes chase
+    autoPathCancelRange: 2    // tap-to-walk cancels when an alive FOE is this close
   }
 };
 
@@ -3510,6 +3516,188 @@ var TILE_LORE = {
   }
 };
 
+// ============= FOEs (PATROLLING ELITES) =============
+// Etrian-style visible elites. They move one tile for every player step:
+// patrol a hand-authored loop, chase when the player strays close, and start
+// an un-fleeable battle on contact. Kills are permanent (they gate nothing;
+// permanence is what makes them elite). Stats are final values like
+// SENTINELS: never give them maxHp/maxStamina scar effects, those would
+// double-apply. Routes are ping-pong cycles of orthogonally adjacent P tiles.
+var FOES = [
+  {
+    id: 'foeHollowStalker',
+    area: 'hollowDeep',
+    name: 'Hollow Stalker',
+    type: 'dark',
+    maxHp: 60,
+    maxStamina: 20,
+    speed: 7,
+    souls: 90,
+    scars: [SCAR_TYPES.find(s => s.id === 'cursed')],
+    route: [
+      { x: 3, y: 7 }, { x: 4, y: 7 }, { x: 5, y: 7 }, { x: 6, y: 7 },
+      { x: 5, y: 7 }, { x: 4, y: 7 }
+    ],
+    moves: [
+      { name: 'Umbral Rake', cost: 6, damage: 14, priority: false },
+      { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
+      { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
+    ]
+  },
+  {
+    id: 'foeGildedWarden',
+    area: 'labyrinth',
+    name: 'Gilded Warden',
+    type: 'light',
+    maxHp: 70,
+    maxStamina: 20,
+    speed: 6,
+    souls: 110,
+    scars: [SCAR_TYPES.find(s => s.id === 'blinded')],
+    route: [
+      { x: 8, y: 7 }, { x: 9, y: 7 }, { x: 10, y: 7 }, { x: 11, y: 7 },
+      { x: 12, y: 7 }, { x: 11, y: 7 }, { x: 10, y: 7 }, { x: 9, y: 7 }
+    ],
+    moves: [
+      { name: 'Radiant Lash', cost: 6, damage: 15, priority: false },
+      { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
+      { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
+    ]
+  },
+  {
+    id: 'foeAshRevenant',
+    area: 'labyrinth',
+    name: 'Ash Revenant',
+    type: 'fire',
+    maxHp: 66,
+    maxStamina: 18,
+    speed: 7,
+    souls: 100,
+    scars: [SCAR_TYPES.find(s => s.id === 'burned')],
+    route: [
+      { x: 3, y: 13 }, { x: 4, y: 13 }, { x: 5, y: 13 }, { x: 6, y: 13 },
+      { x: 7, y: 13 }, { x: 8, y: 13 }, { x: 7, y: 13 }, { x: 6, y: 13 },
+      { x: 5, y: 13 }, { x: 4, y: 13 }
+    ],
+    moves: [
+      { name: 'Cinder Sweep', cost: 6, damage: 14, priority: false, effect: 'burn', effectChance: 25 },
+      { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
+      { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
+    ]
+  }
+];
+
+// Tiles a FOE may never stand on. Keeps sentinels, doors, bonfires, lore,
+// and NPCs untouchable, so the chokepoint guarantees survive by construction.
+var FOE_FORBIDDEN_TILES = { W: 1, N: 1, B: 1, K: 1, X: 1, E: 1, A: 1, S: 1, C: 1, L: 1 };
+
+// Dev-time sanity: every route tile must be walkable-for-FOEs and each
+// consecutive pair orthogonally adjacent (including the cycle wrap).
+(function () {
+  FOES.forEach(function (foe) {
+    var map = MAPS_BY_ID[foe.area];
+    foe.route.forEach(function (wp, i) {
+      var tile = map[wp.y] && map[wp.y][wp.x];
+      if (!tile || FOE_FORBIDDEN_TILES[tile]) {
+        console.warn('FOES: ' + foe.id + ' route[' + i + '] (' + wp.x + ',' + wp.y + ') is not FOE-walkable (found "' + tile + '")');
+      }
+      var nxt = foe.route[(i + 1) % foe.route.length];
+      var dist = Math.abs(wp.x - nxt.x) + Math.abs(wp.y - nxt.y);
+      if (dist !== 1) {
+        console.warn('FOES: ' + foe.id + ' route[' + i + '] -> [' + ((i + 1) % foe.route.length) + '] is not orthogonally adjacent');
+      }
+    });
+  });
+})();
+
+var chebyshevDist = function (ax, ay, bx, by) {
+  return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
+};
+
+// Fresh patrol state: every FOE at its first waypoint. Called on new run,
+// load, map entry, bonfire rest, and respawn - positions are deliberately
+// never saved, so patrols cannot be save-scummed into corners.
+function getInitialFoePositions() {
+  var pos = {};
+  FOES.forEach(function (foe) {
+    pos[foe.id] = { x: foe.route[0].x, y: foe.route[0].y, routeIndex: 0, mode: 'patrol' };
+  });
+  return pos;
+}
+
+// Advance every living FOE on mapId by one tile. Pure and deterministic:
+// chase steps come from findPath's fixed-order BFS, patrol steps from the
+// authored route, so identical inputs always give identical patrols (no
+// Math.random, same rule as tile rendering). Returns new positions plus the
+// id of a FOE that tried to step onto the player (the collision starts a
+// battle; the FOE holds its tile so positions stay coherent).
+function stepFoes(mapId, foePositions, foesDefeated, playerPos, aggroRange) {
+  var map = MAPS_BY_ID[mapId];
+  var next = {};
+  var collidedFoeId = null;
+  var occupied = {};
+  FOES.forEach(function (foe) {
+    var p = foePositions[foe.id];
+    if (p && foe.area === mapId) occupied[p.x + ',' + p.y] = foe.id;
+  });
+
+  FOES.forEach(function (foe) {
+    var cur = foePositions[foe.id];
+    if (!cur || foe.area !== mapId || foesDefeated.indexOf(foe.id) !== -1) {
+      if (cur) next[foe.id] = cur;
+      return;
+    }
+
+    var mode = 'patrol';
+    var target = null;
+    if (chebyshevDist(cur.x, cur.y, playerPos.x, playerPos.y) <= aggroRange) {
+      mode = 'chase';
+      var hunt = findPath(map, cur.x, cur.y, playerPos.x, playerPos.y, false);
+      if (hunt.length > 0) target = hunt[0];
+    } else {
+      // routeIndex = the waypoint the FOE owns when on-route. On it: head
+      // for the next one. Off it (after a chase): path back first.
+      var waypoint = foe.route[cur.routeIndex % foe.route.length];
+      if (cur.x === waypoint.x && cur.y === waypoint.y) {
+        target = foe.route[(cur.routeIndex + 1) % foe.route.length];
+      } else {
+        var back = findPath(map, cur.x, cur.y, waypoint.x, waypoint.y, false);
+        if (back.length > 0) target = back[0];
+      }
+    }
+
+    if (!target) {
+      next[foe.id] = { x: cur.x, y: cur.y, routeIndex: cur.routeIndex, mode: mode };
+      return;
+    }
+    if (target.x === playerPos.x && target.y === playerPos.y) {
+      collidedFoeId = foe.id;
+      next[foe.id] = { x: cur.x, y: cur.y, routeIndex: cur.routeIndex, mode: mode };
+      return;
+    }
+    var tile = map[target.y] && map[target.y][target.x];
+    var targetKey = target.x + ',' + target.y;
+    if (!tile || FOE_FORBIDDEN_TILES[tile] || (occupied[targetKey] && occupied[targetKey] !== foe.id)) {
+      // Blocked: wait in place this step
+      next[foe.id] = { x: cur.x, y: cur.y, routeIndex: cur.routeIndex, mode: mode };
+      return;
+    }
+
+    delete occupied[cur.x + ',' + cur.y];
+    occupied[targetKey] = foe.id;
+    var nextIndex = cur.routeIndex;
+    if (mode === 'patrol') {
+      var nextWaypoint = foe.route[(cur.routeIndex + 1) % foe.route.length];
+      if (target.x === nextWaypoint.x && target.y === nextWaypoint.y) {
+        nextIndex = (cur.routeIndex + 1) % foe.route.length;
+      }
+    }
+    next[foe.id] = { x: target.x, y: target.y, routeIndex: nextIndex, mode: mode };
+  });
+
+  return { foePositions: next, collidedFoeId: collidedFoeId };
+}
+
 // ============= GATHERING POINTS =============
 // Etrian-style chop/mine/take nodes. Keyed 'x,y' per map exactly like
 // TILE_LORE (no new map chars). Examining the node yields carried souls or
@@ -3713,6 +3901,7 @@ var getSaveData = (state) => {
     secretDoorRevealed: state.secretDoorRevealed,
     visitedTiles: state.visitedTiles,
     gatheredPoints: state.gatheredPoints,
+    foesDefeated: state.foesDefeated,
     savedAt: Date.now()
   };
 };
@@ -3945,6 +4134,11 @@ var initialState = {
   visitedTiles: {},
   // Gathering nodes already harvested this rest cycle, as 'mapId:x,y' keys
   gatheredPoints: [],
+  // FOEs: permanent kills persist; live patrol positions deliberately do NOT
+  // (rebuilt fresh on run start, load, map entry, rest, and respawn)
+  foesDefeated: [],
+  foePositions: getInitialFoePositions(),
+  currentFoeId: null,
   grassEncounters: [
     // Ashen Path encounters (6x8 map)
     { x: 4, y: 1, map: 'ashenPath', active: true },

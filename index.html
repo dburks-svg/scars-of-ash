@@ -1906,6 +1906,48 @@
             }
           }
 
+          // A living FOE on the target tile: walking into it is a challenge.
+          // Straight to battle like a sentinel (no preview, no fleeing); the
+          // player does not move.
+          if (GAME_CONFIG.foes.enabled) {
+            const blockingFoe = FOES.find(f => {
+              if (f.area !== state.currentMap) return false;
+              if ((state.foesDefeated || []).includes(f.id)) return false;
+              const p = (state.foePositions || {})[f.id];
+              return p && p.x === newX && p.y === newY;
+            });
+            if (blockingFoe) {
+              return {
+                ...state,
+                playerDir: dir,
+                screen: 'battle',
+                enemy: {
+                  ...blockingFoe,
+                  hp: blockingFoe.maxHp,
+                  stamina: blockingFoe.maxStamina,
+                  winded: false,
+                  isGuarding: false
+                },
+                enemyCreature: blockingFoe,
+                battleLog: [
+                  `The ${blockingFoe.name} turns. It has been waiting.`,
+                  'There is nowhere to run.'
+                ],
+                turnPhase: 'player',
+                pendingMove: null,
+                bossTelegraph: null,
+                bossTelegraphCooldown: 0,
+                currentFoeId: blockingFoe.id,
+                currentEncounter: null,
+                pendingEncounter: null,
+                bonfireMenuOpen: false,
+                withdrawMenuOpen: false,
+                depositMenuOpen: false,
+                kindleMenuOpen: false
+              };
+            }
+          }
+
           let newState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false, depositMenuOpen: false, kindleMenuOpen: false };
 
           if (tile === 'G' && (state.currentMap === 'ashenPath' || state.currentMap === 'hollowDeep' || state.currentMap === 'labyrinth')) {
@@ -2143,6 +2185,12 @@
             newState.shortcutUnlocked = true;
           }
 
+          // Crossing a gate resets patrols: FOEs return to their posts while
+          // the player is elsewhere, and positions are never saved
+          if (newState.currentMap !== state.currentMap) {
+            newState.foePositions = getInitialFoePositions();
+          }
+
           // Chart the step. Uses newState because gate transitions above may
           // have swapped currentMap/playerPos; early returns (walls, keeper,
           // sentinels, unpaid tolls) never reach here and reveal nothing.
@@ -2152,6 +2200,46 @@
               newState.playerPos.x, newState.playerPos.y,
               GAME_CONFIG.cartography.revealRadius, MAPS_BY_ID[newState.currentMap]
             );
+          }
+
+          // FOEs move one tile per player step, Etrian-style. Skipped when
+          // this step already opened another screen (encounter preview, boss
+          // intro): one threat at a time.
+          if (GAME_CONFIG.foes.enabled && newState.screen === 'exploration') {
+            const stepped = stepFoes(
+              newState.currentMap,
+              newState.foePositions || getInitialFoePositions(),
+              newState.foesDefeated || [],
+              newState.playerPos,
+              GAME_CONFIG.foes.aggroRange
+            );
+            newState.foePositions = stepped.foePositions;
+            if (stepped.collidedFoeId) {
+              const huntingFoe = FOES.find(f => f.id === stepped.collidedFoeId);
+              newState = {
+                ...newState,
+                screen: 'battle',
+                enemy: {
+                  ...huntingFoe,
+                  hp: huntingFoe.maxHp,
+                  stamina: huntingFoe.maxStamina,
+                  winded: false,
+                  isGuarding: false
+                },
+                enemyCreature: huntingFoe,
+                battleLog: [
+                  `The ${huntingFoe.name} catches you!`,
+                  'There is nowhere to run.'
+                ],
+                turnPhase: 'player',
+                pendingMove: null,
+                bossTelegraph: null,
+                bossTelegraphCooldown: 0,
+                currentFoeId: huntingFoe.id,
+                currentEncounter: null,
+                pendingEncounter: null
+              };
+            }
           }
 
           return newState;
@@ -2204,6 +2292,8 @@
 
           // Resting respawns enemies; the ash regrows over gather nodes too
           const gatheredPoints = GAME_CONFIG.gathering.respawnOnRest ? [] : (state.gatheredPoints || []);
+          // Rest passes time: surviving patrols return to their posts
+          const foePositions = getInitialFoePositions();
 
           const bonfireMessages = [
             "Progress saved. Enemies respawned. Life is compromise.",
@@ -2218,6 +2308,8 @@
             team,
             grassEncounters,
             gatheredPoints,
+            foePositions,
+            currentFoeId: null,
             lastBonfire: { map: state.currentMap, pos: { ...state.playerPos } },
             bonfireMenuOpen: false,
             withdrawMenuOpen: false,
@@ -2669,6 +2761,9 @@
             if (state.currentSentinelId) {
               log.push('The sentinel crumbles. The way is open.');
             }
+            if (state.currentFoeId) {
+              log.push('The hunter falls. The halls are quieter now.');
+            }
 
             return {
               ...state,
@@ -2684,7 +2779,11 @@
                 ? [...(state.sentinelsDefeated || []), state.currentSentinelId]
                 : state.sentinelsDefeated,
               isSentinelFight: false,
-              currentSentinelId: null
+              currentSentinelId: null,
+              foesDefeated: state.currentFoeId
+                ? [...(state.foesDefeated || []), state.currentFoeId]
+                : state.foesDefeated,
+              currentFoeId: null
             };
           }
 
@@ -2756,6 +2855,13 @@
             if (state.currentSentinelId) {
               log.push('The sentinel abandons its post. The way is open.');
             }
+            // A bound FOE stops patrolling for the same reason: it is yours now
+            const boundFoes = state.currentFoeId
+              ? [...(state.foesDefeated || []), state.currentFoeId]
+              : state.foesDefeated;
+            if (state.currentFoeId) {
+              log.push('The hunter kneels. It hunts for you now.');
+            }
 
             // Team full? Show release screen instead of nickname
             if (state.team.length >= GAME_CONFIG.souls.maxTeamSize) {
@@ -2770,7 +2876,9 @@
                 grassEncounters,
                 sentinelsDefeated: boundSentinels,
                 isSentinelFight: false,
-                currentSentinelId: null
+                currentSentinelId: null,
+                foesDefeated: boundFoes,
+                currentFoeId: null
               };
             }
 
@@ -2787,7 +2895,9 @@
               grassEncounters,
               sentinelsDefeated: boundSentinels,
               isSentinelFight: false,
-              currentSentinelId: null
+              currentSentinelId: null,
+              foesDefeated: boundFoes,
+              currentFoeId: null
             };
           } else {
             // FAILED - enemy gets a free attack
@@ -3014,7 +3124,11 @@
                 ? [...(state.sentinelsDefeated || []), state.currentSentinelId]
                 : state.sentinelsDefeated,
               isSentinelFight: false,
-              currentSentinelId: null
+              currentSentinelId: null,
+              foesDefeated: state.currentFoeId
+                ? [...(state.foesDefeated || []), state.currentFoeId]
+                : state.foesDefeated,
+              currentFoeId: null
             };
           }
 
@@ -3234,7 +3348,11 @@
                 ? [...(state.sentinelsDefeated || []), state.currentSentinelId]
                 : state.sentinelsDefeated,
               isSentinelFight: false,
-              currentSentinelId: null
+              currentSentinelId: null,
+              foesDefeated: state.currentFoeId
+                ? [...(state.foesDefeated || []), state.currentFoeId]
+                : state.foesDefeated,
+              currentFoeId: null
             };
           }
 
@@ -3318,6 +3436,9 @@
             isHollowWardenFight: false,
             isSentinelFight: false,
             currentSentinelId: null,
+            // Death resets patrols: the corpse run is past fresh posts
+            foePositions: getInitialFoePositions(),
+            currentFoeId: null,
             bossTelegraph: null,
             bossTelegraphCooldown: 0,
             diedToBoss: false,
@@ -3386,6 +3507,9 @@
             cluesFound: saveData.cluesFound || [],
             secretDoorRevealed: saveData.secretDoorRevealed || false,
             gatheredPoints: saveData.gatheredPoints || [],
+            foesDefeated: saveData.foesDefeated || [],
+            // Patrols are never saved: every load starts them at their posts
+            foePositions: getInitialFoePositions(),
             // Old saves have no chart; reveal the loaded position so nobody
             // wakes up fully blind. Recharting the rest is on-theme.
             visitedTiles: revealAround(
@@ -3873,6 +3997,10 @@
       // mass reveal flash by treating everything as already-known
       const prevChart = prevChartRef.current.map === state.currentMap ? prevChartRef.current.chart : chart;
 
+      // A hunter nearby: the music thickens and tap-to-walk hands control
+      // back, so nobody auto-walks into a FOE they never saw coming
+      const foeNear = GAME_CONFIG.foes.enabled && foeThreatRange <= GAME_CONFIG.foes.autoPathCancelRange;
+
       // Track movement for walk animation
       const [isMoving, setIsMoving] = useState(false);
       const prevPosRef = useRef({ x: state.playerPos.x, y: state.playerPos.y });
@@ -4003,6 +4131,19 @@
         }
       }, [state.examineText, cancelAutoPath, stopHeldMove]);
 
+      // A hunter closes in: hand tap-walkers back their control (held keys
+      // are left alone, those players are already steering) and thicken the
+      // music. Approaching a FOE should be a decision, not a cutscene.
+      useEffect(() => {
+        if (foeNear) cancelAutoPath();
+        musicManager.setDanger(foeNear && state.screen === 'exploration');
+      }, [foeNear, state.screen, cancelAutoPath]);
+
+      // Leaving exploration (battle, death, title) must not strand the drone
+      useEffect(() => {
+        return () => musicManager.setDanger(false);
+      }, []);
+
       const handleKeyDown = useCallback((e) => {
         const key = e.key.toLowerCase();
         let dx = 0, dy = 0;
@@ -4079,6 +4220,18 @@
       // This map's sentinel, if it still stands (renders on its 'N' tile)
       const areaSentinel = SENTINELS[state.currentMap];
       const sentinelAlive = areaSentinel && !(state.sentinelsDefeated || []).includes(areaSentinel.id);
+
+      // Living FOEs on this map, paired with their current patrol position
+      const liveFoes = GAME_CONFIG.foes.enabled
+        ? FOES.filter(f => f.area === state.currentMap && !(state.foesDefeated || []).includes(f.id))
+            .map(f => ({ foe: f, pos: (state.foePositions || {})[f.id] }))
+            .filter(f => f.pos)
+        : [];
+      // Closest living FOE drives the danger drone and cancels tap-walking
+      const foeThreatRange = liveFoes.reduce((closest, f) => {
+        const d = Math.max(Math.abs(f.pos.x - state.playerPos.x), Math.abs(f.pos.y - state.playerPos.y));
+        return d < closest ? d : closest;
+      }, Infinity);
 
       // Render tile background with area-specific styling. Seed gives each
       // tile a stable texture variant so floors stop looking like wallpaper.
@@ -4309,6 +4462,26 @@
                           }}>{ghost.name}...</div>
                         </div>
                       )}
+                      {liveFoes.map(f => f.pos.x === x && f.pos.y === y && !isPlayer ? (
+                        <div key={f.foe.id} style={{
+                          position: 'absolute',
+                          zIndex: 6,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <div className={f.pos.mode === 'chase' ? 'foe-aura-chase' : 'foe-aura-patrol'} style={{ transform: 'scale(0.8)', transformOrigin: 'center' }}>
+                            <CreatureSprite
+                              type={f.foe.type}
+                              size={40}
+                              isEnemy={true}
+                              scars={f.foe.scars}
+                              scarCount={f.foe.scars.length}
+                              animated={true}
+                            />
+                          </div>
+                        </div>
+                      ) : null)}
                       {sentinelAlive && tile === 'N' && !isPlayer && (
                         <div style={{
                           position: 'absolute',
@@ -6614,6 +6787,7 @@ const DevDashboard = ({ onClose, onModified }) => {
         TYPE_CHART: JSON.parse(JSON.stringify(TYPE_CHART)),
         SCAR_TYPES: JSON.parse(JSON.stringify(SCAR_TYPES)),
         DIFFICULTIES: JSON.parse(JSON.stringify(DIFFICULTIES)),
+        FOES: JSON.parse(JSON.stringify(FOES)),
         GAME_CONFIG: JSON.parse(JSON.stringify(window.GAME_CONFIG))
       };
       console.log('Dev Dashboard active. Live tuning enabled.');
@@ -6650,6 +6824,7 @@ const DevDashboard = ({ onClose, onModified }) => {
     SCAR_TYPES.length = 0;
     snapshots.current.SCAR_TYPES.forEach(s => SCAR_TYPES.push(JSON.parse(JSON.stringify(s))));
     Object.keys(snapshots.current.DIFFICULTIES).forEach(k => { Object.assign(DIFFICULTIES[k], JSON.parse(JSON.stringify(snapshots.current.DIFFICULTIES[k]))); });
+    snapshots.current.FOES.forEach((snap, i) => { if (FOES[i]) Object.assign(FOES[i], JSON.parse(JSON.stringify(snap))); });
     onModified(false);
     rerender();
   };
@@ -6682,6 +6857,8 @@ const DevDashboard = ({ onClose, onModified }) => {
       case 'EXPLORATION':
         window.GAME_CONFIG.cartography = JSON.parse(JSON.stringify(cfg.cartography));
         window.GAME_CONFIG.gathering = JSON.parse(JSON.stringify(cfg.gathering));
+        window.GAME_CONFIG.foes = JSON.parse(JSON.stringify(cfg.foes));
+        snapshots.current.FOES.forEach((snap, i) => { if (FOES[i]) Object.assign(FOES[i], JSON.parse(JSON.stringify(snap))); });
         break;
       case 'ENCOUNTERS':
         window.GAME_CONFIG.wildEncounters = JSON.parse(JSON.stringify(cfg.wildEncounters));
@@ -6701,7 +6878,7 @@ const DevDashboard = ({ onClose, onModified }) => {
   const doExport = () => {
     const data = {
       GAME_CONFIG: window.GAME_CONFIG,
-      STARTERS, WILD_CREATURES, BOSS, TYPE_CHART, SCAR_TYPES, DIFFICULTIES
+      STARTERS, WILD_CREATURES, BOSS, TYPE_CHART, SCAR_TYPES, DIFFICULTIES, FOES
     };
     navigator.clipboard.writeText(JSON.stringify(data, null, 2)).then(() => {
       setImportMsg('Copied to clipboard!');
@@ -6722,6 +6899,7 @@ const DevDashboard = ({ onClose, onModified }) => {
       if (data.TYPE_CHART) Object.keys(data.TYPE_CHART).forEach(k => { TYPE_CHART[k] = data.TYPE_CHART[k]; });
       if (data.SCAR_TYPES) { SCAR_TYPES.length = 0; data.SCAR_TYPES.forEach(s => SCAR_TYPES.push(s)); }
       if (data.DIFFICULTIES) Object.keys(data.DIFFICULTIES).forEach(k => { if (DIFFICULTIES[k]) Object.assign(DIFFICULTIES[k], data.DIFFICULTIES[k]); });
+      if (data.FOES) data.FOES.forEach((f, i) => { if (FOES[i]) Object.assign(FOES[i], f); });
       onModified(true);
       setImportMsg('Import successful!');
       setImportText('');
@@ -7019,6 +7197,27 @@ const DevDashboard = ({ onClose, onModified }) => {
           onChange={v => updateConfig('gathering.soulsMax', v)} color={GBC.gold} />
         <ConfigSlider label="Ambush Chance" value={getConfig('gathering.ambushChance')} min={0} max={1} step={0.05}
           onChange={v => updateConfig('gathering.ambushChance', v)} color={GBC.red} />
+        <div style={{ ...S.sectionTitle, marginTop: 16 }}>FOEs (patrolling elites)</div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+          {boolBtn('foes.enabled', 'FOES')}
+        </div>
+        <ConfigSlider label="Aggro Range (tiles)" value={getConfig('foes.aggroRange')} min={0} max={8} step={1}
+          onChange={v => updateConfig('foes.aggroRange', v)} color={GBC.red} />
+        <ConfigSlider label="Auto-path Cancel Range" value={getConfig('foes.autoPathCancelRange')} min={0} max={8} step={1}
+          onChange={v => updateConfig('foes.autoPathCancelRange', v)} />
+        {FOES.map(foe => (
+          <div key={foe.id} style={{ marginTop: 12, paddingTop: 8, borderTop: `1px solid ${GBC.border}` }}>
+            <div style={{ color: GBC.gold, fontSize: 10, marginBottom: 6 }}>{foe.name.toUpperCase()} ({foe.area})</div>
+            <ConfigSlider label="Max HP" value={foe.maxHp} min={20} max={150} step={2}
+              onChange={v => { foe.maxHp = v; onModified(true); rerender(); }} color={GBC.green} />
+            <ConfigSlider label="Max Stamina" value={foe.maxStamina} min={8} max={40} step={1}
+              onChange={v => { foe.maxStamina = v; onModified(true); rerender(); }} color={GBC.blue} />
+            <ConfigSlider label="Speed" value={foe.speed} min={1} max={15} step={1}
+              onChange={v => { foe.speed = v; onModified(true); rerender(); }} />
+            <ConfigSlider label="Souls" value={foe.souls} min={10} max={300} step={5}
+              onChange={v => { foe.souls = v; onModified(true); rerender(); }} color={GBC.gold} />
+          </div>
+        ))}
       </div>
     );
   };
