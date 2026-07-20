@@ -86,6 +86,14 @@ window.GAME_CONFIG = {
     drainHp: 4,
     drainStamina: 4,
     healAmount: 10
+  },
+  // -- Cartography (Etrian-style fog of war) --
+  cartography: {
+    enabled: true,
+    revealRadius: 1,          // Chebyshev; 1 = the 3x3 around the player
+    dimExplored: true,        // charted-but-far tiles dim like a drawn map
+    exploredDimOpacity: 0.35,
+    showChartPercent: true
   }
 };
 
@@ -1994,7 +2002,73 @@ var SENTINELS = {
 // ============= BFS PATHFINDING =============
 // Returns array of {x,y} positions from first step to destination (excludes start).
 // Returns [] if no path exists or start === end.
-function findPath(map, startX, startY, endX, endY, secretDoorRevealed) {
+// ============= CARTOGRAPHY =============
+
+// Reveal the Chebyshev radius around (x, y) on mapId's chart. Pure: returns a
+// NEW visitedTiles object, or the SAME reference if nothing new was revealed
+// (so reducers can skip state churn). Shape: { [mapId]: { 'x,y': 1 } }.
+function revealAround(visitedTiles, mapId, x, y, radius, map) {
+  var chart = visitedTiles[mapId] || {};
+  var added = null;
+  for (var dy = -radius; dy <= radius; dy++) {
+    for (var dx = -radius; dx <= radius; dx++) {
+      var ny = y + dy;
+      var nx = x + dx;
+      if (ny < 0 || ny >= map.length || nx < 0 || nx >= map[0].length) continue;
+      var key = nx + ',' + ny;
+      if (!chart[key]) {
+        if (!added) added = {};
+        added[key] = 1;
+      }
+    }
+  }
+  if (!added) return visitedTiles;
+  var newChart = Object.assign({}, chart, added);
+  var next = Object.assign({}, visitedTiles);
+  next[mapId] = newChart;
+  return next;
+}
+
+// Map lookup by save/state id (the same string compare lived in several
+// components; one table beats four ternaries)
+var MAPS_BY_ID = { ashenPath: ASHEN_PATH, fallenKeep: FALLEN_KEEP, hollowDeep: HOLLOW_DEEP, labyrinth: LABYRINTH };
+
+// Walkable (non-wall) tile count per map, for the CHART % readout
+var MAP_WALKABLE_COUNTS = (function () {
+  var maps = MAPS_BY_ID;
+  var counts = {};
+  Object.keys(maps).forEach(function (id) {
+    var n = 0;
+    maps[id].forEach(function (row) {
+      for (var x = 0; x < row.length; x++) {
+        if (row[x] !== 'W') n++;
+      }
+    });
+    counts[id] = n;
+  });
+  return counts;
+})();
+
+// Charted walkable tiles on mapId, as a 0-100 integer percent
+function getChartPercent(visitedTiles, mapId, map) {
+  var chart = visitedTiles[mapId];
+  var total = MAP_WALKABLE_COUNTS[mapId];
+  if (!chart || !total) return 0;
+  var seen = 0;
+  Object.keys(chart).forEach(function (key) {
+    var parts = key.split(',');
+    var x = +parts[0];
+    var y = +parts[1];
+    if (map[y] && map[y][x] && map[y][x] !== 'W') seen++;
+  });
+  return Math.min(100, Math.round((seen / total) * 100));
+}
+
+// visitedSet (optional): the per-map chart object { 'x,y': 1 }. When given,
+// the BFS refuses to route through uncharted tiles, so tap-to-walk cannot
+// solve fog the player has not seen. Omitted = classic behavior (used by
+// non-cartography callers and when the feature is disabled).
+function findPath(map, startX, startY, endX, endY, secretDoorRevealed, visitedSet) {
   if (startX === endX && startY === endY) return [];
   var rows = map.length;
   var cols = map[0].length;
@@ -2037,6 +2111,7 @@ function findPath(map, startX, startY, endX, endY, secretDoorRevealed) {
       if (tile === 'W') continue;
       if (tile === 'S' && !secretDoorRevealed) continue;
       if (tile === 'C') continue; // NPCs never move; route around them
+      if (visitedSet && !visitedSet[nx + ',' + ny]) continue; // no routing through fog
       visited[ny][nx] = true;
       parent[ny][nx] = { x: cur.x, y: cur.y };
       queue.push({ x: nx, y: ny });
@@ -3587,6 +3662,7 @@ var getSaveData = (state) => {
     activeTitle: state.activeTitle,
     cluesFound: state.cluesFound,
     secretDoorRevealed: state.secretDoorRevealed,
+    visitedTiles: state.visitedTiles,
     savedAt: Date.now()
   };
 };
@@ -3813,6 +3889,10 @@ var initialState = {
   sentinelsDefeated: [],
   isSentinelFight: false,
   currentSentinelId: null,
+  // Cartography: { [mapId]: { 'x,y': 1 } }, charted as the player walks.
+  // Old saves lack this key; the load path defaults it to {} and reveals
+  // around the loaded position so nobody wakes up blind.
+  visitedTiles: {},
   grassEncounters: [
     // Ashen Path encounters (6x8 map)
     { x: 4, y: 1, map: 'ashenPath', active: true },

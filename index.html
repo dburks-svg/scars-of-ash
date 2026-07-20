@@ -1559,6 +1559,11 @@
             ...state,
             screen: nextScreen,
             team: [newCreature],
+            visitedTiles: revealAround(
+              state.visitedTiles, state.currentMap,
+              state.playerPos.x, state.playerPos.y,
+              GAME_CONFIG.cartography.revealRadius, MAPS_BY_ID[state.currentMap]
+            ),
             examineText: nextScreen === 'exploration'
               ? { name: RUN_GOAL_TEXT.name, lines: RUN_GOAL_TEXT.lines }
               : state.examineText
@@ -1570,6 +1575,11 @@
             ...state,
             screen: 'exploration',
             hasSeenPrologue: true,
+            visitedTiles: revealAround(
+              state.visitedTiles, state.currentMap,
+              state.playerPos.x, state.playerPos.y,
+              GAME_CONFIG.cartography.revealRadius, MAPS_BY_ID[state.currentMap]
+            ),
             // Every run opens by stating the goal (playtest: "no arc to follow")
             examineText: { name: RUN_GOAL_TEXT.name, lines: RUN_GOAL_TEXT.lines }
           };
@@ -1969,6 +1979,17 @@
 
           if (state.currentMap === 'fallenKeep' && newY <= 3) {
             newState.shortcutUnlocked = true;
+          }
+
+          // Chart the step. Uses newState because gate transitions above may
+          // have swapped currentMap/playerPos; early returns (walls, keeper,
+          // sentinels, unpaid tolls) never reach here and reveal nothing.
+          if (GAME_CONFIG.cartography.enabled) {
+            newState.visitedTiles = revealAround(
+              newState.visitedTiles, newState.currentMap,
+              newState.playerPos.x, newState.playerPos.y,
+              GAME_CONFIG.cartography.revealRadius, MAPS_BY_ID[newState.currentMap]
+            );
           }
 
           return newState;
@@ -3113,6 +3134,11 @@
             screen: 'exploration',
             currentMap: state.lastBonfire.map,
             playerPos: { ...state.lastBonfire.pos },
+            visitedTiles: revealAround(
+              state.visitedTiles, state.lastBonfire.map,
+              state.lastBonfire.pos.x, state.lastBonfire.pos.y,
+              GAME_CONFIG.cartography.revealRadius, MAPS_BY_ID[state.lastBonfire.map]
+            ),
             team,
             activeCreatureIndex: Math.max(0, team.findIndex(c => c.hp > 0)),
             enemy: null,
@@ -3193,6 +3219,13 @@
             activeTitle: saveData.activeTitle || null,
             cluesFound: saveData.cluesFound || [],
             secretDoorRevealed: saveData.secretDoorRevealed || false,
+            // Old saves have no chart; reveal the loaded position so nobody
+            // wakes up fully blind. Recharting the rest is on-theme.
+            visitedTiles: revealAround(
+              saveData.visitedTiles || {}, saveData.currentMap,
+              saveData.playerPos.x, saveData.playerPos.y,
+              GAME_CONFIG.cartography.revealRadius, MAPS_BY_ID[saveData.currentMap]
+            ),
             saveNotification: 'Journey resumed.'
           };
         }
@@ -3661,6 +3694,18 @@
       const mapName = state.currentMap === 'ashenPath' ? 'Ashen Path' : state.currentMap === 'hollowDeep' ? 'The Hollow Deep' : state.currentMap === 'labyrinth' ? 'The Labyrinth' : 'Fallen Keep';
       const ghost = loadGhost(); // Load once for ghost marker display
 
+      // Cartography: this map's chart, plus last render's chart so tiles that
+      // just came out of the fog can play their reveal fade exactly once.
+      const fogEnabled = GAME_CONFIG.cartography.enabled;
+      const chart = state.visitedTiles[state.currentMap] || {};
+      const prevChartRef = useRef({ map: state.currentMap, chart });
+      useEffect(() => {
+        prevChartRef.current = { map: state.currentMap, chart };
+      });
+      // On map entry the previous chart belongs to another map; suppress the
+      // mass reveal flash by treating everything as already-known
+      const prevChart = prevChartRef.current.map === state.currentMap ? prevChartRef.current.chart : chart;
+
       // Track movement for walk animation
       const [isMoving, setIsMoving] = useState(false);
       const prevPosRef = useRef({ x: state.playerPos.x, y: state.playerPos.y });
@@ -3923,6 +3968,11 @@
         const dy = y - py;
         const currentTileType = map[py][px];
 
+        // Uncharted tiles cannot be tapped: the map you have not drawn does
+        // not exist yet. Adjacent tiles are always charted (reveal radius),
+        // so single-step movement is never blocked by this.
+        if (fogEnabled && !chart[`${x},${y}`] && !(x === px && y === py)) return;
+
         // Tap on player tile
         if (x === px && y === py) {
           cancelAutoPath();
@@ -3951,9 +4001,10 @@
           // Move in that direction
           dispatch({ type: 'MOVE_PLAYER', dx, dy });
         } else {
-          // Non-adjacent: attempt pathfinding
+          // Non-adjacent: attempt pathfinding (fog-aware: the walk may only
+          // cross tiles the player has charted)
           if (tile === 'W' || (tile === 'S' && !state.secretDoorRevealed)) return;
-          const path = findPath(map, px, py, x, y, state.secretDoorRevealed);
+          const path = findPath(map, px, py, x, y, state.secretDoorRevealed, fogEnabled ? chart : undefined);
           if (path.length > 0) {
             startAutoPath(path);
           }
@@ -3970,6 +4021,9 @@
             <span style={{ color: GBC.textDim, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
               <span style={{ fontSize: 'var(--font-xs)', color: GBC.gold }}>{state.playerName || 'Ashen One'}</span>
               <span>{mapName}</span>
+              {fogEnabled && GAME_CONFIG.cartography.showChartPercent && (
+                <span style={{ fontSize: 'var(--font-xs)' }}>CHART {getChartPercent(state.visitedTiles, state.currentMap, map)}%</span>
+              )}
             </span>
             <span style={{ color: GBC.textDim, fontSize: 'var(--font-sm)' }}>TEAM {state.team.length}/{GAME_CONFIG.souls.maxTeamSize}</span>
           </div>
@@ -3996,16 +4050,34 @@
                   const isWalkable = tile !== 'W';
                   const isDestFlash = destFlash && x === destFlash.x && y === destFlash.y;
 
+                  // Cartography layers. Fog (zIndex 20) sits above every
+                  // sprite layer so nothing hidden can leak through it.
+                  const tileKey = `${x},${y}`;
+                  const visited = !fogEnabled || !!chart[tileKey];
+                  const justRevealed = fogEnabled && visited && !prevChart[tileKey];
+                  const isNearPlayer = Math.abs(x - px) <= GAME_CONFIG.cartography.revealRadius &&
+                                       Math.abs(y - py) <= GAME_CONFIG.cartography.revealRadius;
+                  const fogColor = (AREA_PALETTES[state.currentMap] || AREA_PALETTES.ashenPath).deep;
+
                   return (
                     <div
                       key={`${x}-${y}`}
                       style={{
                         ...styles.tile,
-                        cursor: isWalkable || isPlayer ? 'pointer' : 'default'
+                        cursor: (isWalkable || isPlayer) && visited ? 'pointer' : 'default'
                       }}
                       onClick={() => handleTileTap(x, y, tile)}
                     >
                       {renderTileBackground(tile, x, y)}
+                      {!visited && (
+                        <div style={{ position: 'absolute', inset: 0, zIndex: 20, backgroundColor: fogColor, pointerEvents: 'none' }}/>
+                      )}
+                      {justRevealed && (
+                        <div className="fog-lift" style={{ position: 'absolute', inset: 0, zIndex: 20, backgroundColor: fogColor }}/>
+                      )}
+                      {visited && fogEnabled && !isNearPlayer && GAME_CONFIG.cartography.dimExplored && (
+                        <div style={{ position: 'absolute', inset: 0, zIndex: 20, backgroundColor: `rgba(4, 6, 8, ${GAME_CONFIG.cartography.exploredDimOpacity})`, pointerEvents: 'none' }}/>
+                      )}
                       {isDestFlash && (
                         <div style={{ position: 'absolute', inset: 0, zIndex: 15, animation: 'destinationFlash 0.6s ease-out forwards', pointerEvents: 'none' }} />
                       )}
@@ -6418,6 +6490,9 @@ const DevDashboard = ({ onClose, onModified }) => {
       case 'SOULS':
         window.GAME_CONFIG.souls = JSON.parse(JSON.stringify(cfg.souls));
         break;
+      case 'EXPLORATION':
+        window.GAME_CONFIG.cartography = JSON.parse(JSON.stringify(cfg.cartography));
+        break;
       case 'ENCOUNTERS':
         window.GAME_CONFIG.wildEncounters = JSON.parse(JSON.stringify(cfg.wildEncounters));
         break;
@@ -6474,7 +6549,7 @@ const DevDashboard = ({ onClose, onModified }) => {
 
   const allCreatures = { ...STARTERS, ...WILD_CREATURES };
 
-  const TABS = ['COMBAT', 'STATUS', 'SCARS', 'DIFFICULTY', 'BOSSES', 'SOULS', 'ENCOUNTERS', 'CREATURES', 'TYPE CHART', 'SIMULATOR'];
+  const TABS = ['COMBAT', 'STATUS', 'SCARS', 'DIFFICULTY', 'BOSSES', 'SOULS', 'ENCOUNTERS', 'EXPLORATION', 'CREATURES', 'TYPE CHART', 'SIMULATOR'];
 
   // Styles
   const S = {
@@ -6721,6 +6796,31 @@ const DevDashboard = ({ onClose, onModified }) => {
       ))}
     </div>
   );
+
+  const renderExploration = () => {
+    const boolBtn = (path, label) => (
+      <button
+        style={S.btn(getConfig(path) ? '#68d391' : '#fc8181')}
+        onClick={() => updateConfig(path, !getConfig(path))}
+      >
+        {label}: {getConfig(path) ? 'ON' : 'OFF'}
+      </button>
+    );
+    return (
+      <div>
+        <div style={S.sectionTitle}>CARTOGRAPHY (fog of war)</div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+          {boolBtn('cartography.enabled', 'FOG')}
+          {boolBtn('cartography.dimExplored', 'DIM CHARTED')}
+          {boolBtn('cartography.showChartPercent', 'CHART %')}
+        </div>
+        <ConfigSlider label="Reveal Radius (tiles)" value={getConfig('cartography.revealRadius')} min={1} max={4} step={1}
+          onChange={v => updateConfig('cartography.revealRadius', v)} />
+        <ConfigSlider label="Charted Dim Opacity" value={getConfig('cartography.exploredDimOpacity')} min={0} max={0.8} step={0.05}
+          onChange={v => updateConfig('cartography.exploredDimOpacity', v)} />
+      </div>
+    );
+  };
 
   const renderSouls = () => (
     <div>
@@ -7058,6 +7158,7 @@ const DevDashboard = ({ onClose, onModified }) => {
       case 'DIFFICULTY': return renderDifficulty();
       case 'BOSSES': return renderBosses();
       case 'SOULS': return renderSouls();
+      case 'EXPLORATION': return renderExploration();
       case 'ENCOUNTERS': return renderEncounters();
       case 'CREATURES': return renderCreatures();
       case 'TYPE CHART': return renderTypeChart();

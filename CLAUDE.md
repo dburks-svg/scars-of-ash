@@ -250,6 +250,17 @@ Earned titles and the active title persist in the save.
 - Switch Active: Change which creature leads
 - Warp: Fast travel to unlocked bonfires (future)
 
+### Cartography (Fog of War)
+
+Etrian-style charting, added July 2026. Config lives in `GAME_CONFIG.cartography`.
+
+- Maps start unexplored; each committed step reveals the 3x3 around the player (`revealRadius`, Chebyshev). Reveal applies in MOVE_PLAYER (after gate transitions, so map entry reveals the arrival tile), RESPAWN, LOAD_GAME, SELECT_STARTER, and CONTINUE_FROM_PROLOGUE. Early-return paths (walls, the Keeper, sentinels, unpaid tolls) reveal nothing.
+- State: `visitedTiles` shaped `{ [mapId]: { 'x,y': 1 } }`, persisted in saves. Old saves load with only the current position revealed; recharting is on-theme.
+- Rendering: unexplored tiles get an opaque fog div (area `deep` color, zIndex 20, above every sprite layer); charted-but-far tiles dim (`exploredDimOpacity`) for the drawn-map feel; markers (sentinels, souls, lore) show through the dim once charted. Newly charted tiles play a `fog-lift` fade.
+- Input: taps on uncharted tiles are ignored; `findPath` takes an optional charted-set argument so tap-to-walk cannot route through fog (omitted = classic behavior).
+- Header shows `CHART {pct}%` per map (`showChartPercent`, walkable tiles only, via `getChartPercent`/`MAP_WALKABLE_COUNTS`).
+- Helpers in gamedata.js: `revealAround` (pure, returns same reference when nothing new), `MAPS_BY_ID`.
+
 ### Exploration
 
 - Tile-based movement (WASD or tap a tile; BFS pathfinding walks multi-tile taps)
@@ -264,7 +275,7 @@ Earned titles and the active title persist in the save.
 ### Dev Dashboard
 
 - Open the game with `?dev=true` in the URL, then toggle the dashboard with the backtick key
-- Slide-in panel with tabs: COMBAT, STATUS, SCARS, DIFFICULTY, BOSSES, SOULS, ENCOUNTERS, CREATURES, TYPE CHART, SIMULATOR
+- Slide-in panel with tabs: COMBAT, STATUS, SCARS, DIFFICULTY, BOSSES, SOULS, ENCOUNTERS, EXPLORATION, CREATURES, TYPE CHART, SIMULATOR
 - Live-tunes `window.GAME_CONFIG` and mutates STARTERS, WILD_CREATURES, BOSS, TYPE_CHART, SCAR_TYPES, and DIFFICULTIES in place. No reload needed
 - Export copies the full tuning state to the clipboard as JSON; Import applies pasted JSON
 - Reset per tab or reset all from startup snapshots; a DEV badge appears whenever values have been modified
@@ -377,7 +388,11 @@ window.GAME_CONFIG = {
     obsidianHoundPhaseHeal: 20, hollowWardenPhaseHeal: 25,
     telegraphDamageMult: 2.0, telegraphGuardReduction: 0.25, telegraphCooldown: 3
   },
-  fallbacks: { drainHp: 4, drainStamina: 4, healAmount: 10 }
+  fallbacks: { drainHp: 4, drainStamina: 4, healAmount: 10 },
+  cartography: {
+    enabled: true, revealRadius: 1, dimExplored: true,
+    exploredDimOpacity: 0.35, showChartPercent: true
+  }
 };
 ```
 
