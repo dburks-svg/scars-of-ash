@@ -209,6 +209,12 @@
       50% { transform: scale(1.2); opacity: 1; }
     }
 
+    /* Gathering node pulse: slower gold beckon than lorePulse */
+    @keyframes gatherPulse {
+      0%, 100% { transform: scale(1); opacity: 0.6; }
+      50% { transform: scale(1.3); opacity: 1; }
+    }
+
     /* Destination flash for tap-to-path */
     @keyframes destinationFlash {
       0%, 20% { box-shadow: inset 0 0 0 2px rgba(246, 224, 94, 0.7); }

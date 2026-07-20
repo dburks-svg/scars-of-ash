@@ -94,6 +94,14 @@ window.GAME_CONFIG = {
     dimExplored: true,        // charted-but-far tiles dim like a drawn map
     exploredDimOpacity: 0.35,
     showChartPercent: true
+  },
+  // -- Gathering (Etrian-style chop/mine/take points) --
+  gathering: {
+    enabled: true,
+    soulsMin: 8,
+    soulsMax: 18,
+    ambushChance: 0.25,       // examine roll: something was waiting in the ash
+    respawnOnRest: true       // nodes regrow when enemies respawn
   }
 };
 
@@ -3502,6 +3510,47 @@ var TILE_LORE = {
   }
 };
 
+// ============= GATHERING POINTS =============
+// Etrian-style chop/mine/take nodes. Keyed 'x,y' per map exactly like
+// TILE_LORE (no new map chars). Examining the node yields carried souls or
+// springs an ambush; depleted nodes regrow on bonfire rest. `kind` only
+// picks the sprite. Optional souls: {min,max} overrides GAME_CONFIG.gathering.
+var GATHER_POINTS = {
+  ashenPath: {
+    '2,5': { name: 'Cinder Pile', kind: 'take' }
+  },
+  fallenKeep: {
+    '5,4': { name: 'Cracked Masonry', kind: 'mine' }
+  },
+  hollowDeep: {
+    '3,3': { name: 'Soulstone Vein', kind: 'mine' },
+    '8,10': { name: 'Hollow Root', kind: 'chop' }
+  },
+  labyrinth: {
+    '1,3': { name: 'Gilded Vein', kind: 'mine' },
+    '12,13': { name: 'Ashen Growth', kind: 'chop' },
+    '18,9': { name: 'Cinder Cache', kind: 'take' }
+  }
+};
+
+// Dev-time sanity: every node must sit on a plain P tile with no lore
+// sharing its key, or the renderer would have to referee. Loud, not silent.
+(function () {
+  Object.keys(GATHER_POINTS).forEach(function (mapId) {
+    var map = MAPS_BY_ID[mapId];
+    Object.keys(GATHER_POINTS[mapId]).forEach(function (key) {
+      var parts = key.split(',');
+      var tile = map[+parts[1]] && map[+parts[1]][+parts[0]];
+      if (tile !== 'P') {
+        console.warn('GATHER_POINTS: ' + mapId + ' ' + key + ' is not a P tile (found "' + tile + '")');
+      }
+      if (TILE_LORE[mapId] && TILE_LORE[mapId][key]) {
+        console.warn('GATHER_POINTS: ' + mapId + ' ' + key + ' collides with a TILE_LORE entry');
+      }
+    });
+  });
+})();
+
 // Boss dialogue collections
 var BOSS_DIALOGUE = {
   intro: [
@@ -3663,6 +3712,7 @@ var getSaveData = (state) => {
     cluesFound: state.cluesFound,
     secretDoorRevealed: state.secretDoorRevealed,
     visitedTiles: state.visitedTiles,
+    gatheredPoints: state.gatheredPoints,
     savedAt: Date.now()
   };
 };
@@ -3893,6 +3943,8 @@ var initialState = {
   // Old saves lack this key; the load path defaults it to {} and reveals
   // around the loaded position so nobody wakes up blind.
   visitedTiles: {},
+  // Gathering nodes already harvested this rest cycle, as 'mapId:x,y' keys
+  gatheredPoints: [],
   grassEncounters: [
     // Ashen Path encounters (6x8 map)
     { x: 4, y: 1, map: 'ashenPath', active: true },
