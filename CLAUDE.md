@@ -235,18 +235,19 @@ Unlockable titles, displayed next to the player name:
 | Title | Unlock |
 |-------|--------|
 | Ashen Seeker | Found the hidden chamber in the Labyrinth |
-| Unscarred | Completed a run with zero scars |
-| First Flame | Played during the demo period |
+| Unscarred | Defeated the Hollow Warden with zero scars across the team |
+| First Flame | Started a run during the demo period (awarded on starter select) |
 
-Earned titles and the active title persist in the save.
+Earned titles and the active title persist in the save AND survive NEW GAME+ (RESTART carries them into the fresh run). Newest earned title auto-activates; the bonfire TITLES menu switches or removes the worn title (`SET_ACTIVE_TITLE`).
 
 ### Bonfire Mechanics
 
 - Rest: Full heal, full stamina, cleanse statuses, enemies respawn (Broken: no HP heal)
 - Save: Auto-save on rest
-- Bank: Deposit carried souls (safe)
-- Withdraw: Pull banked souls to carried (at risk)
+- Bank: Deposit carried souls (safe); ALL preset asks for confirmation
+- Withdraw: Pull banked souls to carried (at risk); ALL preset asks for confirmation
 - Kindle: Spend carried souls on permanent stat growth
+- Titles: Choose the worn title from earned titles (shown once any title is earned)
 - Switch Active: Change which creature leads
 - Warp: Fast travel to unlocked bonfires (future)
 
