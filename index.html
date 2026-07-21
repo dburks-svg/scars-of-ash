@@ -681,6 +681,26 @@
       );
     };
 
+    // Shared organic-flame path: a teardrop pointed at (cx, baseY - height),
+    // rounded at the base. Reused by BonfireTile, TorchTile, and the lore
+    // torch object so every flame in the game reads as one consistent shape.
+    const flameTeardrop = (cx, baseY, height, width) => {
+      const tipY = baseY - height;
+      return `M${cx},${tipY} C${cx - width},${tipY + height * 0.4} ${cx - width},${baseY - height * 0.1} ${cx},${baseY}
+              C${cx + width},${baseY - height * 0.1} ${cx + width},${tipY + height * 0.4} ${cx},${tipY} Z`;
+    };
+
+    // Shared small flagstone-base backdrop for object tiles (gather nodes,
+    // lore props): three irregular stones so objects don't sit on a bare
+    // rect. Deliberately simpler than PathTile's full floor treatment.
+    const flagstoneBase = (palette) => (
+      <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
+        <path d={`M3,5 Q9,3 15,5 Q17,8 15,11 Q9,13 3,11 Q1,8 3,5 Z`} fill={palette.pathLight}/>
+        <path d={`M22,3 Q29,1 36,3 Q38,7 36,11 Q29,13 22,11 Q20,7 22,3 Z`} fill={palette.pathDark}/>
+        <path d={`M44,8 Q49,6 53,8 Q54,11 53,14 Q49,16 44,14 Q43,11 44,8 Z`} fill={palette.pathLight}/>
+      </svg>
+    );
+
     // Tile components - area-aware for distinct visual styles.
     // All are React.memo with primitive props: the whole grid re-renders on
     // every step, so memoization is what pays for the visual detail.
@@ -691,12 +711,23 @@
       const hasBloom = isLabyrinth && seed % 3 === 0;
       const bloomX = 10 + (seed % 5) * 8;
       const bloomY = 14 + (seed % 4) * 9;
+      const grassTip = palette.grassTip || palette.grassLight;
+
+      // Tapered blade path: a narrow curved wedge from (bx,baseY) up to a
+      // point near (bx+lean,baseY-height). Q-curved on both edges so blades
+      // read as organic, not as ruler-straight rects.
+      const blade = (bx, baseY, height, width, lean) => {
+        const tipX = bx + lean;
+        const tipY = baseY - height;
+        const midY = baseY - height * 0.55;
+        return `M${bx - width / 2},${baseY} Q${bx - width / 2 + lean * 0.3},${midY} ${tipX},${tipY} Q${bx + width / 2 + lean * 0.3},${midY} ${bx + width / 2},${baseY} Z`;
+      };
 
       return (
         <div style={{
           width: '100%',
           height: '100%',
-          backgroundColor: palette.grassDark,
+          background: `linear-gradient(180deg, ${palette.grassMid} 0%, ${palette.grassDark} 100%)`,
           position: 'relative',
           overflow: 'hidden'
         }}>
@@ -710,26 +741,44 @@
             animation: 'grassSway 2s ease-in-out infinite',
             animationDelay: `${(seed % 5) * 0.35}s`
           }}>
-            <rect x="6" y="16" width="3" height="12" fill={palette.grassMid}/>
-            <rect x="6" y="13" width="3" height="3" fill={palette.grassLight}/>
-            <rect x="16" y="20" width="3" height="14" fill={palette.grassMid}/>
-            <rect x="16" y="17" width="3" height="3" fill={palette.grassLight}/>
-            <rect x="28" y="14" width="3" height="16" fill={palette.grassMid}/>
-            <rect x="28" y="11" width="3" height="3" fill={palette.grassLight}/>
-            <rect x="40" y="18" width="3" height="12" fill={palette.grassMid}/>
-            <rect x="40" y="15" width="3" height="3" fill={palette.grassLight}/>
-            <rect x="50" y="16" width="3" height="14" fill={palette.grassMid}/>
-            <rect x="50" y="13" width="3" height="3" fill={palette.grassLight}/>
-            <rect x="11" y="34" width="3" height="12" fill={palette.grassMid}/>
-            <rect x="22" y="38" width="3" height="12" fill={palette.grassMid}/>
-            <rect x="34" y="32" width="3" height="14" fill={palette.grassMid}/>
-            <rect x="45" y="36" width="3" height="14" fill={palette.grassMid}/>
+            <defs>
+              <linearGradient id={"gg" + seed} x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0%" stopColor={palette.grassDark}/>
+                <stop offset="100%" stopColor={palette.grassLight}/>
+              </linearGradient>
+            </defs>
+            {/* Back layer: fuller, slightly shorter blades */}
+            <path d={blade(7, 46, 18, 4, -2)} fill={`url(#gg${seed})`}/>
+            <path d={blade(17, 50, 22, 4, 3)} fill={`url(#gg${seed})`}/>
+            <path d={blade(29, 44, 20, 4, -3)} fill={`url(#gg${seed})`}/>
+            <path d={blade(41, 48, 16, 3.5, 2)} fill={`url(#gg${seed})`}/>
+            <path d={blade(51, 46, 19, 3.5, -2)} fill={`url(#gg${seed})`}/>
+          </svg>
+          <svg width="56" height="56" style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            transform: seed % 2 === 1 ? 'scaleX(-1)' : 'none',
+            animation: 'grassSway 2s ease-in-out infinite',
+            animationDelay: `${(seed % 5) * 0.35 + 0.15}s`
+          }}>
+            <defs>
+              <linearGradient id={"gt" + seed} x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0%" stopColor={palette.grassMid}/>
+                <stop offset="100%" stopColor={grassTip}/>
+              </linearGradient>
+            </defs>
+            {/* Front layer: thinner blades layered over the back for depth */}
+            <path d={blade(12, 52, 14, 2.5, 1)} fill={`url(#gt${seed})`}/>
+            <path d={blade(23, 50, 15, 2.5, -2)} fill={`url(#gt${seed})`}/>
+            <path d={blade(35, 53, 12, 2, 2)} fill={`url(#gt${seed})`}/>
+            <path d={blade(46, 51, 14, 2.5, -1)} fill={`url(#gt${seed})`}/>
           </svg>
           {/* Labyrinth blooms: pretty flowers in a place that should not have them */}
           {hasBloom && (
             <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
-              <rect x={bloomX} y={bloomY} width="3" height="3" fill={palette.bloom}/>
-              <rect x={bloomX + 1} y={bloomY - 2} width="1" height="2" fill={palette.grassLight}/>
+              <circle cx={bloomX} cy={bloomY} r="2.2" fill={palette.bloom}/>
+              <path d={`M${bloomX},${bloomY - 1} Q${bloomX + 1.5},${bloomY - 4} ${bloomX + 1},${bloomY - 6}`} stroke={palette.grassLight} strokeWidth="1" fill="none" strokeLinecap="round"/>
             </svg>
           )}
           {/* Void particles for Hollow Deep */}
@@ -801,68 +850,84 @@
       const detailX = 8 + (seed % 4) * 9;
       const detailY = 12 + (seed % 3) * 11;
 
+      // Irregular flagstone: a soft-curved quadrilateral, not a rect. Each
+      // corner nudged slightly so edges read as worn stone.
+      const stone = (x, y, w, h, n) => {
+        const j = (n % 3) - 1; // small jitter, deterministic
+        return `M${x + j},${y} Q${x + w / 2},${y - 2 + j} ${x + w},${y + j}
+                Q${x + w + 2},${y + h / 2} ${x + w},${y + h}
+                Q${x + w / 2},${y + h + 2} ${x},${y + h}
+                Q${x - 2},${y + h / 2} ${x + j},${y} Z`;
+      };
+
       return (
         <div style={{
           width: '100%',
           height: '100%',
-          backgroundColor: palette.pathMid,
+          background: `radial-gradient(circle at 50% 45%, ${palette.pathWorn || palette.pathLight} 0%, ${palette.pathMid} 70%)`,
           position: 'relative',
           overflow: 'hidden',
           boxShadow: isLabyrinth ? `inset 0 0 8px ${palette.glow}` : 'none'
         }}>
           <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0, transform: textureTransform }}>
-            {/* Stone/dirt texture with area-specific colors */}
-            <rect x="3" y="5" width="12" height="6" fill={palette.pathLight}/>
-            <rect x="22" y="3" width="14" height="8" fill={palette.pathDark}/>
-            <rect x="44" y="8" width="9" height="6" fill={palette.pathLight}/>
-            <rect x="8" y="22" width="16" height="7" fill={palette.pathDark}/>
-            <rect x="34" y="20" width="12" height="8" fill={palette.pathLight}/>
-            <rect x="5" y="40" width="9" height="6" fill={palette.pathLight}/>
-            <rect x="20" y="42" width="14" height="6" fill={palette.pathDark}/>
-            <rect x="42" y="38" width="11" height="8" fill={palette.pathDark}/>
+            <defs>
+              <linearGradient id={"pg" + seed} x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor={palette.pathLight}/>
+                <stop offset="100%" stopColor={palette.pathDark}/>
+              </linearGradient>
+            </defs>
+            {/* Irregular flagstones; the div's radial-gradient background
+                shows through the thin gaps between them, edged with a
+                pathShadow stroke so joints still read clearly */}
+            <path d={stone(2, 4, 12, 7, seed)} fill={seed % 2 === 0 ? `url(#pg${seed})` : palette.pathLight} stroke={palette.pathShadow} strokeWidth="1"/>
+            <path d={stone(20, 2, 15, 9, seed + 1)} fill={seed % 2 === 1 ? `url(#pg${seed})` : palette.pathDark} stroke={palette.pathShadow} strokeWidth="1"/>
+            <path d={stone(42, 7, 11, 7, seed + 2)} fill={palette.pathLight} stroke={palette.pathShadow} strokeWidth="1"/>
+            <path d={stone(7, 21, 17, 8, seed + 3)} fill={palette.pathDark} stroke={palette.pathShadow} strokeWidth="1"/>
+            <path d={stone(33, 19, 13, 9, seed + 4)} fill={`url(#pg${seed})`} stroke={palette.pathShadow} strokeWidth="1"/>
+            <path d={stone(4, 39, 10, 7, seed + 5)} fill={palette.pathLight} stroke={palette.pathShadow} strokeWidth="1"/>
+            <path d={stone(19, 41, 15, 7, seed + 6)} fill={palette.pathDark} stroke={palette.pathShadow} strokeWidth="1"/>
+            <path d={stone(41, 37, 12, 9, seed + 7)} fill={palette.pathDark} stroke={palette.pathShadow} strokeWidth="1"/>
             {/* Labyrinth ancient runes */}
             {isLabyrinth && (
               <>
-                <rect x="24" y="24" width="8" height="2" fill={palette.ancient} opacity="0.4"/>
-                <rect x="26" y="22" width="2" height="6" fill={palette.ancient} opacity="0.3"/>
+                <path d="M24,25 Q28,23 32,25" stroke={palette.ancient} strokeWidth="1.5" fill="none" opacity="0.4"/>
+                <path d="M27,22 Q26,25 27,28" stroke={palette.ancient} strokeWidth="1.5" fill="none" opacity="0.3"/>
               </>
             )}
           </svg>
           {/* Per-tile details on top of the shared texture */}
           <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
             {hasCrack && (
-              <>
-                <rect x={detailX} y={detailY} width="12" height="2" fill={palette.pathDark} opacity="0.8"/>
-                <rect x={detailX + 8} y={detailY + 2} width="8" height="2" fill={palette.pathDark} opacity="0.6"/>
-              </>
+              <path d={`M${detailX},${detailY} Q${detailX + 6},${detailY + 3} ${detailX + 12},${detailY + 1} Q${detailX + 16},${detailY + 2} ${detailX + 20},${detailY + 4}`}
+                stroke={palette.pathDark} strokeWidth="1.5" fill="none" opacity="0.75" strokeLinecap="round"/>
             )}
             {hasPebbles && (
               <>
-                <rect x={detailX} y={detailY + 6} width="3" height="3" fill={palette.pathLight}/>
-                <rect x={detailX + 6} y={detailY + 9} width="2" height="2" fill={palette.pathDark}/>
-                <rect x={detailX + 3} y={detailY + 12} width="2" height="2" fill={palette.pathLight}/>
+                <ellipse cx={detailX + 1.5} cy={detailY + 7.5} rx="1.6" ry="1.4" fill={palette.pathLight}/>
+                <ellipse cx={detailX + 7} cy={detailY + 10} rx="1.1" ry="1" fill={palette.pathDark}/>
+                <ellipse cx={detailX + 4} cy={detailY + 13} rx="1.1" ry="1" fill={palette.pathLight}/>
               </>
             )}
             {/* Labyrinth leaf litter and root */}
             {hasLeaves && (
               <>
-                <rect x={detailX} y={detailY} width="4" height="2" fill={palette.grassMid} opacity="0.8"/>
-                <rect x={detailX + 7} y={detailY + 4} width="3" height="2" fill={palette.grassLight} opacity="0.7"/>
-                <rect x={detailX - 2} y={detailY + 8} width="10" height="2" fill={palette.grassDark} opacity="0.9"/>
+                <path d={`M${detailX},${detailY} Q${detailX + 2},${detailY - 2} ${detailX + 4},${detailY} Q${detailX + 2},${detailY + 2} ${detailX},${detailY} Z`} fill={palette.grassMid} opacity="0.8"/>
+                <path d={`M${detailX + 7},${detailY + 4} Q${detailX + 8.5},${detailY + 2.5} ${detailX + 10},${detailY + 4} Q${detailX + 8.5},${detailY + 5.5} ${detailX + 7},${detailY + 4} Z`} fill={palette.grassLight} opacity="0.7"/>
+                <path d={`M${detailX - 2},${detailY + 8} Q${detailX + 3},${detailY + 6} ${detailX + 8},${detailY + 8}`} stroke={palette.grassDark} strokeWidth="1.5" fill="none" opacity="0.9" strokeLinecap="round"/>
               </>
             )}
             {/* Fallen Keep flagstone joint lines */}
             {hasJoints && (
               <>
-                <rect x="0" y={detailY} width="56" height="1" fill={palette.pathDark} opacity="0.7"/>
-                <rect x={detailX + 10} y={detailY} width="1" height={56 - detailY} fill={palette.pathDark} opacity="0.6"/>
+                <path d={`M0,${detailY} Q28,${detailY - 2} 56,${detailY}`} stroke={palette.pathDark} strokeWidth="1" fill="none" opacity="0.7"/>
+                <path d={`M${detailX + 10},${detailY} Q${detailX + 8},${(56 + detailY) / 2} ${detailX + 10},56`} stroke={palette.pathDark} strokeWidth="1" fill="none" opacity="0.6"/>
               </>
             )}
             {/* Hollow Deep abyssal speckle */}
             {hasSpeckle && (
               <>
-                <rect x={detailX} y={detailY} width="2" height="2" fill={palette.abyss} opacity="0.5"/>
-                <rect x={detailX + 9} y={detailY + 7} width="1" height="1" fill={palette.abyss} opacity="0.4"/>
+                <circle cx={detailX + 1} cy={detailY + 1} r="1.2" fill={palette.abyss} opacity="0.5"/>
+                <circle cx={detailX + 9.5} cy={detailY + 7.5} r="0.7" fill={palette.abyss} opacity="0.4"/>
               </>
             )}
           </svg>
@@ -923,41 +988,60 @@
       const hasMoss = isLabyrinth && seed % 4 === 1;
       const detailX = 6 + (seed % 5) * 9;
       const detailY = 8 + (seed % 4) * 10;
+      const stoneHighlight = palette.stoneHighlight || palette.wallLight;
+
+      // Rounded stone block: a rect with organically bulged sides (arcs
+      // instead of straight edges) so blocks read as hand-cut stone.
+      const block = (x, y, w, h) => {
+        const r = Math.min(w, h) * 0.18;
+        return `M${x + r},${y} L${x + w - r},${y} Q${x + w},${y} ${x + w},${y + r}
+                L${x + w},${y + h - r} Q${x + w},${y + h} ${x + w - r},${y + h}
+                L${x + r},${y + h} Q${x},${y + h} ${x},${y + h - r}
+                L${x},${y + r} Q${x},${y} ${x + r},${y} Z`;
+      };
 
       return (
         <div style={{
           width: '100%',
           height: '100%',
-          backgroundColor: palette.wallDark,
+          background: `linear-gradient(135deg, ${stoneHighlight} 0%, ${palette.wallMid} 45%, ${palette.wallDark} 100%)`,
           position: 'relative',
           overflow: 'hidden',
           boxShadow: isHollow ? `inset 0 0 12px ${palette.glow}` :
                      isLabyrinth ? `inset 0 0 6px ${palette.glow}` : 'none'
         }}>
           <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0, transform: textureTransform }}>
-            {/* Brick pattern with area-specific colors */}
-            <rect x="0" y="0" width="26" height="13" fill={palette.wallMid} stroke={palette.wallDark} strokeWidth="1"/>
-            <rect x="28" y="0" width="28" height="13" fill={palette.wallMid} stroke={palette.wallDark} strokeWidth="1"/>
-            <rect x="0" y="14" width="14" height="13" fill={palette.wallLight} stroke={palette.wallDark} strokeWidth="1"/>
-            <rect x="16" y="14" width="26" height="13" fill={palette.wallMid} stroke={palette.wallDark} strokeWidth="1"/>
-            <rect x="44" y="14" width="12" height="13" fill={palette.wallLight} stroke={palette.wallDark} strokeWidth="1"/>
-            <rect x="0" y="28" width="22" height="13" fill={palette.wallMid} stroke={palette.wallDark} strokeWidth="1"/>
-            <rect x="24" y="28" width="32" height="13" fill={palette.wallLight} stroke={palette.wallDark} strokeWidth="1"/>
-            <rect x="0" y="42" width="12" height="14" fill={palette.wallLight} stroke={palette.wallDark} strokeWidth="1"/>
-            <rect x="14" y="42" width="26" height="14" fill={palette.wallMid} stroke={palette.wallDark} strokeWidth="1"/>
-            <rect x="42" y="42" width="14" height="14" fill={palette.wallMid} stroke={palette.wallDark} strokeWidth="1"/>
+            <defs>
+              <linearGradient id={"wg" + seed} x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor={stoneHighlight}/>
+                <stop offset="100%" stopColor={palette.wallMid}/>
+              </linearGradient>
+            </defs>
+            {/* Irregular stone blocks, brick-offset, with soft rounded corners.
+                Mortar reads via a wallDark stroke; the div's directional
+                linear-gradient shows through the rounded-corner gaps. */}
+            <path d={block(1, 1, 24, 12)} fill={palette.wallMid} stroke={palette.wallDark} strokeWidth="1"/>
+            <path d={block(27, 1, 28, 12)} fill={`url(#wg${seed})`} stroke={palette.wallDark} strokeWidth="1"/>
+            <path d={block(1, 15, 13, 12)} fill={palette.wallLight} stroke={palette.wallDark} strokeWidth="1"/>
+            <path d={block(16, 15, 25, 12)} fill={palette.wallMid} stroke={palette.wallDark} strokeWidth="1"/>
+            <path d={block(43, 15, 12, 12)} fill={palette.wallLight} stroke={palette.wallDark} strokeWidth="1"/>
+            <path d={block(1, 29, 21, 12)} fill={palette.wallMid} stroke={palette.wallDark} strokeWidth="1"/>
+            <path d={block(24, 29, 31, 12)} fill={`url(#wg${seed})`} stroke={palette.wallDark} strokeWidth="1"/>
+            <path d={block(1, 43, 11, 12)} fill={palette.wallLight} stroke={palette.wallDark} strokeWidth="1"/>
+            <path d={block(14, 43, 25, 12)} fill={palette.wallMid} stroke={palette.wallDark} strokeWidth="1"/>
+            <path d={block(41, 43, 14, 12)} fill={palette.wallMid} stroke={palette.wallDark} strokeWidth="1"/>
             {/* Hollow Deep void cracks */}
             {isHollow && (
               <>
-                <line x1="10" y1="20" x2="18" y2="35" stroke={palette.void} strokeWidth="2" opacity="0.6"/>
-                <line x1="40" y1="8" x2="45" y2="22" stroke={palette.accent} strokeWidth="1" opacity="0.4"/>
+                <path d="M10,20 Q13,27 12,30 Q16,32 18,35" stroke={palette.void} strokeWidth="2" fill="none" opacity="0.6" strokeLinecap="round"/>
+                <path d="M40,8 Q42,14 43,17 Q44,19 45,22" stroke={palette.accent} strokeWidth="1" fill="none" opacity="0.4" strokeLinecap="round"/>
               </>
             )}
             {/* Labyrinth ancient symbols */}
             {isLabyrinth && (
               <>
                 <circle cx="28" cy="28" r="6" fill="none" stroke={palette.ancient} strokeWidth="1" opacity="0.3"/>
-                <rect x="25" y="25" width="6" height="6" fill="none" stroke={palette.mystery} strokeWidth="1" opacity="0.2"/>
+                <path d="M25,25 Q28,23 31,25 Q33,28 31,31 Q28,33 25,31 Q23,28 25,25 Z" fill="none" stroke={palette.mystery} strokeWidth="1" opacity="0.2"/>
               </>
             )}
           </svg>
@@ -965,27 +1049,27 @@
           <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
             {hasScorch && (
               <>
-                <rect x={detailX} y={detailY} width="10" height="8" fill="#0f0b08" opacity="0.55"/>
-                <rect x={detailX + 2} y={detailY - 3} width="6" height="4" fill="#0f0b08" opacity="0.35"/>
+                <path d={`M${detailX},${detailY + 4} Q${detailX + 1},${detailY} ${detailX + 5},${detailY} Q${detailX + 10},${detailY} ${detailX + 10},${detailY + 4} Q${detailX + 10},${detailY + 8} ${detailX + 5},${detailY + 8} Q${detailX + 1},${detailY + 8} ${detailX},${detailY + 4} Z`} fill="#0f0b08" opacity="0.55"/>
+                <path d={`M${detailX + 2},${detailY - 3} Q${detailX + 5},${detailY - 5} ${detailX + 8},${detailY - 3} Q${detailX + 5},${detailY - 1} ${detailX + 2},${detailY - 3} Z`} fill="#0f0b08" opacity="0.35"/>
               </>
             )}
             {hasChip && (
               <>
-                <rect x={detailX} y={detailY} width="5" height="4" fill={palette.wallDark}/>
-                <rect x={detailX + 1} y={detailY + 4} width="3" height="2" fill={palette.wallEdge} opacity="0.5"/>
+                <path d={`M${detailX},${detailY} Q${detailX + 2},${detailY - 1} ${detailX + 5},${detailY} Q${detailX + 5},${detailY + 3} ${detailX + 2},${detailY + 4} Q${detailX},${detailY + 2} ${detailX},${detailY} Z`} fill={palette.wallDark}/>
+                <path d={`M${detailX + 1},${detailY + 4} Q${detailX + 3},${detailY + 4.5} ${detailX + 4},${detailY + 6}`} stroke={palette.wallEdge} strokeWidth="1" fill="none" opacity="0.5"/>
               </>
             )}
             {hasVein && (
               <>
-                <rect x={detailX} y={detailY} width="2" height="10" fill={palette.abyss} opacity="0.5"/>
-                <rect x={detailX + 2} y={detailY + 8} width="6" height="2" fill={palette.abyss} opacity="0.35"/>
+                <path d={`M${detailX},${detailY} Q${detailX + 2},${detailY + 5} ${detailX},${detailY + 10}`} stroke={palette.abyss} strokeWidth="2" fill="none" opacity="0.5" strokeLinecap="round"/>
+                <path d={`M${detailX + 2},${detailY + 8} Q${detailX + 5},${detailY + 9} ${detailX + 8},${detailY + 8}`} stroke={palette.abyss} strokeWidth="1.5" fill="none" opacity="0.35" strokeLinecap="round"/>
               </>
             )}
             {hasMoss && (
               <>
-                <rect x={detailX} y={detailY} width="8" height="3" fill={palette.grassLight} opacity="0.6"/>
-                <rect x={detailX + 2} y={detailY + 3} width="4" height="5" fill={palette.grassMid} opacity="0.5"/>
-                <rect x={detailX - 2} y={detailY + 2} width="2" height="7" fill={palette.grassDark} opacity="0.6"/>
+                <path d={`M${detailX},${detailY + 1.5} Q${detailX + 4},${detailY} ${detailX + 8},${detailY + 1.5} Q${detailX + 4},${detailY + 3} ${detailX},${detailY + 1.5} Z`} fill={palette.grassLight} opacity="0.6"/>
+                <path d={`M${detailX + 2},${detailY + 3} Q${detailX + 6},${detailY + 4} ${detailX + 6},${detailY + 8} Q${detailX + 4},${detailY + 9} ${detailX + 2},${detailY + 3} Z`} fill={palette.grassMid} opacity="0.5"/>
+                <path d={`M${detailX - 2},${detailY + 2} Q${detailX - 1},${detailY + 5.5} ${detailX - 2},${detailY + 9}`} stroke={palette.grassDark} strokeWidth="2" fill="none" opacity="0.6" strokeLinecap="round"/>
               </>
             )}
           </svg>
@@ -1021,25 +1105,29 @@
           alignItems: 'center',
           justifyContent: 'center'
         }}>
-          {/* Fire base */}
-          <div style={{
-            position: 'absolute',
-            bottom: '6px',
-            width: '32px',
-            height: '10px',
-            backgroundColor: '#4a3728',
-            borderRadius: '2px'
-          }}/>
-          {/* Animated flames */}
+          {/* Log/pit base: rounded, gently lobed shape instead of a flat rect */}
+          <svg width="40" height="16" style={{ position: 'absolute', bottom: '6px' }}>
+            <path d="M2,8 Q3,2 12,3 Q20,-1 28,3 Q37,2 38,8 Q37,14 28,13 Q20,16 12,13 Q3,14 2,8 Z" fill="#4a3728"/>
+            <path d="M6,7 Q14,4 20,6 Q26,4 34,7" stroke="#2f2018" strokeWidth="1.5" fill="none" opacity="0.6" strokeLinecap="round"/>
+          </svg>
+          {/* Animated flames: teardrop paths with gradient fills */}
           <svg width="44" height="44" style={{ animation: 'flicker 0.5s infinite', position: 'relative', zIndex: 1 }}>
-            {/* Outer flame */}
-            <rect x="10" y="22" width="24" height="16" fill="#ed8936"/>
-            <rect x="13" y="16" width="18" height="8" fill="#f6ad55"/>
-            <rect x="16" y="10" width="12" height="8" fill="#f6e05e"/>
-            <rect x="19" y="4" width="6" height="8" fill="#faf089"/>
-            {/* Inner bright core */}
-            <rect x="16" y="26" width="12" height="8" fill="#faf089"/>
-            <rect x="19" y="20" width="6" height="8" fill="#fffff0"/>
+            <defs>
+              <linearGradient id="bf-flame-outer" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0%" stopColor="#c53030"/>
+                <stop offset="55%" stopColor="#ed8936"/>
+                <stop offset="100%" stopColor="#f6e05e"/>
+              </linearGradient>
+              <linearGradient id="bf-flame-core" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0%" stopColor="#f6ad55"/>
+                <stop offset="55%" stopColor="#f6e05e"/>
+                <stop offset="100%" stopColor="#fffff0"/>
+              </linearGradient>
+            </defs>
+            <path d={flameTeardrop(13, 38, 24, 8)} fill="url(#bf-flame-outer)"/>
+            <path d={flameTeardrop(31, 38, 20, 7)} fill="url(#bf-flame-outer)"/>
+            <path d={flameTeardrop(22, 37, 32, 8)} fill="url(#bf-flame-core)"/>
+            <path d={flameTeardrop(22, 33, 14, 3.5)} fill="#fffff0" opacity="0.9"/>
           </svg>
           {/* Embers */}
           <div style={{
@@ -1074,6 +1162,15 @@
       );
     });
 
+    // Arch outline: straight pillar sides rising from groundY to topY, then
+    // a rounded semicircular arc spanning left to right. Shared by GateTile,
+    // AshenGateTile, and SecretDoorTile so every doorway in the game reads
+    // as one family of shape.
+    const archPath = (xLeft, xRight, groundY, topY) => {
+      const radius = (xRight - xLeft) / 2;
+      return `M${xLeft},${groundY} L${xLeft},${topY} A${radius},${radius} 0 0 1 ${xRight},${topY} L${xRight},${groundY} Z`;
+    };
+
     const GateTile = React.memo(({ isKeep = false, area = 'ashenPath' }) => {
       const palette = AREA_PALETTES[area] || AREA_PALETTES.ashenPath;
 
@@ -1087,18 +1184,17 @@
           alignItems: 'center',
           justifyContent: 'center'
         }}>
-          <svg width="50" height="50" style={{ imageRendering: 'pixelated' }}>
-            {/* Torii gate / dungeon entrance */}
-            {/* Pillars */}
-            <rect x="6" y="12" width="6" height="38" fill="#742a2a"/>
-            <rect x="38" y="12" width="6" height="38" fill="#742a2a"/>
-            {/* Top beam */}
-            <rect x="3" y="6" width="44" height="6" fill="#9b2c2c"/>
-            <rect x="0" y="3" width="50" height="5" fill="#c53030"/>
-            {/* Cross beam */}
-            <rect x="6" y="16" width="38" height="4" fill="#742a2a"/>
-            {/* Entrance darkness */}
-            <rect x="14" y="22" width="22" height="28" fill="#0f0f1a"/>
+          <svg width="50" height="50">
+            <defs>
+              <linearGradient id="gt-arch" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#c53030"/>
+                <stop offset="100%" stopColor="#5a1f1f"/>
+              </linearGradient>
+            </defs>
+            {/* Stone frame: arch from pillar base up to a rounded crown */}
+            <path d={archPath(2, 48, 50, 8)} fill="url(#gt-arch)"/>
+            {/* Entrance darkness: a smaller inset arch cut into the frame */}
+            <path d={archPath(12, 38, 50, 18)} fill="#0f0f1a"/>
           </svg>
         </div>
       );
@@ -1109,38 +1205,42 @@
       const isHollow = area === 'hollowDeep';
       const eyeColor = isHollow ? '#9f7aea' : '#c53030';
       const eyeColor2 = isHollow ? '#faf089' : '#c53030';
+      const boneBase = isHollow ? '#a0a0b0' : '#e8e8e8';
+      const boneShade = isHollow ? '#0d0a14' : '#1a0a0a';
 
       return (
         <div style={{
           width: '100%',
           height: '100%',
-          backgroundColor: isHollow ? '#0d0a14' : '#1a0a0a',
+          backgroundColor: boneShade,
           position: 'relative',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           animation: isHollow ? 'voidPulse 2s ease-in-out infinite' : 'none'
         }}>
-          <svg width="50" height="50" style={{ imageRendering: 'pixelated' }}>
-            {/* Skull */}
-            <rect x="13" y="10" width="24" height="20" fill={isHollow ? '#a0a0b0' : '#e8e8e8'}/>
-            <rect x="10" y="13" width="3" height="14" fill={isHollow ? '#a0a0b0' : '#e8e8e8'}/>
-            <rect x="37" y="13" width="3" height="14" fill={isHollow ? '#a0a0b0' : '#e8e8e8'}/>
+          <svg width="50" height="50">
+            <defs>
+              <linearGradient id="brt-skull" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={boneBase}/>
+                <stop offset="100%" stopColor={isHollow ? '#7a7a8c' : '#c4c4c4'}/>
+              </linearGradient>
+            </defs>
+            {/* Rounded cranium tapering to cheekbones */}
+            <path d="M12,29 Q6,23 8,15 Q9,5 25,4 Q41,5 42,15 Q44,23 38,29 Q36,31 33,31 L17,31 Q14,31 12,29 Z" fill="url(#brt-skull)"/>
             {/* Eye sockets */}
-            <rect x="16" y="16" width="6" height="7" fill={isHollow ? '#0d0a14' : '#1a0a0a'}/>
-            <rect x="28" y="16" width="6" height="7" fill={isHollow ? '#0d0a14' : '#1a0a0a'}/>
+            <ellipse cx="19" cy="18" rx="4" ry="5" fill={boneShade}/>
+            <ellipse cx="31" cy="18" rx="4" ry="5" fill={boneShade}/>
             {/* Glowing eyes */}
-            <rect x="18" y="18" width="3" height="3" fill={eyeColor}/>
-            <rect x="30" y="18" width="3" height="3" fill={eyeColor2}/>
+            <circle cx="19" cy="19" r="2" fill={eyeColor}/>
+            <circle cx="31" cy="19" r="2" fill={eyeColor2}/>
             {/* Nose */}
-            <rect x="22" y="25" width="6" height="4" fill={isHollow ? '#0d0a14' : '#1a0a0a'}/>
-            {/* Teeth */}
-            <rect x="16" y="30" width="18" height="6" fill={isHollow ? '#a0a0b0' : '#e8e8e8'}/>
-            <rect x="19" y="30" width="3" height="6" fill={isHollow ? '#0d0a14' : '#1a0a0a'}/>
-            <rect x="25" y="30" width="3" height="6" fill={isHollow ? '#0d0a14' : '#1a0a0a'}/>
-            <rect x="31" y="30" width="3" height="6" fill={isHollow ? '#0d0a14' : '#1a0a0a'}/>
-            {/* Jaw */}
-            <rect x="13" y="36" width="24" height="6" fill={isHollow ? '#8080a0' : '#d4d4d4'}/>
+            <path d="M22,24 Q25,29 28,24 Q25,26.5 22,24 Z" fill={boneShade}/>
+            {/* Jaw with curved teeth gaps */}
+            <path d="M14,33 Q14,31 17,31 L33,31 Q36,31 36,33 L36,39 Q36,42 32,42 L18,42 Q14,42 14,39 Z" fill="url(#brt-skull)"/>
+            <path d="M20,31 L19,42" stroke={boneShade} strokeWidth="2" opacity="0.8" strokeLinecap="round"/>
+            <path d="M25,31 L25,42" stroke={boneShade} strokeWidth="2" opacity="0.8" strokeLinecap="round"/>
+            <path d="M30,31 L31,42" stroke={boneShade} strokeWidth="2" opacity="0.8" strokeLinecap="round"/>
           </svg>
         </div>
       );
@@ -1149,36 +1249,46 @@
     // Torch tile for Fallen Keep atmosphere
     const TorchTile = React.memo(({ area = 'fallenKeep' }) => {
       const palette = AREA_PALETTES[area] || AREA_PALETTES.fallenKeep;
+      const stoneHighlight = palette.stoneHighlight || palette.wallLight;
 
       return (
         <div style={{
           width: '100%',
           height: '100%',
-          backgroundColor: palette.wallMid,
+          background: `linear-gradient(135deg, ${stoneHighlight} 0%, ${palette.wallMid} 50%, ${palette.wallDark} 100%)`,
           position: 'relative',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
         }}>
           <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
-            {/* Wall base */}
-            <rect x="0" y="0" width="56" height="56" fill={palette.wallMid}/>
-            {/* Torch bracket */}
-            <rect x="22" y="20" width="12" height="4" fill="#4a3728"/>
-            <rect x="24" y="24" width="8" height="16" fill="#5a4a3a"/>
-            {/* Torch head */}
-            <rect x="23" y="10" width="10" height="12" fill="#6b5040"/>
+            <defs>
+              <linearGradient id="tt-bracket" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#6b5040"/>
+                <stop offset="100%" stopColor="#3a2c20"/>
+              </linearGradient>
+            </defs>
+            {/* Organic wall bracket cradling the torch handle */}
+            <path d="M20,22 Q28,17 36,22 Q34,25.5 28,25.5 Q22,25.5 20,22 Z" fill="url(#tt-bracket)"/>
+            <path d="M24,25 Q23,32 24,40 Q28,42 32,40 Q33,32 32,25 Q28,27 24,25 Z" fill="#5a4a3a"/>
+            {/* Torch head cradle */}
+            <path d="M22,12 Q28,7.5 34,12 Q35,17 32,20 Q28,22 24,20 Q21,17 22,12 Z" fill="url(#tt-bracket)"/>
           </svg>
-          {/* Animated flame */}
-          <svg width="20" height="20" style={{
+          {/* Animated flame: shared teardrop shape with a warm gradient */}
+          <svg width="24" height="26" style={{
             position: 'absolute',
-            top: '2px',
+            top: '0px',
             animation: 'torchFlicker 0.4s infinite'
           }}>
-            <rect x="4" y="10" width="12" height="8" fill="#ed8936"/>
-            <rect x="6" y="6" width="8" height="6" fill="#f6ad55"/>
-            <rect x="7" y="2" width="6" height="6" fill="#f6e05e"/>
-            <rect x="8" y="0" width="4" height="4" fill="#faf089"/>
+            <defs>
+              <linearGradient id="tt-flame" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0%" stopColor="#ed8936"/>
+                <stop offset="55%" stopColor="#f6ad55"/>
+                <stop offset="100%" stopColor="#faf089"/>
+              </linearGradient>
+            </defs>
+            <path d={flameTeardrop(12, 22, 18, 6)} fill="url(#tt-flame)"/>
+            <path d={flameTeardrop(12, 19, 9, 3)} fill="#fffbe6" opacity="0.85"/>
           </svg>
           {/* Layered torchlight: bright core, warm falloff */}
           <div style={{
@@ -1208,20 +1318,33 @@
           justifyContent: 'center',
           animation: 'mazeGlow 3s ease-in-out infinite'
         }}>
-          <svg width="56" height="56" style={{ imageRendering: 'pixelated' }}>
-            {/* Massive door frame */}
-            <rect x="4" y="2" width="48" height="52" fill="#2a2520"/>
-            <rect x="8" y="6" width="40" height="44" fill="#1a1510"/>
-            {/* Door panels */}
-            <rect x="10" y="8" width="16" height="40" fill="#3a3530" stroke="#2a2520" strokeWidth="1"/>
-            <rect x="30" y="8" width="16" height="40" fill="#3a3530" stroke="#2a2520" strokeWidth="1"/>
-            {/* Ancient runes */}
-            <rect x="16" y="14" width="4" height="8" fill={palette.ancient} opacity="0.6"/>
-            <rect x="36" y="14" width="4" height="8" fill={palette.ancient} opacity="0.6"/>
-            {/* Central emblem - flame symbol */}
-            <rect x="24" y="20" width="8" height="12" fill={palette.ancient}/>
-            <rect x="26" y="16" width="4" height="6" fill={palette.ancient}/>
-            <rect x="27" y="12" width="2" height="6" fill="#faf089"/>
+          <svg width="56" height="56">
+            <defs>
+              <linearGradient id="agt-frame" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={palette.stoneHighlight || palette.wallLight}/>
+                <stop offset="100%" stopColor="#1a1510"/>
+              </linearGradient>
+              <linearGradient id="agt-panel" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#4a453c"/>
+                <stop offset="100%" stopColor="#2a2520"/>
+              </linearGradient>
+              <linearGradient id="agt-flame" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0%" stopColor={palette.ancient}/>
+                <stop offset="100%" stopColor="#faf089"/>
+              </linearGradient>
+            </defs>
+            {/* Massive arched door frame */}
+            <path d={archPath(3, 53, 56, 4)} fill="url(#agt-frame)"/>
+            <path d={archPath(8, 48, 56, 9)} fill="#1a1510"/>
+            {/* Door panels, each with a gently rounded top */}
+            <path d={archPath(10, 27, 50, 13)} fill="url(#agt-panel)" stroke="#2a2520" strokeWidth="1"/>
+            <path d={archPath(29, 46, 50, 13)} fill="url(#agt-panel)" stroke="#2a2520" strokeWidth="1"/>
+            {/* Ancient runes: curved glyphs, not blocks */}
+            <path d="M16,14 Q18,17 16,20 Q20,19 20,15 Q18,13 16,14 Z" fill={palette.ancient} opacity="0.6"/>
+            <path d="M36,14 Q38,17 36,20 Q40,19 40,15 Q38,13 36,14 Z" fill={palette.ancient} opacity="0.6"/>
+            {/* Central emblem: the shared flame shape, carved in relief */}
+            <path d={flameTeardrop(28, 33, 13, 4)} fill="url(#agt-flame)"/>
+            <path d={flameTeardrop(28, 30, 8, 2.4)} fill="#faf089"/>
             {/* Door handles */}
             <circle cx="24" cy="36" r="3" fill="#8b7355"/>
             <circle cx="32" cy="36" r="3" fill="#8b7355"/>
@@ -1244,20 +1367,19 @@
       const palette = AREA_PALETTES[area] || AREA_PALETTES.labyrinth;
 
       if (!revealed) {
-        // Looks like a normal wall with subtle cracks
+        // Looks like a normal wall with subtle, organic hairline cracks
         return (
           <div style={{
             width: '100%',
             height: '100%',
-            backgroundColor: palette.wallDark,
+            background: `linear-gradient(135deg, ${palette.stoneHighlight || palette.wallLight} 0%, ${palette.wallMid} 60%)`,
             position: 'relative'
           }}>
             <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
-              <rect x="0" y="0" width="56" height="56" fill={palette.wallMid}/>
-              {/* Subtle cracks - hint */}
-              <line x1="10" y1="15" x2="18" y2="42" stroke={palette.wallLight} strokeWidth="1" opacity="0.5"/>
-              <line x1="38" y1="12" x2="45" y2="45" stroke={palette.wallLight} strokeWidth="1" opacity="0.5"/>
-              <line x1="10" y1="42" x2="46" y2="44" stroke={palette.wallLight} strokeWidth="1" opacity="0.4"/>
+              {/* Subtle cracks - hint, curved rather than ruler-straight */}
+              <path d="M10,15 Q16,26 14,32 Q19,37 18,42" stroke={palette.wallLight} strokeWidth="1" fill="none" opacity="0.5" strokeLinecap="round"/>
+              <path d="M38,12 Q42,26 41,34 Q44,40 45,45" stroke={palette.wallLight} strokeWidth="1" fill="none" opacity="0.5" strokeLinecap="round"/>
+              <path d="M10,42 Q26,45 46,44" stroke={palette.wallLight} strokeWidth="1" fill="none" opacity="0.4" strokeLinecap="round"/>
             </svg>
           </div>
         );
@@ -1274,13 +1396,19 @@
           alignItems: 'center',
           justifyContent: 'center'
         }}>
-          <svg width="56" height="56" style={{ imageRendering: 'pixelated' }}>
-            {/* Door frame */}
-            <rect x="8" y="4" width="40" height="48" fill="#1a1510"/>
-            <rect x="12" y="8" width="32" height="40" fill="#0f0f1a"/>
-            {/* Ancient markings */}
-            <rect x="14" y="12" width="2" height="30" fill={palette.ancient} opacity="0.4"/>
-            <rect x="40" y="12" width="2" height="30" fill={palette.ancient} opacity="0.4"/>
+          <svg width="56" height="56">
+            <defs>
+              <linearGradient id="sdt-frame" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={palette.stoneHighlight || palette.wallLight}/>
+                <stop offset="100%" stopColor="#1a1510"/>
+              </linearGradient>
+            </defs>
+            {/* Arched doorframe, matching GateTile's family of shape */}
+            <path d={archPath(6, 50, 56, 8)} fill="url(#sdt-frame)"/>
+            <path d={archPath(11, 45, 56, 13)} fill="#0f0f1a"/>
+            {/* Ancient markings: curved rune strokes */}
+            <path d="M14,12 Q16,27 14,42" stroke={palette.ancient} strokeWidth="2" fill="none" opacity="0.4" strokeLinecap="round"/>
+            <path d="M40,12 Q42,27 40,42" stroke={palette.ancient} strokeWidth="2" fill="none" opacity="0.4" strokeLinecap="round"/>
           </svg>
           {/* Shimmer effect */}
           <div style={{
@@ -1303,40 +1431,57 @@
       const renderNode = () => {
         switch (kind) {
           case 'chop':
-            // Gnarled stump with a live root
+            // Gnarled stump with a live root and a stubborn sprout
             return (
-              <svg width="40" height="40" style={{ imageRendering: 'pixelated', transform: flip ? 'scaleX(-1)' : 'none' }}>
-                <rect x="10" y="18" width="20" height="16" fill="#4a3a2a"/>
-                <rect x="12" y="14" width="16" height="6" fill="#5d4a35"/>
-                <rect x="14" y="16" width="12" height="2" fill="#6d5a42"/>
-                <rect x="4" y="30" width="12" height="4" fill="#3a2e20"/>
-                <rect x="26" y="32" width="10" height="3" fill="#3a2e20"/>
-                <rect x="17" y="8" width="3" height="8" fill={palette.grassMid}/>
-                <rect x="16" y="5" width="5" height="4" fill={palette.grassLight}/>
+              <svg width="40" height="40" style={{ transform: flip ? 'scaleX(-1)' : 'none' }}>
+                <defs>
+                  <linearGradient id="got-stump" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#5d4a35"/>
+                    <stop offset="100%" stopColor="#3a2e20"/>
+                  </linearGradient>
+                </defs>
+                <path d="M10,34 Q9,24 12,18 Q16,14 20,14 Q24,14 28,18 Q31,24 30,34 Q26,37 20,37 Q14,37 10,34 Z" fill="url(#got-stump)"/>
+                <ellipse cx="20" cy="17" rx="8" ry="4" fill="#5d4a35"/>
+                <ellipse cx="20" cy="17" rx="4" ry="2" fill="#6d5a42"/>
+                <path d="M4,32 Q8,30 10,34 Q7,36.5 4,34 Z" fill="#3a2e20"/>
+                <path d="M26,34 Q30,32 34,33 Q32,36 28,36 Z" fill="#3a2e20"/>
+                <path d="M18,8 Q17,12 19,16" stroke={palette.grassMid} strokeWidth="2" fill="none" strokeLinecap="round"/>
+                <path d="M16,5 Q19,2 22,5 Q19,9 16,5 Z" fill={palette.grassLight}/>
               </svg>
             );
           case 'mine':
-            // Glinting vein in broken rock
+            // Glinting mineral vein in broken rock
             return (
-              <svg width="40" height="40" style={{ imageRendering: 'pixelated', transform: flip ? 'scaleX(-1)' : 'none' }}>
-                <rect x="6" y="16" width="28" height="18" fill="#4a4a52"/>
-                <rect x="10" y="12" width="20" height="8" fill="#5a5a64"/>
-                <rect x="14" y="18" width="3" height="10" fill={palette.accent}/>
-                <rect x="20" y="14" width="3" height="6" fill={palette.accent} opacity="0.8"/>
-                <rect x="25" y="20" width="4" height="8" fill={palette.accent} opacity="0.6"/>
-                <rect x="17" y="24" width="2" height="2" fill="#ffffff" opacity="0.9"/>
+              <svg width="40" height="40" style={{ transform: flip ? 'scaleX(-1)' : 'none' }}>
+                <defs>
+                  <linearGradient id="got-rock" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#5a5a64"/>
+                    <stop offset="100%" stopColor="#4a4a52"/>
+                  </linearGradient>
+                </defs>
+                <path d="M6,30 Q4,22 10,16 Q16,10 24,12 Q32,10 34,18 Q36,26 30,32 Q22,36 14,34 Q8,33 6,30 Z" fill="url(#got-rock)"/>
+                <path d="M12,18 Q18,13 26,15 Q30,18 28,22 Q20,24 14,22 Q11,20 12,18 Z" fill="#6a6a74" opacity="0.6"/>
+                <path d="M14,26 Q16,20 15,14" stroke={palette.accent} strokeWidth="2.5" fill="none" opacity="0.9" strokeLinecap="round"/>
+                <path d="M21,22 Q23,18 22,14" stroke={palette.accent} strokeWidth="2" fill="none" opacity="0.75" strokeLinecap="round"/>
+                <path d="M27,24 Q29,20 26,18" stroke={palette.accent} strokeWidth="2" fill="none" opacity="0.6" strokeLinecap="round"/>
+                <circle cx="17" cy="24" r="1.2" fill="#ffffff" opacity="0.9"/>
               </svg>
             );
           default:
             // 'take': a heaped cinder cache
             return (
-              <svg width="40" height="40" style={{ imageRendering: 'pixelated', transform: flip ? 'scaleX(-1)' : 'none' }}>
-                <rect x="8" y="26" width="24" height="8" fill="#3a332c"/>
-                <rect x="12" y="20" width="16" height="8" fill="#4a4038"/>
-                <rect x="16" y="16" width="8" height="6" fill="#5a5048"/>
-                <rect x="18" y="22" width="4" height="4" fill={palette.accent} opacity="0.9"/>
-                <rect x="24" y="27" width="3" height="3" fill={palette.accent} opacity="0.6"/>
-                <rect x="13" y="28" width="2" height="2" fill={palette.accent} opacity="0.5"/>
+              <svg width="40" height="40" style={{ transform: flip ? 'scaleX(-1)' : 'none' }}>
+                <defs>
+                  <linearGradient id="got-mound" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#5a5048"/>
+                    <stop offset="100%" stopColor="#3a332c"/>
+                  </linearGradient>
+                </defs>
+                <path d="M6,34 Q4,28 10,26 Q8,20 16,18 Q14,12 22,12 Q30,12 28,18 Q36,20 34,26 Q40,28 38,34 Q22,38 6,34 Z" fill="url(#got-mound)"/>
+                <path d="M14,30 Q20,28 26,30 Q24,33 20,33 Q16,33 14,30 Z" fill="#4a4038" opacity="0.7"/>
+                <circle cx="18" cy="22" r="2" fill={palette.accent} opacity="0.9"/>
+                <circle cx="24" cy="27" r="1.5" fill={palette.accent} opacity="0.6"/>
+                <circle cx="13" cy="28" r="1" fill={palette.accent} opacity="0.5"/>
               </svg>
             );
         }
@@ -1353,11 +1498,7 @@
           justifyContent: 'center'
         }}>
           {/* Base path texture */}
-          <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
-            <rect x="3" y="5" width="12" height="6" fill={palette.pathLight}/>
-            <rect x="22" y="3" width="14" height="8" fill={palette.pathDark}/>
-            <rect x="44" y="8" width="9" height="6" fill={palette.pathLight}/>
-          </svg>
+          {flagstoneBase(palette)}
           <div style={{ position: 'relative', zIndex: 2, filter: depleted ? 'grayscale(80%) brightness(0.7)' : 'none' }}>
             {renderNode()}
           </div>
@@ -1386,115 +1527,125 @@
         switch (objectType) {
           case 'statue':
             return (
-              <svg width="40" height="48" style={{ imageRendering: 'pixelated' }}>
-                {/* Statue base */}
-                <rect x="8" y="40" width="24" height="8" fill="#5a5a60"/>
-                {/* Body */}
-                <rect x="12" y="20" width="16" height="22" fill="#7a7a85"/>
-                {/* Head */}
-                <rect x="14" y="10" width="12" height="12" fill="#8a8a95"/>
+              <svg width="40" height="48">
+                <defs>
+                  <linearGradient id="lot-statue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#8a8a95"/>
+                    <stop offset="100%" stopColor="#6b6b75"/>
+                  </linearGradient>
+                </defs>
+                {/* Base */}
+                <path d="M8,40 Q8,38 11,38 L29,38 Q32,38 32,40 L32,46 Q32,48 29,48 L11,48 Q8,48 8,46 Z" fill="#5a5a60"/>
+                {/* Curved body */}
+                <path d="M13,42 Q11,32 12,24 Q14,20 20,20 Q26,20 28,24 Q29,32 27,42 Q20,45 13,42 Z" fill="url(#lot-statue)"/>
+                {/* Rounded head */}
+                <path d="M14,12 Q14,8 20,8 Q26,8 26,12 Q26,16 20,17 Q14,16 14,12 Z" fill="#8a8a95"/>
                 {/* Arms */}
-                <rect x="6" y="24" width="6" height="12" fill="#7a7a85"/>
-                <rect x="28" y="24" width="6" height="12" fill="#7a7a85"/>
+                <path d="M7,26 Q5,30 6,36 Q8,38 10,36 Q10,30 11,26 Q9,25 7,26 Z" fill="#7a7a85"/>
+                <path d="M33,26 Q35,30 34,36 Q32,38 30,36 Q30,30 29,26 Q31,25 33,26 Z" fill="#7a7a85"/>
               </svg>
             );
           case 'altar':
             return (
-              <svg width="48" height="40" style={{ imageRendering: 'pixelated' }}>
-                {/* Altar base */}
-                <rect x="4" y="28" width="40" height="12" fill="#5a4a3a"/>
-                <rect x="8" y="20" width="32" height="10" fill="#6b5a4a"/>
+              <svg width="48" height="40">
+                <defs>
+                  <linearGradient id="lot-altar-flame" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stopColor="#ed8936"/>
+                    <stop offset="100%" stopColor="#f6e05e"/>
+                  </linearGradient>
+                </defs>
+                {/* Base and top slab */}
+                <path d="M4,32 Q4,28 10,28 L38,28 Q44,28 44,32 L44,38 Q44,40 38,40 L10,40 Q4,40 4,38 Z" fill="#5a4a3a"/>
+                <path d="M8,20 Q8,18 12,18 L36,18 Q40,18 40,20 L40,28 L8,28 Z" fill="#6b5a4a"/>
                 {/* Candles */}
-                <rect x="12" y="14" width="4" height="8" fill="#e8e8e0"/>
-                <rect x="32" y="14" width="4" height="8" fill="#e8e8e0"/>
-                {/* Flames */}
-                <rect x="13" y="10" width="2" height="4" fill="#f6ad55"/>
-                <rect x="33" y="10" width="2" height="4" fill="#f6ad55"/>
+                <path d="M12,14 Q12,13 13,13 L15,13 Q16,13 16,14 L16,22 L12,22 Z" fill="#e8e8e0"/>
+                <path d="M32,14 Q32,13 33,13 L35,13 Q36,13 36,14 L36,22 L32,22 Z" fill="#e8e8e0"/>
+                {/* Flames: the shared teardrop shape */}
+                <path d={flameTeardrop(14, 13, 6, 2)} fill="url(#lot-altar-flame)"/>
+                <path d={flameTeardrop(34, 13, 6, 2)} fill="url(#lot-altar-flame)"/>
               </svg>
             );
           case 'bones':
             return (
-              <svg width="44" height="36" style={{ imageRendering: 'pixelated' }}>
-                {/* Scattered bones */}
-                <rect x="4" y="24" width="16" height="4" fill="#e8e8d8" transform="rotate(-15 12 26)"/>
-                <rect x="24" y="20" width="14" height="4" fill="#e0e0d0" transform="rotate(20 31 22)"/>
-                <rect x="10" y="12" width="10" height="4" fill="#d8d8c8" transform="rotate(-5 15 14)"/>
+              <svg width="44" height="36">
+                {/* Scattered curved bones */}
+                <path d="M4,26 Q3,24 5,23 Q12,24 18,25 Q20,26 18,28 Q11,28 5,27 Q4,27 4,26 Z" fill="#e8e8d8" transform="rotate(-15 12 26)"/>
+                <path d="M24,22 Q23,20 25,19 Q31,20 37,21 Q39,22 37,24 Q30,24 25,23 Q24,23 24,22 Z" fill="#e0e0d0" transform="rotate(20 31 22)"/>
+                <path d="M10,14 Q9,12 11,12 Q15,13 19,13 Q20,14 19,16 Q14,16 11,15 Q10,15 10,14 Z" fill="#d8d8c8" transform="rotate(-5 15 14)"/>
                 {/* Skull */}
                 <circle cx="34" cy="10" r="6" fill="#e8e8d8"/>
-                <rect x="31" y="8" width="2" height="2" fill="#1a1a1a"/>
-                <rect x="35" y="8" width="2" height="2" fill="#1a1a1a"/>
+                <ellipse cx="32" cy="9" rx="1.3" ry="1.6" fill="#1a1a1a"/>
+                <ellipse cx="36" cy="9" rx="1.3" ry="1.6" fill="#1a1a1a"/>
               </svg>
             );
           case 'torch':
             return (
-              <svg width="24" height="48" style={{ imageRendering: 'pixelated' }}>
-                {/* Torch handle */}
-                <rect x="8" y="20" width="8" height="28" fill="#5a4a3a"/>
-                {/* Torch head */}
-                <rect x="6" y="14" width="12" height="8" fill="#6b5040"/>
+              <svg width="24" height="48">
+                <defs>
+                  <linearGradient id="lot-torch-flame" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stopColor="#ed8936"/>
+                    <stop offset="55%" stopColor="#f6ad55"/>
+                    <stop offset="100%" stopColor="#f6e05e"/>
+                  </linearGradient>
+                </defs>
+                {/* Handle */}
+                <path d="M8,20 Q8,19 9,19 L15,19 Q16,19 16,20 L16,48 L8,48 Z" fill="#5a4a3a"/>
+                {/* Head cradle */}
+                <path d="M6,14 Q6,12 9,12 L15,12 Q18,12 18,14 L18,22 L6,22 Z" fill="#6b5040"/>
                 {/* Flame */}
-                <rect x="8" y="6" width="8" height="10" fill="#ed8936"/>
-                <rect x="9" y="2" width="6" height="6" fill="#f6ad55"/>
-                <rect x="10" y="0" width="4" height="4" fill="#f6e05e"/>
+                <path d={flameTeardrop(12, 16, 14, 5)} fill="url(#lot-torch-flame)"/>
+                <path d={flameTeardrop(12, 13, 7, 2.4)} fill="#fffbe6" opacity="0.85"/>
               </svg>
             );
           case 'chest':
             return (
-              <svg width="40" height="32" style={{ imageRendering: 'pixelated' }}>
-                {/* Chest body */}
-                <rect x="4" y="12" width="32" height="20" fill="#8b7355"/>
-                <rect x="4" y="8" width="32" height="8" fill="#a08060" rx="2"/>
+              <svg width="40" height="32">
+                <defs>
+                  <linearGradient id="lot-chest" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#a08060"/>
+                    <stop offset="100%" stopColor="#8b7355"/>
+                  </linearGradient>
+                </defs>
+                {/* Body and domed lid */}
+                <path d="M4,16 L4,30 Q4,32 6,32 L34,32 Q36,32 36,30 L36,16 Z" fill="url(#lot-chest)"/>
+                <path d="M4,16 Q4,4 20,4 Q36,4 36,16 Z" fill="#a08060"/>
                 {/* Metal bands */}
-                <rect x="4" y="16" width="32" height="3" fill="#4a4a50"/>
-                <rect x="4" y="24" width="32" height="3" fill="#4a4a50"/>
+                <path d="M4,17 L36,17" stroke="#4a4a50" strokeWidth="3" opacity="0.9"/>
+                <path d="M4,25 L36,25" stroke="#4a4a50" strokeWidth="3" opacity="0.9"/>
                 {/* Lock */}
-                <rect x="16" y="18" width="8" height="6" fill="#d69e2e"/>
-                <rect x="18" y="20" width="4" height="2" fill="#1a1a1a"/>
+                <path d="M17,18 Q17,17 18,17 L23,17 Q24,17 24,18 L24,24 Q24,25 23,25 L18,25 Q17,25 17,24 Z" fill="#d69e2e"/>
+                <circle cx="20.5" cy="20.5" r="1.2" fill="#1a1a1a"/>
               </svg>
             );
           case 'signpost':
             return (
-              <svg width="36" height="44" style={{ imageRendering: 'pixelated' }}>
-                {/* Post */}
-                <rect x="16" y="10" width="4" height="34" fill="#5a4a3a"/>
-                {/* Board with worn text lines */}
-                <rect x="4" y="8" width="28" height="12" fill="#6b5a4a"/>
-                <rect x="7" y="11" width="22" height="2" fill="#3a3530"/>
-                <rect x="7" y="15" width="14" height="2" fill="#3a3530"/>
-              </svg>
-            );
-          case 'statue':
-            return (
-              <svg width="32" height="44" style={{ imageRendering: 'pixelated' }}>
-                {/* Plinth */}
-                <rect x="6" y="36" width="20" height="8" fill="#4a4a50"/>
-                {/* Worn torso and head */}
-                <rect x="10" y="18" width="12" height="18" fill="#6b6b72"/>
-                <rect x="12" y="8" width="8" height="10" fill="#7a7a82"/>
-                {/* Broken outstretched arm */}
-                <rect x="22" y="20" width="8" height="4" fill="#6b6b72"/>
-                {/* Fallen rubble */}
-                <rect x="2" y="40" width="6" height="4" fill="#55555c"/>
+              <svg width="36" height="44">
+                {/* Leaning post */}
+                <path d="M16,10 Q16,9 17,9 L19,9 Q20,9 20,10 L21,44 L16,44 Z" fill="#5a4a3a"/>
+                {/* Weathered board */}
+                <path d="M4,8 Q4,6 6,6 L30,6 Q32,6 32,8 L32,18 Q32,20 30,20 L6,20 Q4,20 4,18 Z" fill="#6b5a4a"/>
+                {/* Worn text lines */}
+                <path d="M7,11 Q18,10 29,11" stroke="#3a3530" strokeWidth="2" fill="none" opacity="0.8" strokeLinecap="round"/>
+                <path d="M7,15 Q14,14 21,15" stroke="#3a3530" strokeWidth="2" fill="none" opacity="0.8" strokeLinecap="round"/>
               </svg>
             );
           case 'tree':
             return (
-              <svg width="36" height="48" style={{ imageRendering: 'pixelated' }}>
-                {/* Charred trunk */}
-                <rect x="15" y="16" width="6" height="32" fill="#3a3028"/>
-                <rect x="13" y="4" width="4" height="18" fill="#443830"/>
-                {/* Bare branches */}
-                <rect x="7" y="12" width="10" height="3" fill="#3a3028"/>
-                <rect x="20" y="8" width="10" height="3" fill="#3a3028"/>
-                <rect x="20" y="22" width="8" height="3" fill="#443830"/>
+              <svg width="36" height="48">
+                {/* Charred, gently curved trunk */}
+                <path d="M15,48 Q13,32 15,20 Q13,10 14,4 Q16,2 18,4 Q19,10 17,20 Q19,32 21,48 Q18,50 15,48 Z" fill="#3a3028"/>
+                {/* Bare curved branches */}
+                <path d="M7,12 Q11,9 17,13" stroke="#3a3028" strokeWidth="3" fill="none" strokeLinecap="round"/>
+                <path d="M20,8 Q25,5 30,9" stroke="#443830" strokeWidth="3" fill="none" strokeLinecap="round"/>
+                <path d="M20,22 Q25,19 28,23" stroke="#443830" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
                 {/* A last ember clinging on */}
-                <rect x="27" y="6" width="2" height="2" fill="#ed8936"/>
+                <circle cx="27" cy="6" r="1.4" fill="#ed8936"/>
               </svg>
             );
           default:
             return (
-              <svg width="32" height="32" style={{ imageRendering: 'pixelated' }}>
-                <rect x="8" y="8" width="16" height="16" fill={palette.accent} opacity="0.6"/>
+              <svg width="32" height="32">
+                <circle cx="16" cy="16" r="9" fill={palette.accent} opacity="0.6"/>
               </svg>
             );
         }
@@ -1511,11 +1662,7 @@
           justifyContent: 'center'
         }}>
           {/* Base path texture */}
-          <svg width="56" height="56" style={{ position: 'absolute', top: 0, left: 0 }}>
-            <rect x="3" y="5" width="12" height="6" fill={palette.pathLight}/>
-            <rect x="22" y="3" width="14" height="8" fill={palette.pathDark}/>
-            <rect x="44" y="8" width="9" height="6" fill={palette.pathLight}/>
-          </svg>
+          {flagstoneBase(palette)}
           {/* Object */}
           <div style={{ position: 'relative', zIndex: 2 }}>
             {renderObject()}
@@ -3997,19 +4144,30 @@
     const AshFall = React.memo(function AshFall({ map }) {
       const palette = AREA_PALETTES[map] || AREA_PALETTES.ashenPath;
       const cfg = AREA_PARTICLES[map] || AREA_PARTICLES.ashenPath;
-      // Fixed, hand-picked motes: deterministic, so they don't reshuffle on
-      // every re-render and strobe while the player walks.
+      const variants = cfg.variants || [{ round: cfg.round, w: 3, h: 3, glowPx: cfg.glowPx }];
       const MOTES = [
-        { left: 6, delay: 0, dur: 9, size: 3, op: 0.5 },
-        { left: 17, delay: 3.4, dur: 12, size: 2, op: 0.35 },
-        { left: 29, delay: 1.2, dur: 10, size: 2, op: 0.4 },
-        { left: 38, delay: 6.1, dur: 14, size: 3, op: 0.3 },
-        { left: 47, delay: 2.3, dur: 8, size: 2, op: 0.45 },
-        { left: 58, delay: 5.0, dur: 13, size: 3, op: 0.32 },
-        { left: 66, delay: 0.8, dur: 11, size: 2, op: 0.42 },
-        { left: 75, delay: 4.2, dur: 9, size: 3, op: 0.38 },
-        { left: 84, delay: 7.3, dur: 15, size: 2, op: 0.28 },
-        { left: 93, delay: 2.9, dur: 10, size: 3, op: 0.44 }
+        { left: 6,  delay: 0,   dur: 9,  op: 0.5  },
+        { left: 12, delay: 4.8, dur: 13, op: 0.28 },
+        { left: 17, delay: 3.4, dur: 12, op: 0.35 },
+        { left: 23, delay: 1.6, dur: 11, op: 0.32 },
+        { left: 29, delay: 1.2, dur: 10, op: 0.4  },
+        { left: 34, delay: 5.5, dur: 14, op: 0.26 },
+        { left: 38, delay: 6.1, dur: 14, op: 0.3  },
+        { left: 43, delay: 0.4, dur: 9,  op: 0.42 },
+        { left: 47, delay: 2.3, dur: 8,  op: 0.45 },
+        { left: 52, delay: 7.0, dur: 16, op: 0.22 },
+        { left: 58, delay: 5.0, dur: 13, op: 0.32 },
+        { left: 62, delay: 1.8, dur: 10, op: 0.38 },
+        { left: 66, delay: 0.8, dur: 11, op: 0.42 },
+        { left: 71, delay: 3.6, dur: 12, op: 0.3  },
+        { left: 75, delay: 4.2, dur: 9,  op: 0.38 },
+        { left: 79, delay: 6.8, dur: 15, op: 0.24 },
+        { left: 84, delay: 7.3, dur: 15, op: 0.28 },
+        { left: 88, delay: 2.1, dur: 11, op: 0.36 },
+        { left: 93, delay: 2.9, dur: 10, op: 0.44 },
+        { left: 96, delay: 5.4, dur: 13, op: 0.26 },
+        { left: 3,  delay: 8.2, dur: 16, op: 0.2  },
+        { left: 50, delay: 9.0, dur: 18, op: 0.18 }
       ];
 
       return (
@@ -4022,6 +4180,7 @@
         }}>
           {MOTES.map((m, i) => {
             const color = i % 2 === 1 ? (palette.motes2 || palette.accent) : (palette.motes || palette.accent);
+            const v = variants[i % variants.length];
             return (
               <div
                 key={i}
@@ -4031,12 +4190,12 @@
                   top: cfg.from === 'top' ? 0 : 'auto',
                   bottom: cfg.from === 'bottom' ? 0 : 'auto',
                   left: `${m.left}%`,
-                  width: `${m.size}px`,
-                  height: `${m.size}px`,
+                  width: `${v.w}px`,
+                  height: `${v.h}px`,
                   backgroundColor: color,
                   color: color,
-                  borderRadius: cfg.round ? '50%' : 0,
-                  boxShadow: cfg.glowPx ? `0 0 ${cfg.glowPx}px currentColor` : 'none',
+                  borderRadius: v.round ? '50%' : '1px',
+                  boxShadow: v.glowPx ? `0 0 ${v.glowPx}px currentColor` : 'none',
                   opacity: m.op,
                   animation: `${cfg.anim} ${Math.round(m.dur * cfg.durMul * 10) / 10}s linear ${m.delay}s infinite`
                 }}
@@ -4047,23 +4206,67 @@
       );
     });
 
-    // Stratum framing: colored ambient light wash plus edge darkening, so the
-    // map reads like a dungeon seen by lantern light. Never eats a tap.
     const MapVignette = React.memo(function MapVignette({ map }) {
       const palette = AREA_PALETTES[map] || AREA_PALETTES.ashenPath;
+      const vc = palette.vignetteColor || palette.deep;
+      return (
+        <React.Fragment>
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            zIndex: 6,
+            background: [
+              `radial-gradient(ellipse at 50% 40%, transparent 35%, ${vc} 120%)`,
+              `radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.02) 0%, transparent 60%)`,
+              `linear-gradient(${palette.mist}, ${palette.mist})`
+            ].join(', ')
+          }}/>
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            zIndex: 6,
+            background: `linear-gradient(180deg, ${palette.mist} 0%, transparent 20%, transparent 80%, ${palette.mist} 100%)`,
+            mixBlendMode: 'multiply'
+          }}/>
+        </React.Fragment>
+      );
+    });
+
+    const LightingOverlay = React.memo(function LightingOverlay({ map, mapData }) {
+      const palette = AREA_PALETTES[map] || AREA_PALETTES.ashenPath;
+      const lightColor = palette.lightColor || 'rgba(255, 200, 120, 0.2)';
+      const cols = mapData[0].length;
+      const rows = mapData.length;
+      const gradients = [];
+      for (var y = 0; y < rows; y++) {
+        for (var x = 0; x < cols; x++) {
+          var ch = mapData[y][x];
+          if (ch === 'B' || ch === 'T') {
+            var cx = ((x + 0.5) / cols * 100).toFixed(1);
+            var cy = ((y + 0.5) / rows * 100).toFixed(1);
+            var radius = ch === 'B' ? '18%' : '12%';
+            var strength = ch === 'B' ? lightColor : lightColor.replace(/[\d.]+\)$/, function(m) {
+              return (parseFloat(m) * 0.6).toFixed(2) + ')';
+            });
+            gradients.push('radial-gradient(circle at ' + cx + '% ' + cy + '%, ' + strength + ' 0%, transparent ' + radius + ')');
+          }
+        }
+      }
+      if (gradients.length === 0) return null;
       return (
         <div style={{
           position: 'absolute',
           inset: 0,
           pointerEvents: 'none',
           zIndex: 6,
-          background: `radial-gradient(ellipse at 50% 42%, transparent 52%, ${palette.deep} 135%), linear-gradient(${palette.mist}, ${palette.mist})`
+          mixBlendMode: 'screen',
+          background: gradients.join(', ')
         }}/>
       );
     });
 
-    // Four corner brackets: the EO "dungeon viewed through an explorer's
-    // window" framing, tinted to the area accent.
     const MapFrameCorners = React.memo(function MapFrameCorners({ map }) {
       const accent = (AREA_PALETTES[map] || AREA_PALETTES.ashenPath).accent;
       const corner = (pos) => ({
@@ -4472,7 +4675,8 @@
               ...styles.grid,
               position: 'relative',
               gridTemplateColumns: `repeat(${map[0].length}, var(--tile-size))`,
-              boxShadow: `${styles.grid.boxShadow}, 0 0 24px ${(AREA_PALETTES[state.currentMap] || AREA_PALETTES.ashenPath).glow}, 0 6px 16px rgba(0, 0, 0, 0.6)`
+              boxShadow: `${styles.grid.boxShadow}, 0 0 24px ${(AREA_PALETTES[state.currentMap] || AREA_PALETTES.ashenPath).glow}, 0 6px 16px rgba(0, 0, 0, 0.6)`,
+              filter: (AREA_PALETTES[state.currentMap] || AREA_PALETTES.ashenPath).areaFilter || 'none'
             }}>
               {map.map((row, y) =>
                 row.map((tile, x) => {
@@ -4662,6 +4866,7 @@
                 })
               )}
               <AshFall map={state.currentMap} />
+              <LightingOverlay map={state.currentMap} mapData={map} />
               <MapVignette map={state.currentMap} />
               <MapFrameCorners map={state.currentMap} />
             </div>
@@ -5209,29 +5414,68 @@
       const palette = AREA_PALETTES[map] || AREA_PALETTES.ashenPath;
       const sky = isBoss && bossPhase === 2 ? '#2a1010' : palette.pathDark;
       const ground = palette.pathMid;
-      const ridge = palette.wallDark || palette.pathDark;
+      const ridgeFar = palette.wallDark || palette.pathDark;
+      const ridgeMid = palette.wallMid || palette.pathMid;
+      const ridgeNear = palette.wallLight || palette.pathLight;
 
-      const RIDGES = {
-        ashenPath: 'M0,26 L14,16 L26,24 L40,10 L54,22 L68,14 L82,24 L96,18 L110,26 L120,20 L120,40 L0,40 Z',
-        fallenKeep: 'M0,28 L10,28 L10,12 L20,12 L20,28 L34,28 L34,6 L46,6 L46,28 L62,28 L62,16 L74,16 L74,28 L92,28 L92,10 L104,10 L104,28 L120,28 L120,40 L0,40 Z',
-        hollowDeep: 'M0,30 L12,18 L18,28 L30,8 L42,26 L52,14 L64,28 L76,12 L88,26 L100,16 L112,28 L120,22 L120,40 L0,40 Z',
-        labyrinth: 'M0,24 L16,24 L16,12 L32,12 L32,26 L48,26 L48,10 L64,10 L64,24 L80,24 L80,14 L96,14 L96,26 L120,26 L120,40 L0,40 Z'
+      const FAR_RIDGES = {
+        ashenPath:  'M0,30 Q30,22 60,28 Q90,20 120,26 L120,40 L0,40 Z',
+        fallenKeep: 'M0,32 L20,28 L40,32 L60,26 L80,30 L100,24 L120,30 L120,40 L0,40 Z',
+        hollowDeep: 'M0,32 Q20,24 40,30 Q60,20 80,28 Q100,22 120,30 L120,40 L0,40 Z',
+        labyrinth:  'M0,30 Q15,26 30,30 Q45,24 60,28 Q75,22 90,28 Q105,24 120,30 L120,40 L0,40 Z'
       };
-      const ridgePath = RIDGES[map] || RIDGES.ashenPath;
+      const MID_RIDGES = {
+        ashenPath:  'M0,26 Q14,16 26,24 Q40,10 54,22 Q68,14 82,24 Q96,18 110,26 L120,20 L120,40 L0,40 Z',
+        fallenKeep: 'M0,28 L10,28 L10,12 Q15,8 20,12 L20,28 L34,28 L34,6 Q40,2 46,6 L46,28 L62,28 L62,16 Q68,12 74,16 L74,28 L92,28 L92,10 Q98,6 104,10 L104,28 L120,28 L120,40 L0,40 Z',
+        hollowDeep: 'M0,30 Q12,18 18,28 Q30,8 42,26 Q52,14 64,28 Q76,12 88,26 Q100,16 112,28 L120,22 L120,40 L0,40 Z',
+        labyrinth:  'M0,24 Q8,20 16,24 L16,12 Q24,8 32,12 L32,26 Q40,22 48,26 L48,10 Q56,6 64,10 L64,24 Q72,20 80,24 L80,14 Q88,10 96,14 L96,26 L120,26 L120,40 L0,40 Z'
+      };
+      const NEAR_RIDGES = {
+        ashenPath:  'M0,34 Q20,28 40,32 Q60,26 80,30 Q100,28 120,34 L120,40 L0,40 Z',
+        fallenKeep: 'M0,34 L30,34 L30,24 Q35,20 40,24 L40,34 L80,34 L80,22 Q85,18 90,22 L90,34 L120,34 L120,40 L0,40 Z',
+        hollowDeep: 'M0,36 Q15,30 30,34 Q45,28 60,32 Q75,26 90,34 Q105,30 120,36 L120,40 L0,40 Z',
+        labyrinth:  'M0,34 Q10,30 20,34 Q30,28 40,32 Q50,28 60,34 Q80,30 100,34 Q110,30 120,34 L120,40 L0,40 Z'
+      };
+
+      const farPath = FAR_RIDGES[map] || FAR_RIDGES.ashenPath;
+      const midPath = MID_RIDGES[map] || MID_RIDGES.ashenPath;
+      const nearPath = NEAR_RIDGES[map] || NEAR_RIDGES.ashenPath;
 
       return (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
           <svg
             width="100%"
             height="100%"
             viewBox="0 0 120 40"
             preserveAspectRatio="none"
-            style={{ display: 'block', imageRendering: 'pixelated' }}
+            style={{ display: 'block' }}
           >
-            <rect x="0" y="0" width="120" height="40" fill={sky} />
-            <path d={ridgePath} fill={ridge} opacity="0.75" />
-            <rect x="0" y="32" width="120" height="8" fill={ground} opacity="0.9" />
+            <defs>
+              <linearGradient id={`skyGrad-${map}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={sky} />
+                <stop offset="100%" stopColor={palette.pathShadow || sky} />
+              </linearGradient>
+              <linearGradient id={`groundGrad-${map}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={ground} />
+                <stop offset="100%" stopColor={palette.pathDark} />
+              </linearGradient>
+            </defs>
+            <rect x="0" y="0" width="120" height="40" fill={`url(#skyGrad-${map})`} />
+            <g className="ridge-drift" style={{ animation: 'ridgeDriftSlow 12s ease-in-out infinite alternate' }}>
+              <path d={farPath} fill={ridgeFar} opacity="0.4" />
+            </g>
+            <g className="ridge-drift" style={{ animation: 'ridgeDriftMid 8s ease-in-out infinite alternate' }}>
+              <path d={midPath} fill={ridgeMid} opacity="0.6" />
+            </g>
+            <path d={nearPath} fill={ridgeNear} opacity="0.3" />
+            <rect x="0" y="32" width="120" height="8" fill={`url(#groundGrad-${map})`} opacity="0.9" />
           </svg>
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: `radial-gradient(ellipse at 50% 80%, transparent 40%, ${palette.deep} 120%)`,
+            opacity: 0.5
+          }}/>
         </div>
       );
     }
@@ -7858,6 +8102,8 @@ const DevDashboard = ({ onClose, onModified }) => {
       const [devModified, setDevModified] = useState(false);
       const prevBonfireRef = useRef(null);
       const playTimeRef = useRef(Date.now());
+      const prevScreenTransRef = useRef(state.screen);
+      const [screenTransition, setScreenTransition] = useState(null);
 
       // Handle tap to start
       const handleStart = async () => {
@@ -7906,6 +8152,19 @@ const DevDashboard = ({ onClose, onModified }) => {
         }
         playTimeRef.current = Date.now();
       }, [state.screen]);
+
+      useEffect(() => {
+        var prev = prevScreenTransRef.current;
+        prevScreenTransRef.current = state.screen;
+        if (prev === state.screen) return;
+        if (state.screen === 'battle') return;
+        var palette = AREA_PALETTES[state.currentMap] || AREA_PALETTES.ashenPath;
+        var color = palette.transitionColor || palette.deep || '#0f0f1a';
+        if (state.screen === 'gameOver') color = '#1a0808';
+        setScreenTransition(color);
+        var timer = setTimeout(function() { setScreenTransition(null); }, 450);
+        return function() { clearTimeout(timer); };
+      }, [state.screen, state.currentMap]);
 
       // Handle ESC key for pause menu
       useEffect(() => {
@@ -8184,6 +8443,10 @@ const DevDashboard = ({ onClose, onModified }) => {
               message={state.saveNotification}
               onDismiss={() => dispatch({ type: 'CLEAR_NOTIFICATION' })}
             />
+          )}
+
+          {screenTransition && (
+            <div className="screen-transition" style={{ backgroundColor: screenTransition }} />
           )}
 
           {/* Difficulty indicator during gameplay */}

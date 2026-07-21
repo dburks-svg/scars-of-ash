@@ -412,12 +412,47 @@
         animation: none !important;
         display: none !important;
       }
+      .screen-transition {
+        animation: none !important;
+        opacity: 0 !important;
+      }
+      .ridge-drift {
+        animation: none !important;
+      }
       /* Same trap: fog-lift fills forward to transparent, so with its
          animation removed it would sit opaque on the tile forever */
       .fog-lift {
         animation: none !important;
         opacity: 0 !important;
       }
+    }
+
+    /* Slow horizontal drift for parallax battle backdrop layers */
+    @keyframes ridgeDriftSlow {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-8px); }
+    }
+    @keyframes ridgeDriftMid {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(5px); }
+    }
+
+    /* Screen transition: fade through a color */
+    @keyframes screenFadeIn {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    @keyframes screenFadeOut {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    .screen-transition {
+      position: fixed;
+      inset: 0;
+      z-index: 9998;
+      pointer-events: none;
+      animation: screenFadeIn 0.4s ease-out forwards;
     }
 
     .hp-low {

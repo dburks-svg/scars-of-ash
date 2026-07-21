@@ -2186,7 +2186,14 @@ var AREA_PALETTES = {
     mist: 'rgba(214, 170, 120, 0.06)',
     deep: '#14100c',
     motes: '#e8a05a',
-    motes2: '#b0a08a'
+    motes2: '#b0a08a',
+    stoneHighlight: '#9c8a6f',
+    pathWorn: '#b39a76',
+    grassTip: '#b8b070',
+    areaFilter: 'saturate(0.85) sepia(0.08) brightness(0.95)',
+    lightColor: 'rgba(255, 190, 110, 0.25)',
+    vignetteColor: 'rgba(20, 16, 12, 0.7)',
+    transitionColor: '#14100c'
   },
   // Fallen Keep - "Cold Stone and Torch Gold": blue-violet stone so torchlight pops
   fallenKeep: {
@@ -2208,7 +2215,14 @@ var AREA_PALETTES = {
     mist: 'rgba(90, 90, 160, 0.08)',
     deep: '#0b0916',
     motes: '#ffb454',
-    motes2: '#ff8a3d'
+    motes2: '#ff8a3d',
+    stoneHighlight: '#6b638f',
+    pathWorn: '#8a7a8f',
+    grassTip: '#8a7268',
+    areaFilter: 'contrast(1.08) brightness(0.92) saturate(0.9)',
+    lightColor: 'rgba(255, 180, 84, 0.3)',
+    vignetteColor: 'rgba(11, 9, 22, 0.75)',
+    transitionColor: '#0b0916'
   },
   // Hollow Deep - "The Abyss Breathes": void purple, abyssal teal
   hollowDeep: {
@@ -2230,7 +2244,14 @@ var AREA_PALETTES = {
     mist: 'rgba(124, 92, 191, 0.10)',
     deep: '#060410',
     motes: '#8fe3d9',
-    motes2: '#a78bfa'
+    motes2: '#a78bfa',
+    stoneHighlight: '#5a3f85',
+    pathWorn: '#524d80',
+    grassTip: '#4a7d64',
+    areaFilter: 'hue-rotate(5deg) saturate(1.15) brightness(0.88)',
+    lightColor: 'rgba(167, 139, 250, 0.2)',
+    vignetteColor: 'rgba(6, 4, 16, 0.8)',
+    transitionColor: '#060410'
   },
   // The Labyrinth - "Verdant and Wrong": lush greens over old gold
   labyrinth: {
@@ -2253,17 +2274,44 @@ var AREA_PALETTES = {
     mist: 'rgba(80, 180, 110, 0.08)',
     deep: '#081510',
     motes: '#b8d872',
-    motes2: '#7db86a'
+    motes2: '#7db86a',
+    stoneHighlight: '#4f8a68',
+    pathWorn: '#8ea06c',
+    grassTip: '#6ec478',
+    areaFilter: 'saturate(1.1) contrast(0.97) brightness(1.02)',
+    lightColor: 'rgba(232, 200, 74, 0.2)',
+    vignetteColor: 'rgba(8, 21, 16, 0.7)',
+    transitionColor: '#081510'
   }
 };
 
 // Per-area ambient particle behavior, consumed by AshFall in index.html.
 // anim must be a keyframe defined in styles.css.
 var AREA_PARTICLES = {
-  ashenPath:  { anim: 'ashFall',   from: 'top',    round: false, glowPx: 0, durMul: 1.0 },
-  fallenKeep: { anim: 'emberRise', from: 'bottom', round: true,  glowPx: 4, durMul: 0.8 },
-  hollowDeep: { anim: 'voidDrift', from: 'bottom', round: true,  glowPx: 6, durMul: 1.6 },
-  labyrinth:  { anim: 'sporeFall', from: 'top',    round: true,  glowPx: 0, durMul: 1.4 }
+  ashenPath:  { anim: 'ashFall',   from: 'top',    round: false, glowPx: 0, durMul: 1.0,
+    variants: [
+      { round: false, w: 3, h: 1, glowPx: 0 },
+      { round: false, w: 2, h: 6, glowPx: 0 },
+      { round: true,  w: 2, h: 2, glowPx: 2 }
+    ]},
+  fallenKeep: { anim: 'emberRise', from: 'bottom', round: true,  glowPx: 4, durMul: 0.8,
+    variants: [
+      { round: true,  w: 3, h: 3, glowPx: 5 },
+      { round: true,  w: 2, h: 2, glowPx: 3 },
+      { round: false, w: 1, h: 4, glowPx: 6 }
+    ]},
+  hollowDeep: { anim: 'voidDrift', from: 'bottom', round: true,  glowPx: 6, durMul: 1.6,
+    variants: [
+      { round: true,  w: 3, h: 3, glowPx: 8 },
+      { round: false, w: 1, h: 5, glowPx: 4 },
+      { round: true,  w: 4, h: 4, glowPx: 10 }
+    ]},
+  labyrinth:  { anim: 'sporeFall', from: 'top',    round: true,  glowPx: 0, durMul: 1.4,
+    variants: [
+      { round: true,  w: 3, h: 3, glowPx: 0 },
+      { round: false, w: 4, h: 2, glowPx: 0 },
+      { round: true,  w: 2, h: 2, glowPx: 2 }
+    ]}
 };
 
 // Which MusicManager track plays while exploring each area
