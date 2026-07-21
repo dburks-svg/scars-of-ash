@@ -2135,32 +2135,31 @@ function findPath(map, startX, startY, endX, endY, secretDoorRevealed, visitedSe
 
 // ============= GBC COLOR PALETTE =============
 var GBC = {
-  bg: '#0f0f1a',
-  bgLight: '#1a1a2e',
-  bgPanel: '#16213e',
-  border: '#4a5568',
-  borderLight: '#718096',
-  text: '#e8e8e8',
-  textDim: '#a0aec0',
-  gold: '#f6e05e',
-  red: '#fc8181',
-  green: '#68d391',
-  blue: '#63b3ed',
-  fire: '#f6ad55',
-  water: '#4299e1',
-  grass: '#48bb78',
-  dark: '#9f7aea',
-  light: '#faf089',
-  // Tile colors (default/Ashen Path)
-  wallDark: '#1a1a2e',
-  wallMid: '#2d3748',
-  wallLight: '#4a5568',
-  pathDark: '#744210',
-  pathMid: '#975a16',
-  pathLight: '#b7791f',
-  grassDark: '#276749',
-  grassMid: '#38a169',
-  grassLight: '#48bb78',
+  bg: '#0d0d14',
+  bgLight: '#1a1825',
+  bgPanel: '#1e1a2a',
+  border: '#4a4258',
+  borderLight: '#6b6080',
+  text: '#f0e6d3',
+  textDim: '#9a8fa0',
+  gold: '#e8c55a',
+  red: '#d4655a',
+  green: '#5ab87a',
+  blue: '#5a9ec4',
+  fire: '#d4945a',
+  water: '#4a8ab4',
+  grass: '#4aaa6a',
+  dark: '#8a6ab4',
+  light: '#e4d88a',
+  wallDark: '#1a1825',
+  wallMid: '#2d2840',
+  wallLight: '#4a4258',
+  pathDark: '#5a4a30',
+  pathMid: '#7a6440',
+  pathLight: '#9a7e50',
+  grassDark: '#2a5a3a',
+  grassMid: '#3a8a5a',
+  grassLight: '#4aaa6a',
 };
 
 // Area-specific tile palettes. Each area is a "stratum" with one strong color
@@ -2353,14 +2352,13 @@ var PLAYER_PALETTES = {
 // ============= UI STYLES =============
 var styles = {
   container: {
-    fontFamily: '"Press Start 2P", monospace',
+    fontFamily: '"IBM Plex Mono", monospace',
     fontSize: 'var(--font-base)',
     backgroundColor: GBC.bg,
     color: GBC.text,
     minHeight: '100vh',
     padding: 'var(--spacing-sm)',
-    boxSizing: 'border-box',
-    imageRendering: 'pixelated'
+    boxSizing: 'border-box'
   },
   header: {
     display: 'flex',
@@ -2369,9 +2367,9 @@ var styles = {
     padding: 'var(--spacing-sm) var(--spacing-md)',
     backgroundColor: GBC.bgPanel,
     border: `3px solid ${GBC.border}`,
-    borderRadius: '0',
+    borderRadius: '3px',
     marginBottom: 'var(--spacing-sm)',
-    boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
+    boxShadow: '0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)'
   },
   souls: {
     color: GBC.gold,
@@ -2389,7 +2387,7 @@ var styles = {
     backgroundColor: GBC.wallDark,
     padding: 'var(--spacing-xs)',
     border: `4px solid ${GBC.border}`,
-    boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14, 0 4px 8px rgba(0,0,0,0.5)`
+    boxShadow: '0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)'
   },
   tile: {
     width: 'var(--tile-size)',
@@ -2404,7 +2402,7 @@ var styles = {
     backgroundColor: GBC.bgPanel,
     padding: 'var(--spacing-sm)',
     border: `3px solid ${GBC.border}`,
-    boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
+    boxShadow: '0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)'
   },
   creatureStatus: {
     marginBottom: 'var(--spacing-xs)',
@@ -2418,25 +2416,28 @@ var styles = {
     backgroundColor: GBC.wallDark,
     marginTop: 'var(--spacing-xs)',
     position: 'relative',
-    border: `2px solid ${GBC.border}`,
-    boxShadow: 'inset 1px 1px 0 #0a0a14'
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '2px',
+    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)'
   },
   hpFill: {
     height: '100%',
     transition: 'width 0.2s',
-    imageRendering: 'pixelated'
+    borderRadius: '2px'
   },
   staminaBar: {
     height: 'var(--spacing-sm)',
     backgroundColor: GBC.wallDark,
     marginTop: 'var(--spacing-xs)',
-    border: `2px solid ${GBC.border}`,
-    boxShadow: 'inset 1px 1px 0 #0a0a14'
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '2px',
+    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)'
   },
   staminaFill: {
     height: '100%',
     backgroundColor: GBC.blue,
-    transition: 'width 0.2s'
+    transition: 'width 0.2s',
+    borderRadius: '2px'
   },
   battleContainer: {
     padding: 'var(--spacing-sm)',
@@ -2447,7 +2448,7 @@ var styles = {
     backgroundColor: GBC.bgPanel,
     border: `3px solid ${GBC.border}`,
     marginBottom: 'var(--spacing-sm)',
-    boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
     fontSize: 'var(--font-sm)'
   },
   battleAnimation: {
@@ -2462,7 +2463,7 @@ var styles = {
     fontSize: 'var(--font-sm)',
     textAlign: 'center',
     padding: 'var(--spacing-sm)',
-    boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
+    boxShadow: '0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)'
   },
   moveButtons: {
     display: 'grid',
@@ -2476,10 +2477,10 @@ var styles = {
     border: `3px solid ${GBC.border}`,
     color: GBC.text,
     cursor: 'pointer',
-    fontFamily: '"Press Start 2P", monospace',
+    fontFamily: '"IBM Plex Mono", monospace',
     fontSize: 'var(--font-sm)',
     textAlign: 'left',
-    boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`,
+    boxShadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)',
     transition: 'transform 0.1s',
     minHeight: '48px'
   },
@@ -2500,7 +2501,7 @@ var styles = {
     border: `4px solid ${GBC.border}`,
     cursor: 'pointer',
     verticalAlign: 'top',
-    boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
     transition: 'transform 0.1s'
   },
   scar: {
@@ -2534,7 +2535,7 @@ var styles = {
     backgroundColor: '#0a1a0a',
     border: `4px solid ${GBC.green}`,
     margin: 'var(--spacing-lg)',
-    boxShadow: `inset -3px -3px 0 #1a3a1a, inset 3px 3px 0 #051005`
+    boxShadow: '0 0 30px rgba(90, 184, 122, 0.2), inset 0 1px 0 rgba(255,255,255,0.05)'
   },
   gameOver: {
     textAlign: 'center',
@@ -2542,7 +2543,7 @@ var styles = {
     backgroundColor: '#1a0a0a',
     border: `4px solid ${GBC.red}`,
     margin: 'var(--spacing-lg)',
-    boxShadow: `inset -3px -3px 0 #3a1a1a, inset 3px 3px 0 #100505`
+    boxShadow: '0 0 30px rgba(212, 101, 90, 0.2), inset 0 1px 0 rgba(255,255,255,0.05)'
   },
   button: {
     padding: 'var(--spacing-md) var(--spacing-xl)',
@@ -2550,10 +2551,10 @@ var styles = {
     border: `4px solid ${GBC.border}`,
     color: GBC.text,
     cursor: 'pointer',
-    fontFamily: '"Press Start 2P", monospace',
+    fontFamily: '"IBM Plex Mono", monospace',
     fontSize: 'var(--font-base)',
     marginTop: 'var(--spacing-lg)',
-    boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`,
+    boxShadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)',
     outline: 'none'
   },
   typeIcon: {
@@ -2567,7 +2568,7 @@ var styles = {
     maxHeight: 'clamp(70px, 10vh, 120px)',
     overflowY: 'auto',
     fontSize: 'var(--font-sm)',
-    boxShadow: `inset 2px 2px 0 #0a0a14`
+    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)'
   },
   muteButton: {
     position: 'fixed',
@@ -2577,16 +2578,16 @@ var styles = {
     height: 'var(--button-size)',
     backgroundColor: GBC.bgPanel,
     border: `3px solid ${GBC.border}`,
-    borderRadius: '0',
+    borderRadius: '3px',
     color: GBC.textDim,
     cursor: 'pointer',
-    fontFamily: '"Press Start 2P", monospace',
+    fontFamily: '"IBM Plex Mono", monospace',
     fontSize: 'var(--font-lg)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
-    boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
+    boxShadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)'
   },
   creatureSprite: {
     display: 'flex',
@@ -2611,10 +2612,10 @@ var styles = {
     border: `3px solid #6b46c1`,
     color: '#d6bcfa',
     cursor: 'pointer',
-    fontFamily: '"Press Start 2P", monospace',
+    fontFamily: '"IBM Plex Mono", monospace',
     fontSize: 'var(--font-sm)',
     textAlign: 'center',
-    boxShadow: `inset -2px -2px 0 #805ad5, inset 2px 2px 0 #1a0a2e`,
+    boxShadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)',
     gridColumn: 'span 2',
     minHeight: '48px'
   },
@@ -2628,7 +2629,8 @@ var styles = {
     backgroundColor: GBC.bgPanel,
     border: `3px solid ${GBC.border}`,
     padding: 'var(--spacing-md)',
-    marginTop: 'var(--spacing-sm)'
+    marginTop: 'var(--spacing-sm)',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)'
   },
   bonfireOption: {
     padding: 'var(--spacing-sm)',
@@ -2639,7 +2641,8 @@ var styles = {
     fontSize: 'var(--font-sm)',
     minHeight: '48px',
     display: 'flex',
-    alignItems: 'center'
+    alignItems: 'center',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)'
   },
   helpButton: {
     position: 'fixed',
@@ -2649,16 +2652,16 @@ var styles = {
     height: 'var(--button-size)',
     backgroundColor: GBC.bgPanel,
     border: `3px solid ${GBC.border}`,
-    borderRadius: '0',
+    borderRadius: '3px',
     color: GBC.textDim,
     cursor: 'pointer',
-    fontFamily: '"Press Start 2P", monospace',
+    fontFamily: '"IBM Plex Mono", monospace',
     fontSize: 'var(--font-md)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
-    boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
+    boxShadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)'
   },
   helpOverlay: {
     position: 'fixed',
@@ -2680,8 +2683,8 @@ var styles = {
     maxWidth: 'clamp(400px, 50vw, 600px)',
     maxHeight: '90vh',
     overflowY: 'auto',
-    fontFamily: '"Press Start 2P", monospace',
-    boxShadow: `inset -3px -3px 0 ${GBC.borderLight}, inset 3px 3px 0 #0a0a14, 0 0 40px rgba(0,0,0,0.8)`
+    fontFamily: '"IBM Plex Mono", monospace',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)'
   },
   helpTitle: {
     color: GBC.red,
@@ -2712,10 +2715,10 @@ var styles = {
     border: `3px solid ${GBC.border}`,
     color: GBC.text,
     cursor: 'pointer',
-    fontFamily: '"Press Start 2P", monospace',
+    fontFamily: '"IBM Plex Mono", monospace',
     fontSize: 'var(--font-sm)',
     textAlign: 'center',
-    boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
+    boxShadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)'
   },
   helpQuote: {
     color: GBC.textDim,
@@ -2763,8 +2766,8 @@ var styles = {
     border: `4px solid ${GBC.border}`,
     padding: 'var(--spacing-lg)',
     maxWidth: 'clamp(350px, 40vw, 500px)',
-    fontFamily: '"Press Start 2P", monospace',
-    boxShadow: `inset -3px -3px 0 ${GBC.borderLight}, inset 3px 3px 0 #0a0a14, 0 0 40px rgba(0,0,0,0.8)`
+    fontFamily: '"IBM Plex Mono", monospace',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)'
   },
   examineTitle: {
     color: GBC.gold,
@@ -2852,8 +2855,8 @@ var styles = {
     border: `4px solid ${GBC.border}`,
     padding: 'var(--spacing-xl)',
     minWidth: 'clamp(280px, 30vw, 400px)',
-    fontFamily: '"Press Start 2P", monospace',
-    boxShadow: `inset -3px -3px 0 ${GBC.borderLight}, inset 3px 3px 0 #0a0a14, 0 0 60px rgba(0,0,0,0.9)`
+    fontFamily: '"IBM Plex Mono", monospace',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)'
   },
   pauseTitle: {
     color: GBC.textDim,
@@ -2871,7 +2874,8 @@ var styles = {
     cursor: 'pointer',
     fontSize: 'var(--font-sm)',
     textAlign: 'center',
-    transition: 'border-color 0.1s'
+    transition: 'border-color 0.1s',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)'
   },
   pauseOptionDisabled: {
     opacity: 0.4,
@@ -2885,16 +2889,16 @@ var styles = {
     height: 'var(--button-size)',
     backgroundColor: GBC.bgPanel,
     border: `3px solid ${GBC.border}`,
-    borderRadius: '0',
+    borderRadius: '3px',
     color: GBC.textDim,
     cursor: 'pointer',
-    fontFamily: '"Press Start 2P", monospace',
+    fontFamily: '"IBM Plex Mono", monospace',
     fontSize: 'var(--font-lg)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
-    boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
+    boxShadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)'
   },
   confirmOverlay: {
     position: 'fixed',
@@ -2913,8 +2917,8 @@ var styles = {
     border: `4px solid ${GBC.red}`,
     padding: 'var(--spacing-xl)',
     maxWidth: 'clamp(320px, 35vw, 450px)',
-    fontFamily: '"Press Start 2P", monospace',
-    boxShadow: `inset -3px -3px 0 #5a2020, inset 3px 3px 0 #0a0a14, 0 0 40px rgba(0,0,0,0.8)`
+    fontFamily: '"IBM Plex Mono", monospace',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)'
   },
   confirmText: {
     color: GBC.text,
@@ -2934,8 +2938,9 @@ var styles = {
     border: `3px solid ${GBC.border}`,
     color: GBC.text,
     cursor: 'pointer',
-    fontFamily: '"Press Start 2P", monospace',
-    fontSize: 'var(--font-sm)'
+    fontFamily: '"IBM Plex Mono", monospace',
+    fontSize: 'var(--font-sm)',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)'
   },
   confirmButtonDanger: {
     borderColor: GBC.red,
@@ -2956,7 +2961,8 @@ var styles = {
     border: `3px solid ${GBC.border}`,
     padding: 'var(--spacing-lg)',
     marginBottom: 'var(--spacing-lg)',
-    textAlign: 'left'
+    textAlign: 'left',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)'
   },
   saveSlotTitle: {
     color: GBC.gold,
@@ -2978,9 +2984,9 @@ var styles = {
     padding: 'var(--spacing-md) var(--spacing-xl)',
     color: GBC.gold,
     fontSize: 'var(--font-sm)',
-    fontFamily: '"Press Start 2P", monospace',
+    fontFamily: '"IBM Plex Mono", monospace',
     zIndex: 1500,
-    boxShadow: `0 0 20px rgba(246, 224, 94, 0.3)`
+    boxShadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)'
   },
   difficultySelect: {
     textAlign: 'center',
@@ -3002,7 +3008,7 @@ var styles = {
     border: `3px solid ${GBC.border}`,
     cursor: 'pointer',
     textAlign: 'left',
-    boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
     transition: 'border-color 0.1s'
   },
   difficultyHeader: {
@@ -3042,11 +3048,12 @@ var styles = {
     border: `2px solid ${GBC.border}`,
     padding: 'var(--spacing-xs) var(--spacing-md)',
     fontSize: 'var(--font-base)',
-    fontFamily: '"Press Start 2P", monospace',
+    fontFamily: '"IBM Plex Mono", monospace',
     zIndex: 1000,
     display: 'flex',
     alignItems: 'center',
-    gap: 'var(--spacing-xs)'
+    gap: 'var(--spacing-xs)',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)'
   },
   difficultyIndicatorName: {
     fontSize: 'var(--font-xs)',
