@@ -70,87 +70,91 @@
       // MALE: Short hair, broader shoulders, blue/teal cloak
       const maleSprites = {
         down: (
-          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+          <svg width={16*px} height={16*px} viewBox="0 0 48 48">
+            <defs>
+              <linearGradient id="player-male-cloak-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={cloakLight}/>
+                <stop offset="100%" stopColor={cloak}/>
+              </linearGradient>
+            </defs>
             {/* Short spiky hair */}
-            <rect x={5*px} y={1*px} width={6*px} height={2*px} fill={hair}/>
-            <rect x={4*px} y={2*px} width={1*px} height={1*px} fill={hair}/>
-            <rect x={11*px} y={2*px} width={1*px} height={1*px} fill={hair}/>
-            <rect x={6*px} y={0*px} width={1*px} height={1*px} fill={hair}/>
-            <rect x={9*px} y={0*px} width={1*px} height={1*px} fill={hair}/>
-            {/* Face */}
-            <rect x={5*px} y={3*px} width={6*px} height={4*px} fill={skin}/>
+            <path d="M16 6 Q18 2 21 4 L21 3 Q24 0 27 3 L27 4 Q30 2 32 6 Q34 8 32 10 L16 10 Q14 8 16 6 Z" fill={hair}/>
+            {/* Head */}
+            <ellipse cx="24" cy="14" rx="8" ry="7" fill={skin}/>
             {/* Eyes */}
-            <rect x={6*px} y={4*px} width={1*px} height={2*px} fill={outline}/>
-            <rect x={9*px} y={4*px} width={1*px} height={2*px} fill={outline}/>
+            <circle cx="20" cy="14" r="1.5" fill={outline}/>
+            <circle cx="28" cy="14" r="1.5" fill={outline}/>
             {/* Broad shoulders/cloak */}
-            <rect x={3*px} y={7*px} width={10*px} height={5*px} fill={cloak}/>
-            <rect x={2*px} y={8*px} width={1*px} height={3*px} fill={cloak}/>
-            <rect x={13*px} y={8*px} width={1*px} height={3*px} fill={cloak}/>
-            <rect x={7*px} y={8*px} width={2*px} height={2*px} fill={cloakLight}/>
+            <path d="M10 22 Q8 21 8 24 L8 35 Q8 36 10 36 L14 36 L14 22 Z" fill={cloak}/>
+            <path d="M14 22 L34 22 L34 36 L14 36 Z" fill="url(#player-male-cloak-grad)"/>
+            <path d="M34 22 Q40 21 40 24 L40 35 Q40 36 38 36 L34 36 L34 22 Z" fill={cloak}/>
+            {/* Cloak clasp */}
+            <ellipse cx="24" cy="26" rx="3" ry="2" fill={cloakLight}/>
             {/* Pants */}
-            <rect x={5*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
-            <rect x={9*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <path d="M15 36 Q14 38 14 42 L20 42 Q20 38 19 36 Z" fill={pants}/>
+            <path d="M29 36 Q28 38 28 42 L34 42 Q34 38 33 36 Z" fill={pants}/>
             {/* Feet */}
-            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
-            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <ellipse cx="17" cy="44" rx="4" ry="2" fill={outline}/>
+            <ellipse cx="31" cy="44" rx="4" ry="2" fill={outline}/>
           </svg>
         ),
         up: (
-          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+          <svg width={16*px} height={16*px} viewBox="0 0 48 48">
             {/* Short hair back */}
-            <rect x={5*px} y={1*px} width={6*px} height={3*px} fill={hair}/>
-            <rect x={4*px} y={2*px} width={1*px} height={2*px} fill={hair}/>
-            <rect x={11*px} y={2*px} width={1*px} height={2*px} fill={hair}/>
+            <path d="M16 6 Q18 3 24 2 Q30 3 32 6 Q34 8 32 12 L16 12 Q14 8 16 6 Z" fill={hair}/>
             {/* Neck */}
-            <rect x={6*px} y={4*px} width={4*px} height={3*px} fill={skin}/>
+            <path d="M20 12 L28 12 L28 22 L20 22 Z" fill={skin}/>
             {/* Broad shoulders/cloak */}
-            <rect x={3*px} y={7*px} width={10*px} height={5*px} fill={cloak}/>
-            <rect x={2*px} y={8*px} width={1*px} height={3*px} fill={cloak}/>
-            <rect x={13*px} y={8*px} width={1*px} height={3*px} fill={cloak}/>
+            <path d="M8 22 Q8 20 10 20 L38 20 Q40 20 40 22 L40 36 L8 36 Z" fill={cloak}/>
+            {/* Cloak back detail */}
+            <path d="M20 24 L20 34" stroke={cloakLight} strokeWidth="0.8" fill="none" opacity="0.3"/>
+            <path d="M28 24 L28 34" stroke={cloakLight} strokeWidth="0.8" fill="none" opacity="0.3"/>
             {/* Pants */}
-            <rect x={5*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
-            <rect x={9*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <path d="M15 36 Q14 38 14 42 L20 42 Q20 38 19 36 Z" fill={pants}/>
+            <path d="M29 36 Q28 38 28 42 L34 42 Q34 38 33 36 Z" fill={pants}/>
             {/* Feet */}
-            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
-            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <ellipse cx="17" cy="44" rx="4" ry="2" fill={outline}/>
+            <ellipse cx="31" cy="44" rx="4" ry="2" fill={outline}/>
           </svg>
         ),
         left: (
-          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+          <svg width={16*px} height={16*px} viewBox="0 0 48 48">
             {/* Short hair */}
-            <rect x={6*px} y={1*px} width={4*px} height={2*px} fill={hair}/>
-            <rect x={5*px} y={2*px} width={1*px} height={2*px} fill={hair}/>
-            <rect x={7*px} y={0*px} width={1*px} height={1*px} fill={hair}/>
+            <path d="M18 6 Q20 3 26 4 Q28 5 28 8 L28 10 L16 10 Q14 8 18 6 Z" fill={hair}/>
+            <path d="M22 3 L23 1 L24 4" fill={hair}/>
             {/* Face */}
-            <rect x={5*px} y={3*px} width={4*px} height={4*px} fill={skin}/>
-            <rect x={5*px} y={4*px} width={1*px} height={2*px} fill={outline}/>
+            <ellipse cx="22" cy="14" rx="6" ry="6" fill={skin}/>
+            {/* Eye */}
+            <circle cx="18" cy="14" r="1.5" fill={outline}/>
             {/* Broad cloak */}
-            <rect x={4*px} y={7*px} width={7*px} height={5*px} fill={cloak}/>
-            <rect x={3*px} y={8*px} width={1*px} height={3*px} fill={cloak}/>
+            <path d="M12 22 Q10 21 10 24 L10 35 Q10 36 12 36 L34 36 Q36 36 36 34 L36 22 Z" fill={cloak}/>
+            <path d="M20 26 Q22 24 24 26" stroke={cloakLight} strokeWidth="0.6" fill="none" opacity="0.4"/>
             {/* Pants */}
-            <rect x={5*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
-            <rect x={8*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
-            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
-            <rect x={8*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <path d="M16 36 Q15 38 15 42 L21 42 Q21 38 20 36 Z" fill={pants}/>
+            <path d="M26 36 Q25 38 25 42 L31 42 Q31 38 30 36 Z" fill={pants}/>
+            {/* Feet */}
+            <ellipse cx="18" cy="44" rx="4" ry="2" fill={outline}/>
+            <ellipse cx="28" cy="44" rx="4" ry="2" fill={outline}/>
           </svg>
         ),
         right: (
-          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+          <svg width={16*px} height={16*px} viewBox="0 0 48 48">
             {/* Short hair */}
-            <rect x={6*px} y={1*px} width={4*px} height={2*px} fill={hair}/>
-            <rect x={10*px} y={2*px} width={1*px} height={2*px} fill={hair}/>
-            <rect x={8*px} y={0*px} width={1*px} height={1*px} fill={hair}/>
+            <path d="M30 6 Q28 3 22 4 Q20 5 20 8 L20 10 L32 10 Q34 8 30 6 Z" fill={hair}/>
+            <path d="M26 3 L25 1 L24 4" fill={hair}/>
             {/* Face */}
-            <rect x={7*px} y={3*px} width={4*px} height={4*px} fill={skin}/>
-            <rect x={10*px} y={4*px} width={1*px} height={2*px} fill={outline}/>
+            <ellipse cx="26" cy="14" rx="6" ry="6" fill={skin}/>
+            {/* Eye */}
+            <circle cx="30" cy="14" r="1.5" fill={outline}/>
             {/* Broad cloak */}
-            <rect x={5*px} y={7*px} width={7*px} height={5*px} fill={cloak}/>
-            <rect x={12*px} y={8*px} width={1*px} height={3*px} fill={cloak}/>
+            <path d="M12 22 Q12 21 14 22 L36 22 Q38 21 38 24 L38 35 Q38 36 36 36 L12 36 Q10 36 12 34 Z" fill={cloak}/>
+            <path d="M26 26 Q28 24 30 26" stroke={cloakLight} strokeWidth="0.6" fill="none" opacity="0.4"/>
             {/* Pants */}
-            <rect x={6*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
-            <rect x={9*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
-            <rect x={6*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
-            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <path d="M17 36 Q16 38 16 42 L22 42 Q22 38 21 36 Z" fill={pants}/>
+            <path d="M27 36 Q26 38 26 42 L32 42 Q32 38 31 36 Z" fill={pants}/>
+            {/* Feet */}
+            <ellipse cx="19" cy="44" rx="4" ry="2" fill={outline}/>
+            <ellipse cx="29" cy="44" rx="4" ry="2" fill={outline}/>
           </svg>
         )
       };
@@ -158,84 +162,102 @@
       // FEMALE: Long hair with ponytail, red/maroon cloak, slender frame
       const femaleSprites = {
         down: (
-          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+          <svg width={16*px} height={16*px} viewBox="0 0 48 48">
+            <defs>
+              <linearGradient id="player-female-cloak-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={cloakLight}/>
+                <stop offset="100%" stopColor={cloak}/>
+              </linearGradient>
+            </defs>
             {/* Long hair with side strands */}
-            <rect x={5*px} y={1*px} width={6*px} height={3*px} fill={hair}/>
-            <rect x={4*px} y={2*px} width={1*px} height={5*px} fill={hair}/>
-            <rect x={11*px} y={2*px} width={1*px} height={5*px} fill={hair}/>
+            <path d="M16 4 Q18 2 24 2 Q30 2 32 4 Q34 8 32 14 L16 14 Q14 8 16 4 Z" fill={hair}/>
+            {/* Side strands */}
+            <path d="M14 8 Q12 10 12 16 Q12 20 14 22" stroke={hair} strokeWidth="3" fill="none" strokeLinecap="round"/>
+            <path d="M34 8 Q36 10 36 16 Q36 20 34 22" stroke={hair} strokeWidth="3" fill="none" strokeLinecap="round"/>
             {/* Face */}
-            <rect x={5*px} y={4*px} width={6*px} height={4*px} fill={skin}/>
+            <ellipse cx="24" cy="14" rx="7" ry="7" fill={skin}/>
             {/* Eyes */}
-            <rect x={6*px} y={5*px} width={1*px} height={1*px} fill={outline}/>
-            <rect x={9*px} y={5*px} width={1*px} height={1*px} fill={outline}/>
+            <circle cx="21" cy="14" r="1.2" fill={outline}/>
+            <circle cx="27" cy="14" r="1.2" fill={outline}/>
             {/* Slender cloak */}
-            <rect x={4*px} y={8*px} width={8*px} height={4*px} fill={cloak}/>
-            <rect x={7*px} y={9*px} width={2*px} height={2*px} fill={cloakLight}/>
+            <path d="M14 22 L34 22 Q36 22 36 24 L34 36 L14 36 Q12 36 12 34 L14 22 Z" fill="url(#player-female-cloak-grad)"/>
+            {/* Cloak clasp */}
+            <circle cx="24" cy="26" r="2" fill={cloakLight}/>
             {/* Pants */}
-            <rect x={5*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
-            <rect x={9*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <path d="M16 36 Q15 38 15 42 L21 42 Q21 38 20 36 Z" fill={pants}/>
+            <path d="M28 36 Q27 38 27 42 L33 42 Q33 38 32 36 Z" fill={pants}/>
             {/* Feet */}
-            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
-            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <ellipse cx="18" cy="44" rx="3.5" ry="2" fill={outline}/>
+            <ellipse cx="30" cy="44" rx="3.5" ry="2" fill={outline}/>
           </svg>
         ),
         up: (
-          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+          <svg width={16*px} height={16*px} viewBox="0 0 48 48">
             {/* Long hair with ponytail */}
-            <rect x={5*px} y={1*px} width={6*px} height={4*px} fill={hair}/>
-            <rect x={4*px} y={2*px} width={1*px} height={4*px} fill={hair}/>
-            <rect x={11*px} y={2*px} width={1*px} height={4*px} fill={hair}/>
+            <path d="M16 4 Q18 2 24 2 Q30 2 32 4 Q34 8 32 14 L16 14 Q14 8 16 4 Z" fill={hair}/>
+            {/* Side strands back view */}
+            <path d="M14 8 Q12 10 12 14 Q12 18 14 20" stroke={hair} strokeWidth="3" fill="none" strokeLinecap="round"/>
+            <path d="M34 8 Q36 10 36 14 Q36 18 34 20" stroke={hair} strokeWidth="3" fill="none" strokeLinecap="round"/>
             {/* Ponytail down back */}
-            <rect x={7*px} y={5*px} width={2*px} height={5*px} fill={hair}/>
-            <rect x={7*px} y={10*px} width={2*px} height={2*px} fill={hair}/>
+            <path d="M22 10 Q22 18 21 26 Q20 32 22 34" stroke={hair} strokeWidth="4" fill="none" strokeLinecap="round"/>
+            <path d="M26 10 Q26 18 27 26 Q28 32 26 34" stroke={hair} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.5"/>
             {/* Slender cloak */}
-            <rect x={4*px} y={8*px} width={8*px} height={4*px} fill={cloak}/>
+            <path d="M12 22 L36 22 Q38 22 38 24 L36 36 L12 36 Q10 36 10 34 L12 22 Z" fill={cloak}/>
+            {/* Cloak back folds */}
+            <path d="M20 24 L20 34" stroke={cloakLight} strokeWidth="0.6" fill="none" opacity="0.3"/>
+            <path d="M28 24 L28 34" stroke={cloakLight} strokeWidth="0.6" fill="none" opacity="0.3"/>
             {/* Pants */}
-            <rect x={5*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
-            <rect x={9*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <path d="M16 36 Q15 38 15 42 L21 42 Q21 38 20 36 Z" fill={pants}/>
+            <path d="M28 36 Q27 38 27 42 L33 42 Q33 38 32 36 Z" fill={pants}/>
             {/* Feet */}
-            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
-            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <ellipse cx="18" cy="44" rx="3.5" ry="2" fill={outline}/>
+            <ellipse cx="30" cy="44" rx="3.5" ry="2" fill={outline}/>
           </svg>
         ),
         left: (
-          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+          <svg width={16*px} height={16*px} viewBox="0 0 48 48">
             {/* Long hair */}
-            <rect x={6*px} y={1*px} width={4*px} height={3*px} fill={hair}/>
-            <rect x={5*px} y={2*px} width={1*px} height={5*px} fill={hair}/>
+            <path d="M18 4 Q20 2 26 4 Q28 6 28 10 L16 10 Q14 8 18 4 Z" fill={hair}/>
+            {/* Hair strand front */}
+            <path d="M16 8 Q14 12 14 18 Q14 22 16 24" stroke={hair} strokeWidth="3" fill="none" strokeLinecap="round"/>
             {/* Ponytail behind */}
-            <rect x={10*px} y={3*px} width={2*px} height={2*px} fill={hair}/>
-            <rect x={11*px} y={5*px} width={2*px} height={4*px} fill={hair}/>
+            <path d="M28 6 Q32 8 34 12 Q36 18 34 24 Q32 28 34 32" stroke={hair} strokeWidth="3.5" fill="none" strokeLinecap="round"/>
             {/* Face */}
-            <rect x={6*px} y={4*px} width={4*px} height={4*px} fill={skin}/>
-            <rect x={6*px} y={5*px} width={1*px} height={1*px} fill={outline}/>
+            <ellipse cx="22" cy="14" rx="6" ry="6" fill={skin}/>
+            {/* Eye */}
+            <circle cx="19" cy="14" r="1.2" fill={outline}/>
             {/* Slender cloak */}
-            <rect x={5*px} y={8*px} width={6*px} height={4*px} fill={cloak}/>
+            <path d="M14 22 L32 22 Q34 22 34 24 L32 36 L14 36 Q12 36 12 34 L14 22 Z" fill={cloak}/>
+            <path d="M20 26 Q22 24 24 26" stroke={cloakLight} strokeWidth="0.6" fill="none" opacity="0.4"/>
             {/* Pants */}
-            <rect x={6*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
-            <rect x={9*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
-            <rect x={6*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
-            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <path d="M16 36 Q15 38 15 42 L21 42 Q21 38 20 36 Z" fill={pants}/>
+            <path d="M26 36 Q25 38 25 42 L31 42 Q31 38 30 36 Z" fill={pants}/>
+            {/* Feet */}
+            <ellipse cx="18" cy="44" rx="3.5" ry="2" fill={outline}/>
+            <ellipse cx="28" cy="44" rx="3.5" ry="2" fill={outline}/>
           </svg>
         ),
         right: (
-          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+          <svg width={16*px} height={16*px} viewBox="0 0 48 48">
             {/* Long hair */}
-            <rect x={6*px} y={1*px} width={4*px} height={3*px} fill={hair}/>
-            <rect x={10*px} y={2*px} width={1*px} height={5*px} fill={hair}/>
+            <path d="M30 4 Q28 2 22 4 Q20 6 20 10 L32 10 Q34 8 30 4 Z" fill={hair}/>
+            {/* Hair strand front */}
+            <path d="M32 8 Q34 12 34 18 Q34 22 32 24" stroke={hair} strokeWidth="3" fill="none" strokeLinecap="round"/>
             {/* Ponytail behind */}
-            <rect x={4*px} y={3*px} width={2*px} height={2*px} fill={hair}/>
-            <rect x={3*px} y={5*px} width={2*px} height={4*px} fill={hair}/>
+            <path d="M20 6 Q16 8 14 12 Q12 18 14 24 Q16 28 14 32" stroke={hair} strokeWidth="3.5" fill="none" strokeLinecap="round"/>
             {/* Face */}
-            <rect x={6*px} y={4*px} width={4*px} height={4*px} fill={skin}/>
-            <rect x={9*px} y={5*px} width={1*px} height={1*px} fill={outline}/>
+            <ellipse cx="26" cy="14" rx="6" ry="6" fill={skin}/>
+            {/* Eye */}
+            <circle cx="29" cy="14" r="1.2" fill={outline}/>
             {/* Slender cloak */}
-            <rect x={5*px} y={8*px} width={6*px} height={4*px} fill={cloak}/>
+            <path d="M16 22 L34 22 Q36 22 36 24 L34 36 L16 36 Q14 36 14 34 L16 22 Z" fill={cloak}/>
+            <path d="M26 26 Q28 24 30 26" stroke={cloakLight} strokeWidth="0.6" fill="none" opacity="0.4"/>
             {/* Pants */}
-            <rect x={5*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
-            <rect x={8*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
-            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
-            <rect x={8*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <path d="M17 36 Q16 38 16 42 L22 42 Q22 38 21 36 Z" fill={pants}/>
+            <path d="M27 36 Q26 38 26 42 L32 42 Q32 38 31 36 Z" fill={pants}/>
+            {/* Feet */}
+            <ellipse cx="19" cy="44" rx="3.5" ry="2" fill={outline}/>
+            <ellipse cx="29" cy="44" rx="3.5" ry="2" fill={outline}/>
           </svg>
         )
       };
@@ -243,83 +265,98 @@
       // OTHER: Hooded figure, purple/gray cloak, face obscured
       const otherSprites = {
         down: (
-          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+          <svg width={16*px} height={16*px} viewBox="0 0 48 48">
+            <defs>
+              <linearGradient id="player-other-cloak-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={cloakLight}/>
+                <stop offset="100%" stopColor={cloak}/>
+              </linearGradient>
+            </defs>
             {/* Hood */}
-            <rect x={4*px} y={0*px} width={8*px} height={3*px} fill={cloak}/>
-            <rect x={3*px} y={1*px} width={1*px} height={4*px} fill={cloak}/>
-            <rect x={12*px} y={1*px} width={1*px} height={4*px} fill={cloak}/>
-            <rect x={4*px} y={3*px} width={8*px} height={2*px} fill={cloak}/>
+            <path d="M12 6 Q12 0 24 0 Q36 0 36 6 L38 16 Q38 18 36 18 L12 18 Q10 18 10 16 Z" fill={cloak}/>
+            {/* Hood brim shadow */}
+            <path d="M14 14 Q24 12 34 14" stroke={outline} strokeWidth="0.6" fill="none" opacity="0.3"/>
             {/* Shadowed face */}
-            <rect x={5*px} y={5*px} width={6*px} height={3*px} fill={skin}/>
+            <ellipse cx="24" cy="18" rx="6" ry="5" fill={skin}/>
             {/* Glowing eyes in shadow */}
-            <rect x={6*px} y={6*px} width={1*px} height={1*px} fill={cloakLight}/>
-            <rect x={9*px} y={6*px} width={1*px} height={1*px} fill={cloakLight}/>
+            <circle cx="20" cy="18" r="1.3" fill={cloakLight}/>
+            <circle cx="28" cy="18" r="1.3" fill={cloakLight}/>
+            <circle cx="20" cy="17.5" r="0.5" fill="#fff" opacity="0.4"/>
+            <circle cx="28" cy="17.5" r="0.5" fill="#fff" opacity="0.4"/>
             {/* Cloak body */}
-            <rect x={3*px} y={8*px} width={10*px} height={5*px} fill={cloak}/>
-            <rect x={6*px} y={9*px} width={4*px} height={2*px} fill={cloakLight}/>
+            <path d="M10 18 Q8 18 8 20 L6 36 Q6 38 8 38 L40 38 Q42 38 42 36 L40 20 Q40 18 38 18 Z" fill="url(#player-other-cloak-grad)"/>
+            {/* Cloak drape folds */}
+            <path d="M18 22 Q20 28 18 36" stroke={cloakLight} strokeWidth="0.6" fill="none" opacity="0.3"/>
+            <path d="M30 22 Q28 28 30 36" stroke={cloakLight} strokeWidth="0.6" fill="none" opacity="0.3"/>
+            {/* Cloak front detail */}
+            <path d="M22 24 L22 36" stroke={cloakLight} strokeWidth="0.5" fill="none" opacity="0.2"/>
+            <path d="M26 24 L26 36" stroke={cloakLight} strokeWidth="0.5" fill="none" opacity="0.2"/>
             {/* Legs peek out */}
-            <rect x={5*px} y={13*px} width={2*px} height={2*px} fill={pants}/>
-            <rect x={9*px} y={13*px} width={2*px} height={2*px} fill={pants}/>
+            <path d="M16 36 Q15 38 15 42 L20 42 Q20 38 19 36 Z" fill={pants}/>
+            <path d="M29 36 Q28 38 28 42 L33 42 Q33 38 32 36 Z" fill={pants}/>
             {/* Feet */}
-            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
-            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <ellipse cx="17" cy="44" rx="3.5" ry="2" fill={outline}/>
+            <ellipse cx="31" cy="44" rx="3.5" ry="2" fill={outline}/>
           </svg>
         ),
         up: (
-          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
-            {/* Hood back */}
-            <rect x={4*px} y={0*px} width={8*px} height={5*px} fill={cloak}/>
-            <rect x={3*px} y={1*px} width={1*px} height={5*px} fill={cloak}/>
-            <rect x={12*px} y={1*px} width={1*px} height={5*px} fill={cloak}/>
+          <svg width={16*px} height={16*px} viewBox="0 0 48 48">
+            {/* Hood back (full coverage) */}
+            <path d="M12 6 Q12 0 24 0 Q36 0 36 6 L38 16 Q38 18 36 18 L12 18 Q10 18 10 16 Z" fill={cloak}/>
             {/* Hood interior visible */}
-            <rect x={5*px} y={2*px} width={6*px} height={3*px} fill={hair}/>
+            <path d="M16 6 Q24 2 32 6 L34 14 L14 14 Z" fill={hair} opacity="0.6"/>
             {/* Cloak body */}
-            <rect x={3*px} y={6*px} width={10*px} height={7*px} fill={cloak}/>
-            <rect x={6*px} y={8*px} width={4*px} height={3*px} fill={cloakLight}/>
+            <path d="M8 18 Q6 18 6 20 L4 38 Q4 40 6 40 L42 40 Q44 40 44 38 L42 20 Q42 18 40 18 Z" fill={cloak}/>
+            {/* Cloak back folds */}
+            <path d="M18 22 Q20 28 18 36" stroke={cloakLight} strokeWidth="0.6" fill="none" opacity="0.3"/>
+            <path d="M24 20 Q26 28 24 38" stroke={cloakLight} strokeWidth="0.5" fill="none" opacity="0.25"/>
+            <path d="M30 22 Q28 28 30 36" stroke={cloakLight} strokeWidth="0.6" fill="none" opacity="0.3"/>
             {/* Legs peek out */}
-            <rect x={5*px} y={13*px} width={2*px} height={2*px} fill={pants}/>
-            <rect x={9*px} y={13*px} width={2*px} height={2*px} fill={pants}/>
+            <path d="M16 38 Q15 40 15 44 L20 44 Q20 40 19 38 Z" fill={pants}/>
+            <path d="M29 38 Q28 40 28 44 L33 44 Q33 40 32 38 Z" fill={pants}/>
             {/* Feet */}
-            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
-            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <ellipse cx="17" cy="46" rx="3.5" ry="2" fill={outline}/>
+            <ellipse cx="31" cy="46" rx="3.5" ry="2" fill={outline}/>
           </svg>
         ),
         left: (
-          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+          <svg width={16*px} height={16*px} viewBox="0 0 48 48">
             {/* Hood side */}
-            <rect x={5*px} y={0*px} width={6*px} height={4*px} fill={cloak}/>
-            <rect x={4*px} y={1*px} width={1*px} height={5*px} fill={cloak}/>
-            <rect x={11*px} y={2*px} width={1*px} height={3*px} fill={cloak}/>
+            <path d="M14 6 Q16 0 26 2 Q34 4 34 8 L36 16 Q36 18 34 18 L12 18 Q10 16 12 12 Z" fill={cloak}/>
             {/* Shadowed face peek */}
-            <rect x={5*px} y={4*px} width={3*px} height={3*px} fill={skin}/>
-            <rect x={5*px} y={5*px} width={1*px} height={1*px} fill={cloakLight}/>
+            <ellipse cx="20" cy="16" rx="5" ry="5" fill={skin}/>
+            {/* Glowing eye */}
+            <circle cx="17" cy="16" r="1.3" fill={cloakLight}/>
+            <circle cx="17" cy="15.5" r="0.5" fill="#fff" opacity="0.4"/>
             {/* Cloak body */}
-            <rect x={4*px} y={7*px} width={7*px} height={6*px} fill={cloak}/>
-            <rect x={6*px} y={9*px} width={3*px} height={2*px} fill={cloakLight}/>
+            <path d="M12 18 Q10 18 10 20 L8 36 Q8 38 10 38 L36 38 Q38 38 38 36 L36 20 Q36 18 34 18 Z" fill={cloak}/>
+            <path d="M20 24 Q22 28 20 34" stroke={cloakLight} strokeWidth="0.5" fill="none" opacity="0.3"/>
             {/* Legs */}
-            <rect x={5*px} y={13*px} width={2*px} height={2*px} fill={pants}/>
-            <rect x={8*px} y={13*px} width={2*px} height={2*px} fill={pants}/>
-            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
-            <rect x={8*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <path d="M16 36 Q15 38 15 42 L20 42 Q20 38 19 36 Z" fill={pants}/>
+            <path d="M26 36 Q25 38 25 42 L30 42 Q30 38 29 36 Z" fill={pants}/>
+            {/* Feet */}
+            <ellipse cx="17" cy="44" rx="3.5" ry="2" fill={outline}/>
+            <ellipse cx="28" cy="44" rx="3.5" ry="2" fill={outline}/>
           </svg>
         ),
         right: (
-          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+          <svg width={16*px} height={16*px} viewBox="0 0 48 48">
             {/* Hood side */}
-            <rect x={5*px} y={0*px} width={6*px} height={4*px} fill={cloak}/>
-            <rect x={4*px} y={2*px} width={1*px} height={3*px} fill={cloak}/>
-            <rect x={11*px} y={1*px} width={1*px} height={5*px} fill={cloak}/>
+            <path d="M34 6 Q32 0 22 2 Q14 4 14 8 L12 16 Q12 18 14 18 L36 18 Q38 16 36 12 Z" fill={cloak}/>
             {/* Shadowed face peek */}
-            <rect x={8*px} y={4*px} width={3*px} height={3*px} fill={skin}/>
-            <rect x={10*px} y={5*px} width={1*px} height={1*px} fill={cloakLight}/>
+            <ellipse cx="28" cy="16" rx="5" ry="5" fill={skin}/>
+            {/* Glowing eye */}
+            <circle cx="31" cy="16" r="1.3" fill={cloakLight}/>
+            <circle cx="31" cy="15.5" r="0.5" fill="#fff" opacity="0.4"/>
             {/* Cloak body */}
-            <rect x={5*px} y={7*px} width={7*px} height={6*px} fill={cloak}/>
-            <rect x={7*px} y={9*px} width={3*px} height={2*px} fill={cloakLight}/>
+            <path d="M12 18 Q10 18 10 20 L8 36 Q8 38 10 38 L36 38 Q38 38 38 36 L36 20 Q36 18 34 18 Z" fill={cloak}/>
+            <path d="M28 24 Q26 28 28 34" stroke={cloakLight} strokeWidth="0.5" fill="none" opacity="0.3"/>
             {/* Legs */}
-            <rect x={6*px} y={13*px} width={2*px} height={2*px} fill={pants}/>
-            <rect x={9*px} y={13*px} width={2*px} height={2*px} fill={pants}/>
-            <rect x={6*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
-            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <path d="M18 36 Q17 38 17 42 L22 42 Q22 38 21 36 Z" fill={pants}/>
+            <path d="M28 36 Q27 38 27 42 L32 42 Q32 38 31 36 Z" fill={pants}/>
+            {/* Feet */}
+            <ellipse cx="20" cy="44" rx="3.5" ry="2" fill={outline}/>
+            <ellipse cx="30" cy="44" rx="3.5" ry="2" fill={outline}/>
           </svg>
         )
       };
@@ -401,172 +438,503 @@
       const px = size / 16;
 
       const sprites = {
-        fire: ( // Cindrath - flame creature
-          <svg width={size} height={size} style={{ imageRendering: 'pixelated' }}>
-            {/* Body */}
-            <rect x={4*px} y={8*px} width={8*px} height={6*px} fill="#c53030"/>
-            <rect x={5*px} y={7*px} width={6*px} height={1*px} fill="#c53030"/>
-            {/* Inner glow */}
-            <rect x={5*px} y={9*px} width={6*px} height={4*px} fill="#ed8936"/>
-            <rect x={6*px} y={10*px} width={4*px} height={2*px} fill="#f6e05e"/>
-            {/* Eyes */}
-            <rect x={5*px} y={9*px} width={2*px} height={2*px} fill="#1a1a2e"/>
-            <rect x={9*px} y={9*px} width={2*px} height={2*px} fill="#1a1a2e"/>
-            {/* Flames on head */}
-            <rect x={6*px} y={4*px} width={1*px} height={3*px} fill="#ed8936"/>
-            <rect x={8*px} y={3*px} width={1*px} height={4*px} fill="#f6ad55"/>
-            <rect x={9*px} y={5*px} width={1*px} height={2*px} fill="#ed8936"/>
-            <rect x={7*px} y={2*px} width={2*px} height={2*px} fill="#f6e05e"/>
-            {/* Feet */}
-            <rect x={4*px} y={14*px} width={2*px} height={2*px} fill="#742a2a"/>
-            <rect x={10*px} y={14*px} width={2*px} height={2*px} fill="#742a2a"/>
+        fire: ( // Cindrath - flame creature with teardrop body and flame tendrils
+          <svg width={size} height={size} viewBox="0 0 48 48">
+            <defs>
+              <radialGradient id="fire-body-grad" cx="0.5" cy="0.6" r="0.5">
+                <stop offset="0%" stopColor="#ed8936"/>
+                <stop offset="60%" stopColor="#c53030"/>
+                <stop offset="100%" stopColor="#8b1a1a"/>
+              </radialGradient>
+              <linearGradient id="fire-flame-grad" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0%" stopColor="#ed8936"/>
+                <stop offset="50%" stopColor="#f6ad55"/>
+                <stop offset="100%" stopColor="#f6e05e"/>
+              </linearGradient>
+              <radialGradient id="fire-ember-grad" cx="0.4" cy="0.4" r="0.5">
+                <stop offset="0%" stopColor="#f6e05e"/>
+                <stop offset="100%" stopColor="#ed8936"/>
+              </radialGradient>
+              <radialGradient id="fire-glow" cx="0.5" cy="0.5" r="0.5">
+                <stop offset="0%" stopColor="#f6e05e" stopOpacity="0.3"/>
+                <stop offset="100%" stopColor="#f6e05e" stopOpacity="0"/>
+              </radialGradient>
+            </defs>
+            {/* Ambient glow */}
+            <ellipse cx="24" cy="28" rx="18" ry="14" fill="url(#fire-glow)"/>
+            {/* Teardrop body */}
+            <path d="M24 14 Q32 20 30 30 Q28 36 24 37 Q20 36 18 30 Q16 20 24 14 Z" fill="url(#fire-body-grad)"/>
+            {/* Body highlight */}
+            <path d="M24 18 Q28 22 27 28 Q25 32 24 32 Q23 32 21 28 Q20 22 24 18 Z" fill="#ed8936" opacity="0.6"/>
+            {/* Inner core glow */}
+            <ellipse cx="24" cy="26" rx="4" ry="5" fill="#f6e05e" opacity="0.3"/>
+            {/* Left flame tendril */}
+            <path d="M20 16 Q16 12 17 7 Q18 5 19 6 Q18 10 20 14" fill="url(#fire-flame-grad)" opacity="0.9"/>
+            {/* Center flame tendril (tall) */}
+            <path d="M23 14 Q22 8 24 3 Q25 2 26 3 Q27 8 25 14" fill="url(#fire-flame-grad)"/>
+            {/* Right flame tendril */}
+            <path d="M28 16 Q32 12 31 7 Q30 5 29 6 Q30 10 28 14" fill="url(#fire-flame-grad)" opacity="0.9"/>
+            {/* Small wisp left */}
+            <path d="M18 18 Q14 14 15 10 Q16 9 16 11 Q15 14 18 17" fill="#f6ad55" opacity="0.6"/>
+            {/* Small wisp right */}
+            <path d="M30 18 Q34 14 33 10 Q32 9 32 11 Q33 14 30 17" fill="#f6ad55" opacity="0.6"/>
+            {/* Flickering wisps on head */}
+            <path d="M21 12 Q19 8 21 5" stroke="#f6e05e" strokeWidth="1" fill="none" opacity="0.7"/>
+            <path d="M27 12 Q29 8 27 5" stroke="#f6e05e" strokeWidth="1" fill="none" opacity="0.7"/>
+            {/* Eye sockets */}
+            <ellipse cx="21" cy="24" rx="2.5" ry="2.8" fill="#1a1a2e"/>
+            <ellipse cx="27" cy="24" rx="2.5" ry="2.8" fill="#1a1a2e"/>
+            {/* Ember pupils */}
+            <circle cx="21" cy="24" r="1.3" fill="url(#fire-ember-grad)"/>
+            <circle cx="27" cy="24" r="1.3" fill="url(#fire-ember-grad)"/>
+            {/* Eye gleam */}
+            <circle cx="20.5" cy="23.2" r="0.5" fill="#fff" opacity="0.6"/>
+            <circle cx="26.5" cy="23.2" r="0.5" fill="#fff" opacity="0.6"/>
+            {/* Mouth line */}
+            <path d="M22 29 Q24 30 26 29" stroke="#1a1a2e" strokeWidth="0.8" fill="none"/>
+            {/* Body texture lines */}
+            <path d="M20 20 Q19 25 20 30" stroke="#8b1a1a" strokeWidth="0.5" fill="none" opacity="0.5"/>
+            <path d="M28 20 Q29 25 28 30" stroke="#8b1a1a" strokeWidth="0.5" fill="none" opacity="0.5"/>
+            {/* Left claw foot */}
+            <path d="M19 35 L18 40 L17 41 M19 35 L19 41 M19 35 L20 40 L21 41" stroke="#742a2a" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
+            {/* Right claw foot */}
+            <path d="M29 35 L28 40 L27 41 M29 35 L29 41 M29 35 L30 40 L31 41" stroke="#742a2a" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
+            {/* Ember particles */}
+            <circle cx="16" cy="10" r="0.8" fill="#f6e05e" opacity="0.5"/>
+            <circle cx="32" cy="8" r="0.6" fill="#f6ad55" opacity="0.4"/>
+            <circle cx="14" cy="15" r="0.5" fill="#ed8936" opacity="0.3"/>
+            <circle cx="34" cy="13" r="0.7" fill="#f6e05e" opacity="0.4"/>
           </svg>
         ),
-        water: ( // Marshveil - water creature
-          <svg width={size} height={size} style={{ imageRendering: 'pixelated' }}>
-            {/* Body - rounded blob */}
-            <rect x={3*px} y={6*px} width={10*px} height={8*px} fill="#2b6cb0"/>
-            <rect x={4*px} y={5*px} width={8*px} height={1*px} fill="#2b6cb0"/>
-            <rect x={4*px} y={14*px} width={8*px} height={1*px} fill="#2b6cb0"/>
-            {/* Inner shine */}
-            <rect x={4*px} y={7*px} width={8*px} height={6*px} fill="#4299e1"/>
-            <rect x={5*px} y={8*px} width={4*px} height={3*px} fill="#63b3ed"/>
-            {/* Eyes */}
-            <rect x={5*px} y={8*px} width={2*px} height={3*px} fill="#1a1a2e"/>
-            <rect x={9*px} y={8*px} width={2*px} height={3*px} fill="#1a1a2e"/>
-            <rect x={5*px} y={8*px} width={1*px} height={1*px} fill="#e8e8e8"/>
-            <rect x={9*px} y={8*px} width={1*px} height={1*px} fill="#e8e8e8"/>
-            {/* Fins/frills */}
-            <rect x={1*px} y={8*px} width={2*px} height={4*px} fill="#4299e1"/>
-            <rect x={13*px} y={8*px} width={2*px} height={4*px} fill="#4299e1"/>
-            {/* Water drops */}
-            <rect x={7*px} y={3*px} width={2*px} height={2*px} fill="#90cdf4"/>
+        water: ( // Marshveil - amorphous water blob with fins and droplet
+          <svg width={size} height={size} viewBox="0 0 48 48">
+            <defs>
+              <radialGradient id="water-body-grad" cx="0.5" cy="0.5" r="0.55">
+                <stop offset="0%" stopColor="#4299e1"/>
+                <stop offset="60%" stopColor="#3182ce"/>
+                <stop offset="100%" stopColor="#1a365d"/>
+              </radialGradient>
+              <radialGradient id="water-shine-grad" cx="0.35" cy="0.35" r="0.4">
+                <stop offset="0%" stopColor="#90cdf4" stopOpacity="0.6"/>
+                <stop offset="100%" stopColor="#90cdf4" stopOpacity="0"/>
+              </radialGradient>
+              <linearGradient id="water-fin-grad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#4299e1"/>
+                <stop offset="100%" stopColor="#2b6cb0"/>
+              </linearGradient>
+              <radialGradient id="water-drop-grad" cx="0.4" cy="0.3" r="0.5">
+                <stop offset="0%" stopColor="#bee3f8"/>
+                <stop offset="60%" stopColor="#90cdf4"/>
+                <stop offset="100%" stopColor="#63b3ed"/>
+              </radialGradient>
+              <radialGradient id="water-glow" cx="0.5" cy="0.5" r="0.5">
+                <stop offset="0%" stopColor="#90cdf4" stopOpacity="0.2"/>
+                <stop offset="100%" stopColor="#90cdf4" stopOpacity="0"/>
+              </radialGradient>
+            </defs>
+            {/* Ambient glow */}
+            <ellipse cx="24" cy="28" rx="18" ry="14" fill="url(#water-glow)"/>
+            {/* Main blob body */}
+            <path d="M12 20 Q10 16 14 14 Q18 12 24 11 Q30 12 34 14 Q38 16 36 20 Q38 26 36 32 Q34 38 30 39 Q26 40 24 40 Q22 40 18 39 Q14 38 12 32 Q10 26 12 20 Z" fill="url(#water-body-grad)"/>
+            {/* Highlight patch */}
+            <ellipse cx="20" cy="20" rx="6" ry="5" fill="url(#water-shine-grad)"/>
+            {/* Secondary highlight */}
+            <ellipse cx="28" cy="30" rx="4" ry="3" fill="#63b3ed" opacity="0.2"/>
+            {/* Surface wobble texture */}
+            <path d="M14 22 Q18 20 22 22 Q26 24 30 22 Q34 20 36 22" stroke="#63b3ed" strokeWidth="0.6" fill="none" opacity="0.4"/>
+            <path d="M16 28 Q20 26 24 28 Q28 30 32 28" stroke="#63b3ed" strokeWidth="0.5" fill="none" opacity="0.3"/>
+            {/* Left fin/frill */}
+            <path d="M12 20 Q6 18 5 22 Q4 26 7 28 Q9 29 12 28" fill="url(#water-fin-grad)" opacity="0.85"/>
+            <path d="M12 22 Q8 21 7 24 Q6 26 8 27" stroke="#90cdf4" strokeWidth="0.5" fill="none" opacity="0.5"/>
+            {/* Right fin/frill */}
+            <path d="M36 20 Q42 18 43 22 Q44 26 41 28 Q39 29 36 28" fill="url(#water-fin-grad)" opacity="0.85"/>
+            <path d="M36 22 Q40 21 41 24 Q42 26 40 27" stroke="#90cdf4" strokeWidth="0.5" fill="none" opacity="0.5"/>
+            {/* Lower frills */}
+            <path d="M14 34 Q10 36 9 34 Q8 32 11 32" fill="#3182ce" opacity="0.6"/>
+            <path d="M34 34 Q38 36 39 34 Q40 32 37 32" fill="#3182ce" opacity="0.6"/>
+            {/* Left eye */}
+            <ellipse cx="19" cy="23" rx="3" ry="3.5" fill="#1a1a2e"/>
+            <ellipse cx="19" cy="23" rx="2" ry="2.5" fill="#0d1b2e"/>
+            {/* Right eye */}
+            <ellipse cx="29" cy="23" rx="3" ry="3.5" fill="#1a1a2e"/>
+            <ellipse cx="29" cy="23" rx="2" ry="2.5" fill="#0d1b2e"/>
+            {/* Eye reflections */}
+            <circle cx="18" cy="21.5" r="1" fill="#e8e8e8" opacity="0.9"/>
+            <circle cx="28" cy="21.5" r="1" fill="#e8e8e8" opacity="0.9"/>
+            <circle cx="19.5" cy="24" r="0.5" fill="#e8e8e8" opacity="0.5"/>
+            <circle cx="29.5" cy="24" r="0.5" fill="#e8e8e8" opacity="0.5"/>
+            {/* Gentle smile */}
+            <path d="M21 28 Q24 30 27 28" stroke="#1a365d" strokeWidth="0.8" fill="none"/>
+            {/* Water droplet above */}
+            <path d="M24 4 Q22 6 22 8 Q22 10 24 11 Q26 10 26 8 Q26 6 24 4 Z" fill="url(#water-drop-grad)"/>
+            <ellipse cx="23.5" cy="7" rx="0.8" ry="1" fill="#e0f0ff" opacity="0.7"/>
+            {/* Bubble particles */}
+            <circle cx="15" cy="12" r="1" fill="#bee3f8" opacity="0.3"/>
+            <circle cx="33" cy="14" r="0.8" fill="#bee3f8" opacity="0.25"/>
+            <circle cx="10" cy="30" r="0.7" fill="#90cdf4" opacity="0.2"/>
+            <circle cx="38" cy="32" r="0.6" fill="#90cdf4" opacity="0.15"/>
           </svg>
         ),
-        grass: ( // Thornwick - plant creature
-          <svg width={size} height={size} style={{ imageRendering: 'pixelated' }}>
-            {/* Body */}
-            <rect x={4*px} y={8*px} width={8*px} height={6*px} fill="#276749"/>
-            <rect x={5*px} y={7*px} width={6*px} height={1*px} fill="#276749"/>
-            {/* Inner */}
-            <rect x={5*px} y={9*px} width={6*px} height={4*px} fill="#38a169"/>
-            {/* Eyes */}
-            <rect x={5*px} y={9*px} width={2*px} height={2*px} fill="#c53030"/>
-            <rect x={9*px} y={9*px} width={2*px} height={2*px} fill="#c53030"/>
-            {/* Leaves/thorns on top */}
-            <rect x={5*px} y={4*px} width={2*px} height={3*px} fill="#48bb78"/>
-            <rect x={7*px} y={2*px} width={2*px} height={5*px} fill="#68d391"/>
-            <rect x={9*px} y={4*px} width={2*px} height={3*px} fill="#48bb78"/>
-            {/* Thorns */}
-            <rect x={3*px} y={10*px} width={1*px} height={2*px} fill="#68d391"/>
-            <rect x={12*px} y={10*px} width={1*px} height={2*px} fill="#68d391"/>
-            {/* Roots/feet */}
-            <rect x={4*px} y={14*px} width={2*px} height={2*px} fill="#1c4532"/>
-            <rect x={10*px} y={14*px} width={2*px} height={2*px} fill="#1c4532"/>
+        grass: ( // Thornwick - angular thorny creature with leaf crown
+          <svg width={size} height={size} viewBox="0 0 48 48">
+            <defs>
+              <linearGradient id="grass-body-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#38a169"/>
+                <stop offset="100%" stopColor="#1a4731"/>
+              </linearGradient>
+              <linearGradient id="grass-leaf-grad" x1="0" y1="1" x2="0.5" y2="0">
+                <stop offset="0%" stopColor="#38a169"/>
+                <stop offset="100%" stopColor="#68d391"/>
+              </linearGradient>
+              <linearGradient id="grass-thorn-grad" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0%" stopColor="#276749"/>
+                <stop offset="100%" stopColor="#48bb78"/>
+              </linearGradient>
+              <radialGradient id="grass-eye-grad" cx="0.5" cy="0.5" r="0.5">
+                <stop offset="0%" stopColor="#feb2b2"/>
+                <stop offset="100%" stopColor="#c53030"/>
+              </radialGradient>
+            </defs>
+            {/* Angular body */}
+            <path d="M16 16 L12 22 L12 34 L16 38 L32 38 L36 34 L36 22 L32 16 Z" fill="url(#grass-body-grad)"/>
+            {/* Body facets */}
+            <path d="M16 16 L24 18 L32 16 L36 22 L24 20 L12 22 Z" fill="#38a169" opacity="0.5"/>
+            <path d="M12 22 L24 20 L36 22 L36 28 L24 26 L12 28 Z" fill="#2f855a" opacity="0.3"/>
+            {/* Bark texture */}
+            <path d="M18 22 L18 34" stroke="#1a4731" strokeWidth="0.6" fill="none" opacity="0.4"/>
+            <path d="M24 20 L24 36" stroke="#1a4731" strokeWidth="0.6" fill="none" opacity="0.3"/>
+            <path d="M30 22 L30 34" stroke="#1a4731" strokeWidth="0.6" fill="none" opacity="0.4"/>
+            {/* Central leaf (tall) */}
+            <path d="M24 16 L22 6 Q24 2 26 6 L24 16 Z" fill="url(#grass-leaf-grad)"/>
+            <path d="M24 6 L24 14" stroke="#276749" strokeWidth="0.5" fill="none" opacity="0.6"/>
+            {/* Left leaf */}
+            <path d="M18 17 L12 8 Q14 5 16 9 L18 17 Z" fill="url(#grass-leaf-grad)" opacity="0.9"/>
+            <path d="M15 9 L17 15" stroke="#276749" strokeWidth="0.4" fill="none" opacity="0.5"/>
+            {/* Right leaf */}
+            <path d="M30 17 L36 8 Q34 5 32 9 L30 17 Z" fill="url(#grass-leaf-grad)" opacity="0.9"/>
+            <path d="M33 9 L31 15" stroke="#276749" strokeWidth="0.4" fill="none" opacity="0.5"/>
+            {/* Small side leaves */}
+            <path d="M16 16 L10 12 Q12 10 14 13 Z" fill="#48bb78" opacity="0.7"/>
+            <path d="M32 16 L38 12 Q36 10 34 13 Z" fill="#48bb78" opacity="0.7"/>
+            {/* Left thorn protrusions */}
+            <path d="M12 24 L7 22 L8 24 Z" fill="url(#grass-thorn-grad)"/>
+            <path d="M12 30 L6 29 L7 31 Z" fill="url(#grass-thorn-grad)"/>
+            {/* Right thorn protrusions */}
+            <path d="M36 24 L41 22 L40 24 Z" fill="url(#grass-thorn-grad)"/>
+            <path d="M36 30 L42 29 L41 31 Z" fill="url(#grass-thorn-grad)"/>
+            {/* Angry eyes */}
+            <path d="M18 24 L22 22 L22 26 Z" fill="#c53030"/>
+            <circle cx="20" cy="24" r="1.5" fill="url(#grass-eye-grad)"/>
+            <path d="M26 22 L30 24 L26 26 Z" fill="#c53030"/>
+            <circle cx="28" cy="24" r="1.5" fill="url(#grass-eye-grad)"/>
+            {/* Eye glare */}
+            <circle cx="19.5" cy="23.5" r="0.5" fill="#fff" opacity="0.5"/>
+            <circle cx="27.5" cy="23.5" r="0.5" fill="#fff" opacity="0.5"/>
+            {/* Grimace */}
+            <path d="M21 29 L23 30 L25 30 L27 29" stroke="#1a4731" strokeWidth="1" fill="none"/>
+            {/* Root feet left */}
+            <path d="M16 38 Q14 42 12 44" stroke="#1c4532" strokeWidth="2" fill="none" strokeLinecap="round"/>
+            <path d="M18 38 Q17 41 15 43" stroke="#1c4532" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+            {/* Root feet right */}
+            <path d="M32 38 Q34 42 36 44" stroke="#1c4532" strokeWidth="2" fill="none" strokeLinecap="round"/>
+            <path d="M30 38 Q31 41 33 43" stroke="#1c4532" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+            {/* Small root tendrils */}
+            <path d="M20 38 Q19 40 18 42" stroke="#1c4532" strokeWidth="1" fill="none" opacity="0.6"/>
+            <path d="M28 38 Q29 40 30 42" stroke="#1c4532" strokeWidth="1" fill="none" opacity="0.6"/>
           </svg>
         ),
-        boss: ( // Obsidian Hound
-          <svg width={size} height={size} style={{ imageRendering: 'pixelated' }}>
-            {/* Body */}
-            <rect x={2*px} y={8*px} width={12*px} height={5*px} fill="#1a1a2e"/>
-            <rect x={3*px} y={7*px} width={10*px} height={1*px} fill="#1a1a2e"/>
-            {/* Head */}
-            <rect x={10*px} y={4*px} width={5*px} height={5*px} fill="#2d3748"/>
-            <rect x={11*px} y={3*px} width={3*px} height={1*px} fill="#2d3748"/>
-            {/* Ears */}
-            <rect x={11*px} y={1*px} width={1*px} height={2*px} fill="#2d3748"/>
-            <rect x={14*px} y={1*px} width={1*px} height={2*px} fill="#2d3748"/>
-            {/* Eyes - glowing */}
-            <rect x={11*px} y={5*px} width={2*px} height={2*px} fill="#f56565"/>
-            <rect x={12*px} y={5*px} width={1*px} height={1*px} fill="#feb2b2"/>
-            {/* Snout */}
-            <rect x={14*px} y={6*px} width={2*px} height={2*px} fill="#4a5568"/>
-            {/* Legs */}
-            <rect x={3*px} y={13*px} width={2*px} height={3*px} fill="#1a1a2e"/>
-            <rect x={6*px} y={13*px} width={2*px} height={3*px} fill="#1a1a2e"/>
-            <rect x={9*px} y={13*px} width={2*px} height={3*px} fill="#1a1a2e"/>
-            <rect x={12*px} y={13*px} width={2*px} height={3*px} fill="#1a1a2e"/>
-            {/* Fire markings */}
-            <rect x={4*px} y={9*px} width={1*px} height={2*px} fill="#ed8936"/>
-            <rect x={7*px} y={8*px} width={1*px} height={3*px} fill="#f6ad55"/>
+        boss: ( // Obsidian Hound - quadruped with lava cracks
+          <svg width={size} height={size} viewBox="0 0 48 48">
+            <defs>
+              <linearGradient id="boss-body-grad" x1="0" y1="0" x2="0.3" y2="1">
+                <stop offset="0%" stopColor="#2d3748"/>
+                <stop offset="100%" stopColor="#0d0d14"/>
+              </linearGradient>
+              <linearGradient id="boss-head-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#4a5568"/>
+                <stop offset="100%" stopColor="#2d3748"/>
+              </linearGradient>
+              <radialGradient id="boss-eye-grad" cx="0.5" cy="0.5" r="0.5">
+                <stop offset="0%" stopColor="#feb2b2"/>
+                <stop offset="60%" stopColor="#f56565"/>
+                <stop offset="100%" stopColor="#c53030"/>
+              </radialGradient>
+              <linearGradient id="boss-lava-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#f6ad55"/>
+                <stop offset="100%" stopColor="#ed8936"/>
+              </linearGradient>
+              <radialGradient id="boss-fire-glow" cx="0.5" cy="0.5" r="0.5">
+                <stop offset="0%" stopColor="#ed8936" stopOpacity="0.3"/>
+                <stop offset="100%" stopColor="#ed8936" stopOpacity="0"/>
+              </radialGradient>
+            </defs>
+            {/* Fire glow under body */}
+            <ellipse cx="22" cy="36" rx="16" ry="6" fill="url(#boss-fire-glow)"/>
             {/* Tail */}
-            <rect x={0*px} y={7*px} width={2*px} height={2*px} fill="#2d3748"/>
-          </svg>
-        ),
-        dark: ( // Umbravine - dark vine creature
-          <svg width={size} height={size} style={{ imageRendering: 'pixelated' }}>
-            {/* Body */}
-            <rect x={4*px} y={8*px} width={8*px} height={6*px} fill="#2d2040"/>
-            <rect x={5*px} y={7*px} width={6*px} height={1*px} fill="#2d2040"/>
-            {/* Inner glow */}
-            <rect x={5*px} y={9*px} width={6*px} height={4*px} fill="#4a3060"/>
-            {/* Eyes - glowing violet */}
-            <rect x={5*px} y={9*px} width={2*px} height={2*px} fill="#9f7aea"/>
-            <rect x={9*px} y={9*px} width={2*px} height={2*px} fill="#9f7aea"/>
-            <rect x={6*px} y={9*px} width={1*px} height={1*px} fill="#e9d8fd"/>
-            <rect x={10*px} y={9*px} width={1*px} height={1*px} fill="#e9d8fd"/>
-            {/* Vine tendrils */}
-            <rect x={3*px} y={5*px} width={1*px} height={4*px} fill="#553c9a"/>
-            <rect x={2*px} y={4*px} width={1*px} height={2*px} fill="#553c9a"/>
-            <rect x={12*px} y={5*px} width={1*px} height={4*px} fill="#553c9a"/>
-            <rect x={13*px} y={4*px} width={1*px} height={2*px} fill="#553c9a"/>
-            {/* Top vines */}
-            <rect x={6*px} y={3*px} width={1*px} height={4*px} fill="#6b46c1"/>
-            <rect x={9*px} y={4*px} width={1*px} height={3*px} fill="#6b46c1"/>
-            <rect x={7*px} y={2*px} width={2*px} height={2*px} fill="#805ad5"/>
-            {/* Roots/feet */}
-            <rect x={4*px} y={14*px} width={2*px} height={2*px} fill="#1a1030"/>
-            <rect x={10*px} y={14*px} width={2*px} height={2*px} fill="#1a1030"/>
-          </svg>
-        ),
-        light: ( // Solrath - light creature
-          <svg width={size} height={size} style={{ imageRendering: 'pixelated' }}>
-            {/* Body */}
-            <rect x={4*px} y={8*px} width={8*px} height={6*px} fill="#d69e2e"/>
-            <rect x={5*px} y={7*px} width={6*px} height={1*px} fill="#d69e2e"/>
-            {/* Inner glow */}
-            <rect x={5*px} y={9*px} width={6*px} height={4*px} fill="#ecc94b"/>
-            <rect x={6*px} y={10*px} width={4*px} height={2*px} fill="#faf089"/>
-            {/* Eyes */}
-            <rect x={5*px} y={9*px} width={2*px} height={2*px} fill="#1a1a2e"/>
-            <rect x={9*px} y={9*px} width={2*px} height={2*px} fill="#1a1a2e"/>
-            {/* Radiating light rays */}
-            <rect x={7*px} y={1*px} width={2*px} height={5*px} fill="#faf089"/>
-            <rect x={2*px} y={6*px} width={3*px} height={2*px} fill="#f6e05e"/>
-            <rect x={11*px} y={6*px} width={3*px} height={2*px} fill="#f6e05e"/>
-            <rect x={3*px} y={3*px} width={2*px} height={2*px} fill="#f6e05e"/>
-            <rect x={11*px} y={3*px} width={2*px} height={2*px} fill="#f6e05e"/>
-            {/* Warm glow halo */}
-            <rect x={6*px} y={3*px} width={4*px} height={1*px} fill="#fefcbf"/>
-            {/* Feet */}
-            <rect x={4*px} y={14*px} width={2*px} height={2*px} fill="#b7791f"/>
-            <rect x={10*px} y={14*px} width={2*px} height={2*px} fill="#b7791f"/>
-          </svg>
-        ),
-        hollowWarden: ( // Hollow Warden - corrupted dark/light hybrid
-          <svg width={size} height={size} style={{ imageRendering: 'pixelated' }}>
-            {/* Body - fractured */}
-            <rect x={2*px} y={7*px} width={12*px} height={7*px} fill="#1a1020"/>
-            <rect x={3*px} y={6*px} width={10*px} height={1*px} fill="#1a1020"/>
-            {/* Corruption cracks */}
-            <rect x={4*px} y={8*px} width={1*px} height={4*px} fill="#553c9a"/>
-            <rect x={8*px} y={7*px} width={1*px} height={5*px} fill="#9f7aea"/>
-            <rect x={11*px} y={9*px} width={1*px} height={3*px} fill="#553c9a"/>
+            <path d="M2 18 Q0 14 3 12 Q5 11 6 14 Q7 18 8 20" fill="#2d3748"/>
+            <path d="M3 13 Q4 12 5 13" stroke="#4a5568" strokeWidth="0.5" fill="none" opacity="0.5"/>
+            {/* Main body */}
+            <path d="M8 20 Q6 16 10 14 L34 14 Q38 16 36 20 L38 30 Q36 34 32 34 L12 34 Q8 34 6 30 Z" fill="url(#boss-body-grad)"/>
+            {/* Body ridge */}
+            <path d="M10 14 Q20 12 34 14" stroke="#4a5568" strokeWidth="1" fill="none" opacity="0.4"/>
+            {/* Lava crack lines on body */}
+            <path d="M12 18 Q14 22 12 28" stroke="url(#boss-lava-grad)" strokeWidth="1.2" fill="none" opacity="0.8"/>
+            <path d="M18 16 Q20 22 18 30" stroke="url(#boss-lava-grad)" strokeWidth="1" fill="none" opacity="0.6"/>
+            <path d="M26 15 Q24 20 26 26" stroke="#f6ad55" strokeWidth="0.8" fill="none" opacity="0.5"/>
+            <path d="M14 22 L22 20" stroke="#ed8936" strokeWidth="0.6" fill="none" opacity="0.4"/>
+            <path d="M16 28 L24 26" stroke="#ed8936" strokeWidth="0.6" fill="none" opacity="0.3"/>
+            {/* Lava glow spots */}
+            <circle cx="13" cy="22" r="1.5" fill="#ed8936" opacity="0.4"/>
+            <circle cx="19" cy="18" r="1" fill="#f6ad55" opacity="0.3"/>
             {/* Head */}
-            <rect x={5*px} y={2*px} width={6*px} height={5*px} fill="#2d2040"/>
-            {/* Eyes - one dark, one light */}
-            <rect x={6*px} y={4*px} width={2*px} height={2*px} fill="#9f7aea"/>
-            <rect x={10*px} y={4*px} width={2*px} height={2*px} fill="#faf089"/>
+            <path d="M32 10 Q30 6 32 4 Q36 2 40 4 Q44 6 44 12 Q44 18 40 20 L34 20 Q30 18 32 14 Z" fill="url(#boss-head-grad)"/>
+            {/* Pointed ears */}
+            <path d="M33 6 L32 0 L35 4 Z" fill="#2d3748"/>
+            <path d="M39 4 L40 -1 L42 4 Z" fill="#2d3748"/>
+            <path d="M33.5 4 L33 1 L34.5 4 Z" fill="#4a5568" opacity="0.5"/>
+            <path d="M39.5 3 L40 0 L41 4 Z" fill="#4a5568" opacity="0.5"/>
+            {/* Snout */}
+            <path d="M40 12 Q44 10 46 12 Q46 16 44 16 Q42 18 40 16 Z" fill="#4a5568"/>
+            <ellipse cx="45" cy="12" rx="1" ry="0.8" fill="#1a1a2e"/>
+            <ellipse cx="45" cy="14" rx="1" ry="0.8" fill="#1a1a2e"/>
+            {/* Eyes */}
+            <ellipse cx="35" cy="10" rx="2.5" ry="2" fill="#c53030"/>
+            <circle cx="35" cy="10" r="1.2" fill="url(#boss-eye-grad)"/>
+            <ellipse cx="40" cy="9" rx="2" ry="1.8" fill="#c53030"/>
+            <circle cx="40" cy="9" r="1" fill="url(#boss-eye-grad)"/>
+            {/* Eye gleam */}
+            <circle cx="34.5" cy="9.2" r="0.5" fill="#fff" opacity="0.5"/>
+            {/* Fangs */}
+            <path d="M42 16 L43 19 L44 16" fill="#e2e8f0" opacity="0.9"/>
+            <path d="M40 17 L40.5 19.5 L41 17" fill="#e2e8f0" opacity="0.8"/>
+            {/* Front legs */}
+            <path d="M30 32 Q30 38 28 42 Q27 44 29 44 L31 44 Q32 44 32 42 Q32 38 32 34" fill="#1a1a2e"/>
+            <path d="M34 32 Q34 38 33 42 Q32 44 34 44 L36 44 Q37 44 37 42 Q36 38 36 34" fill="#0d0d14"/>
+            {/* Back legs */}
+            <path d="M10 32 Q10 38 8 42 Q7 44 9 44 L11 44 Q12 44 12 42 Q12 38 12 34" fill="#1a1a2e"/>
+            <path d="M14 32 Q14 38 13 42 Q12 44 14 44 L16 44 Q17 44 17 42 Q16 38 16 34" fill="#0d0d14"/>
+            {/* Paw claws */}
+            <path d="M28 44 L27 46" stroke="#4a5568" strokeWidth="0.8" strokeLinecap="round"/>
+            <path d="M31 44 L31 46" stroke="#4a5568" strokeWidth="0.8" strokeLinecap="round"/>
+            <path d="M8 44 L7 46" stroke="#4a5568" strokeWidth="0.8" strokeLinecap="round"/>
+            <path d="M11 44 L11 46" stroke="#4a5568" strokeWidth="0.8" strokeLinecap="round"/>
+          </svg>
+        ),
+        dark: ( // Umbravine - ethereal shadowy creature with vine tendrils
+          <svg width={size} height={size} viewBox="0 0 48 48">
+            <defs>
+              <radialGradient id="dark-body-grad" cx="0.5" cy="0.4" r="0.55">
+                <stop offset="0%" stopColor="#2d1b4e"/>
+                <stop offset="70%" stopColor="#1a1030"/>
+                <stop offset="100%" stopColor="#0d0a1a"/>
+              </radialGradient>
+              <radialGradient id="dark-eye-grad" cx="0.4" cy="0.4" r="0.5">
+                <stop offset="0%" stopColor="#e9d8fd"/>
+                <stop offset="60%" stopColor="#b794f4"/>
+                <stop offset="100%" stopColor="#9f7aea"/>
+              </radialGradient>
+              <linearGradient id="dark-vine-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#805ad5"/>
+                <stop offset="100%" stopColor="#553c9a"/>
+              </linearGradient>
+              <radialGradient id="dark-aura" cx="0.5" cy="0.5" r="0.5">
+                <stop offset="0%" stopColor="#9f7aea" stopOpacity="0.15"/>
+                <stop offset="100%" stopColor="#553c9a" stopOpacity="0"/>
+              </radialGradient>
+              <linearGradient id="dark-fade" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#1a1030"/>
+                <stop offset="100%" stopColor="#0d0a1a" stopOpacity="0"/>
+              </linearGradient>
+            </defs>
+            {/* Ethereal aura */}
+            <ellipse cx="24" cy="24" rx="20" ry="18" fill="url(#dark-aura)"/>
+            {/* Smoky irregular body */}
+            <path d="M14 12 Q10 14 9 20 Q8 26 10 30 Q12 34 16 36 Q20 38 24 38 Q28 38 32 36 Q36 34 38 30 Q40 26 39 20 Q38 14 34 12 Q30 10 24 10 Q18 10 14 12 Z" fill="url(#dark-body-grad)"/>
+            {/* Smoky edge wisps */}
+            <path d="M10 20 Q7 18 6 20 Q5 22 8 23" fill="#1a1030" opacity="0.6"/>
+            <path d="M38 20 Q41 18 42 20 Q43 22 40 23" fill="#1a1030" opacity="0.6"/>
+            <path d="M14 12 Q12 10 13 8 Q15 7 16 10" fill="#0d0a1a" opacity="0.4"/>
+            <path d="M34 12 Q36 10 35 8 Q33 7 32 10" fill="#0d0a1a" opacity="0.4"/>
+            {/* Inner glow */}
+            <ellipse cx="24" cy="22" rx="8" ry="6" fill="#2d1b4e" opacity="0.5"/>
+            {/* Body texture (shadow swirls) */}
+            <path d="M16 18 Q20 16 24 18 Q28 20 32 18" stroke="#2d1b4e" strokeWidth="0.5" fill="none" opacity="0.4"/>
+            <path d="M18 26 Q22 24 26 26 Q30 28 34 26" stroke="#1a1030" strokeWidth="0.4" fill="none" opacity="0.3"/>
+            {/* Left vine tendril curling */}
+            <path d="M12 18 Q6 14 4 10 Q3 6 5 4 Q7 3 6 6 Q5 10 8 14" stroke="url(#dark-vine-grad)" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
+            <path d="M5 4 Q3 2 4 1" stroke="#805ad5" strokeWidth="1" fill="none" strokeLinecap="round" opacity="0.7"/>
+            {/* Right vine tendril curling */}
+            <path d="M36 18 Q42 14 44 10 Q45 6 43 4 Q41 3 42 6 Q43 10 40 14" stroke="url(#dark-vine-grad)" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
+            <path d="M43 4 Q45 2 44 1" stroke="#805ad5" strokeWidth="1" fill="none" strokeLinecap="round" opacity="0.7"/>
+            {/* Top vine tendrils */}
+            <path d="M20 12 Q18 6 20 2 Q21 0 22 2 Q23 6 22 10" stroke="#6b46c1" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+            <path d="M28 12 Q30 6 28 2 Q27 0 26 2 Q25 6 26 10" stroke="#6b46c1" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+            {/* Small vine wisps */}
+            <path d="M16 14 Q14 10 16 8" stroke="#553c9a" strokeWidth="0.8" fill="none" opacity="0.5"/>
+            <path d="M32 14 Q34 10 32 8" stroke="#553c9a" strokeWidth="0.8" fill="none" opacity="0.5"/>
+            {/* Eyes - glowing violet */}
+            <ellipse cx="19" cy="22" rx="3" ry="3.5" fill="#9f7aea"/>
+            <circle cx="19" cy="22" r="1.8" fill="url(#dark-eye-grad)"/>
+            <ellipse cx="29" cy="22" rx="3" ry="3.5" fill="#9f7aea"/>
+            <circle cx="29" cy="22" r="1.8" fill="url(#dark-eye-grad)"/>
+            {/* Eye glow haze */}
+            <circle cx="19" cy="22" r="5" fill="#9f7aea" opacity="0.1"/>
+            <circle cx="29" cy="22" r="5" fill="#9f7aea" opacity="0.1"/>
+            {/* Bottom fade (floating, no feet) */}
+            <path d="M14 34 Q18 40 24 42 Q30 40 34 34 Q32 40 28 44 Q24 46 20 44 Q16 40 14 34 Z" fill="url(#dark-fade)"/>
+            {/* Shadow particles */}
+            <circle cx="8" cy="8" r="1" fill="#805ad5" opacity="0.2"/>
+            <circle cx="40" cy="6" r="0.8" fill="#9f7aea" opacity="0.15"/>
+            <circle cx="6" cy="28" r="0.6" fill="#553c9a" opacity="0.2"/>
+            <circle cx="42" cy="30" r="0.7" fill="#805ad5" opacity="0.15"/>
+          </svg>
+        ),
+        light: ( // Solrath - radiant sun-like creature
+          <svg width={size} height={size} viewBox="0 0 48 48">
+            <defs>
+              <radialGradient id="light-body-grad" cx="0.5" cy="0.5" r="0.5">
+                <stop offset="0%" stopColor="#faf089"/>
+                <stop offset="50%" stopColor="#ecc94b"/>
+                <stop offset="100%" stopColor="#b7791f"/>
+              </radialGradient>
+              <radialGradient id="light-halo-grad" cx="0.5" cy="0.5" r="0.5">
+                <stop offset="0%" stopColor="#faf089" stopOpacity="0.4"/>
+                <stop offset="100%" stopColor="#faf089" stopOpacity="0"/>
+              </radialGradient>
+              <linearGradient id="light-ray-grad" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0%" stopColor="#ecc94b"/>
+                <stop offset="100%" stopColor="#faf089" stopOpacity="0.6"/>
+              </linearGradient>
+            </defs>
+            {/* Warm halo glow */}
+            <circle cx="24" cy="24" r="22" fill="url(#light-halo-grad)"/>
+            {/* Radiating light rays (tapered) */}
+            <path d="M24 4 L22 10 L26 10 Z" fill="url(#light-ray-grad)" opacity="0.8"/>
+            <path d="M24 44 L22 38 L26 38 Z" fill="url(#light-ray-grad)" opacity="0.6"/>
+            <path d="M4 24 L10 22 L10 26 Z" fill="url(#light-ray-grad)" opacity="0.7"/>
+            <path d="M44 24 L38 22 L38 26 Z" fill="url(#light-ray-grad)" opacity="0.7"/>
+            {/* Diagonal rays */}
+            <path d="M10 10 L14 14 L12 16 Z" fill="#f6e05e" opacity="0.5"/>
+            <path d="M38 10 L34 14 L36 16 Z" fill="#f6e05e" opacity="0.5"/>
+            <path d="M10 38 L14 34 L12 32 Z" fill="#f6e05e" opacity="0.4"/>
+            <path d="M38 38 L34 34 L36 32 Z" fill="#f6e05e" opacity="0.4"/>
+            {/* Secondary short rays */}
+            <path d="M16 7 L17 12 L15 12 Z" fill="#fefcbf" opacity="0.4"/>
+            <path d="M32 7 L33 12 L31 12 Z" fill="#fefcbf" opacity="0.4"/>
+            <path d="M7 16 L12 17 L12 15 Z" fill="#fefcbf" opacity="0.35"/>
+            <path d="M41 16 L36 17 L36 15 Z" fill="#fefcbf" opacity="0.35"/>
+            {/* Main body */}
+            <circle cx="24" cy="24" r="10" fill="url(#light-body-grad)"/>
+            {/* Body sheen */}
+            <ellipse cx="22" cy="20" rx="5" ry="4" fill="#faf089" opacity="0.4"/>
+            {/* Surface texture arcs */}
+            <path d="M18 20 Q20 18 24 18" stroke="#d69e2e" strokeWidth="0.5" fill="none" opacity="0.3"/>
+            <path d="M26 28 Q28 30 30 28" stroke="#d69e2e" strokeWidth="0.5" fill="none" opacity="0.3"/>
+            {/* Eyes */}
+            <ellipse cx="20" cy="23" rx="2.2" ry="2.5" fill="#1a1a2e"/>
+            <ellipse cx="28" cy="23" rx="2.2" ry="2.5" fill="#1a1a2e"/>
+            {/* Pupils */}
+            <circle cx="20" cy="23" r="1" fill="#2d3748"/>
+            <circle cx="28" cy="23" r="1" fill="#2d3748"/>
+            {/* Eye gleam */}
+            <circle cx="19.5" cy="22" r="0.6" fill="#fff" opacity="0.7"/>
+            <circle cx="27.5" cy="22" r="0.6" fill="#fff" opacity="0.7"/>
+            {/* Confident expression */}
+            <path d="M22 27 Q24 29 26 27" stroke="#b7791f" strokeWidth="0.8" fill="none"/>
+            {/* Sturdy feet */}
+            <path d="M18 34 Q17 38 15 40 Q14 41 16 41 L19 41 Q20 41 20 40 Q20 38 20 36" fill="#b7791f"/>
+            <path d="M28 34 Q28 38 28 40 Q28 41 30 41 L33 41 Q34 41 34 40 Q33 38 30 36" fill="#b7791f"/>
+            {/* Warm light particles */}
+            <circle cx="8" cy="14" r="0.8" fill="#fefcbf" opacity="0.5"/>
+            <circle cx="40" cy="12" r="0.6" fill="#faf089" opacity="0.4"/>
+            <circle cx="6" cy="32" r="0.5" fill="#f6e05e" opacity="0.3"/>
+            <circle cx="42" cy="34" r="0.7" fill="#fefcbf" opacity="0.35"/>
+          </svg>
+        ),
+        hollowWarden: ( // Hollow Warden - tall imposing humanoid with corruption
+          <svg width={size} height={size} viewBox="0 0 48 48">
+            <defs>
+              <linearGradient id="warden-body-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#1a1030"/>
+                <stop offset="100%" stopColor="#0a0510"/>
+              </linearGradient>
+              <radialGradient id="warden-purple-eye" cx="0.4" cy="0.4" r="0.5">
+                <stop offset="0%" stopColor="#e9d8fd"/>
+                <stop offset="60%" stopColor="#b794f4"/>
+                <stop offset="100%" stopColor="#9f7aea"/>
+              </radialGradient>
+              <radialGradient id="warden-gold-eye" cx="0.4" cy="0.4" r="0.5">
+                <stop offset="0%" stopColor="#fefcbf"/>
+                <stop offset="60%" stopColor="#faf089"/>
+                <stop offset="100%" stopColor="#ecc94b"/>
+              </radialGradient>
+              <linearGradient id="warden-crack-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#b794f4"/>
+                <stop offset="100%" stopColor="#9f7aea"/>
+              </linearGradient>
+              <linearGradient id="warden-crown-grad" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0%" stopColor="#ecc94b"/>
+                <stop offset="100%" stopColor="#fefcbf" stopOpacity="0.7"/>
+              </linearGradient>
+              <radialGradient id="warden-aura" cx="0.5" cy="0.3" r="0.6">
+                <stop offset="0%" stopColor="#9f7aea" stopOpacity="0.1"/>
+                <stop offset="100%" stopColor="#553c9a" stopOpacity="0"/>
+              </radialGradient>
+            </defs>
+            {/* Dark aura */}
+            <ellipse cx="24" cy="24" rx="22" ry="20" fill="url(#warden-aura)"/>
             {/* Crown of fractured light */}
-            <rect x={6*px} y={0*px} width={1*px} height={2*px} fill="#f6e05e"/>
-            <rect x={8*px} y={0*px} width={1*px} height={3*px} fill="#faf089"/>
-            <rect x={10*px} y={1*px} width={1*px} height={2*px} fill="#f6e05e"/>
-            {/* Arms/appendages */}
-            <rect x={0*px} y={9*px} width={2*px} height={3*px} fill="#2d2040"/>
-            <rect x={14*px} y={9*px} width={2*px} height={3*px} fill="#2d2040"/>
+            <path d="M16 8 L14 0 L17 5 Z" fill="url(#warden-crown-grad)" opacity="0.9"/>
+            <path d="M21 6 L20 -2 L23 4 Z" fill="url(#warden-crown-grad)"/>
+            <path d="M27 6 L28 -2 L25 4 Z" fill="url(#warden-crown-grad)"/>
+            <path d="M32 8 L34 0 L31 5 Z" fill="url(#warden-crown-grad)" opacity="0.9"/>
+            {/* Crown glow */}
+            <path d="M14 4 Q24 -2 34 4" stroke="#faf089" strokeWidth="0.5" fill="none" opacity="0.3"/>
+            {/* Head */}
+            <path d="M16 6 Q14 4 16 2 L32 2 Q34 4 32 6 L34 14 Q34 18 30 18 L18 18 Q14 18 14 14 Z" fill="#2d2040"/>
+            {/* Head detail */}
+            <path d="M18 6 Q24 4 30 6" stroke="#3d2d55" strokeWidth="0.5" fill="none" opacity="0.4"/>
+            {/* Asymmetric eyes - left purple */}
+            <ellipse cx="20" cy="11" rx="2.5" ry="3" fill="#9f7aea"/>
+            <circle cx="20" cy="11" r="1.5" fill="url(#warden-purple-eye)"/>
+            <circle cx="20" cy="11" r="4" fill="#9f7aea" opacity="0.08"/>
+            {/* Right gold eye */}
+            <ellipse cx="28" cy="11" rx="2.5" ry="3" fill="#ecc94b"/>
+            <circle cx="28" cy="11" r="1.5" fill="url(#warden-gold-eye)"/>
+            <circle cx="28" cy="11" r="4" fill="#faf089" opacity="0.08"/>
+            {/* Tall imposing body */}
+            <path d="M14 18 L10 20 L8 34 L12 40 L36 40 L40 34 L38 20 L34 18 Z" fill="url(#warden-body-grad)"/>
+            {/* Body mass detail */}
+            <path d="M14 18 L24 20 L34 18" stroke="#2d2040" strokeWidth="0.5" fill="none" opacity="0.3"/>
+            {/* Corruption crack lines */}
+            <path d="M14 22 Q16 28 14 34" stroke="url(#warden-crack-grad)" strokeWidth="1.5" fill="none" opacity="0.8"/>
+            <path d="M20 20 Q22 28 20 36" stroke="#9f7aea" strokeWidth="1" fill="none" opacity="0.6"/>
+            <path d="M28 18 Q26 26 28 34" stroke="url(#warden-crack-grad)" strokeWidth="1.2" fill="none" opacity="0.7"/>
+            <path d="M34 22 Q32 28 34 34" stroke="#553c9a" strokeWidth="1" fill="none" opacity="0.5"/>
+            {/* Crack branch details */}
+            <path d="M14 26 L12 28" stroke="#b794f4" strokeWidth="0.6" fill="none" opacity="0.5"/>
+            <path d="M28 24 L30 26" stroke="#9f7aea" strokeWidth="0.6" fill="none" opacity="0.4"/>
+            <path d="M20 28 L18 30" stroke="#805ad5" strokeWidth="0.5" fill="none" opacity="0.4"/>
+            {/* Crack glow spots */}
+            <circle cx="14" cy="28" r="1.5" fill="#9f7aea" opacity="0.2"/>
+            <circle cx="28" cy="26" r="1.2" fill="#b794f4" opacity="0.15"/>
+            {/* Long left arm */}
+            <path d="M10 20 Q4 22 2 28 Q0 32 1 36 Q2 38 3 36 Q2 32 4 28 Q6 24 8 22" fill="#2d2040"/>
+            <path d="M1 36 Q0 38 1 40 L3 40 Q4 38 3 36" fill="#1a1030"/>
+            {/* Long right arm */}
+            <path d="M38 20 Q44 22 46 28 Q48 32 47 36 Q46 38 45 36 Q46 32 44 28 Q42 24 40 22" fill="#2d2040"/>
+            <path d="M47 36 Q48 38 47 40 L45 40 Q44 38 45 36" fill="#1a1030"/>
+            {/* Arm crack details */}
+            <path d="M4 28 Q3 30 4 32" stroke="#805ad5" strokeWidth="0.6" fill="none" opacity="0.4"/>
+            <path d="M44 28 Q45 30 44 32" stroke="#805ad5" strokeWidth="0.6" fill="none" opacity="0.4"/>
             {/* Legs */}
-            <rect x={4*px} y={14*px} width={2*px} height={2*px} fill="#1a1020"/>
-            <rect x={10*px} y={14*px} width={2*px} height={2*px} fill="#1a1020"/>
+            <path d="M14 38 Q12 42 12 46 L16 46 Q16 42 16 40" fill="#0a0510"/>
+            <path d="M32 38 Q32 42 32 46 L36 46 Q36 42 34 40" fill="#0a0510"/>
+            {/* Void particles */}
+            <circle cx="6" cy="16" r="0.8" fill="#9f7aea" opacity="0.2"/>
+            <circle cx="42" cy="14" r="0.6" fill="#b794f4" opacity="0.15"/>
+            <circle cx="4" cy="36" r="0.5" fill="#805ad5" opacity="0.2"/>
+            <circle cx="44" cy="38" r="0.7" fill="#9f7aea" opacity="0.15"/>
           </svg>
         )
       };
@@ -608,7 +976,6 @@
             left: 0,
             pointerEvents: 'none',
             transform: isEnemy ? 'scaleX(-1)' : 'none',
-            imageRendering: 'pixelated'
           }}
         >
           {ids.flatMap(id => SCAR_DECALS[id].map((mark, i) => (
@@ -626,7 +993,7 @@
                 strokeWidth={mark.w}
                 fill="none"
                 opacity="0.9"
-                strokeLinecap="square"
+                strokeLinecap="round"
               />
             )
           )))}
@@ -4828,17 +5195,52 @@
                           alignItems: 'center',
                           justifyContent: 'center'
                         }}>
-                          <svg width="32" height="36" style={{ imageRendering: 'pixelated', animation: 'idleBob 2.8s ease-in-out infinite' }}>
-                            {/* Hooded robe */}
-                            <rect x="8" y="4" width="16" height="10" fill="#4a4440"/>
-                            <rect x="6" y="12" width="20" height="20" fill="#3a3430"/>
-                            {/* Shadowed face, two embers watching */}
-                            <rect x="10" y="8" width="12" height="6" fill="#1a1614"/>
-                            <rect x="13" y="10" width="2" height="2" fill="#f6ad55"/>
-                            <rect x="18" y="10" width="2" height="2" fill="#f6ad55"/>
-                            {/* Staff with a kindled tip */}
-                            <rect x="26" y="8" width="3" height="26" fill="#5a4a3a"/>
-                            <rect x="25" y="3" width="5" height="5" fill="#f6e05e"/>
+                          <svg width="32" height="36" viewBox="0 0 32 36" style={{ animation: 'idleBob 2.8s ease-in-out infinite' }}>
+                            <defs>
+                              <linearGradient id="keeper-robe-grad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#5a5450"/>
+                                <stop offset="100%" stopColor="#2a2420"/>
+                              </linearGradient>
+                              <radialGradient id="keeper-staff-glow" cx="0.5" cy="0.5" r="0.5">
+                                <stop offset="0%" stopColor="#faf089"/>
+                                <stop offset="60%" stopColor="#f6e05e"/>
+                                <stop offset="100%" stopColor="#d69e2e" stopOpacity="0"/>
+                              </radialGradient>
+                              <radialGradient id="keeper-face-shadow" cx="0.5" cy="0.3" r="0.6">
+                                <stop offset="0%" stopColor="#1a1614"/>
+                                <stop offset="100%" stopColor="#0d0b0a"/>
+                              </radialGradient>
+                            </defs>
+                            {/* Staff shaft */}
+                            <path d="M27 10 L27 34 L29 34 L29 10 Z" fill="#5a4a3a"/>
+                            <path d="M27.5 10 L27.5 34" stroke="#6b5a4a" strokeWidth="0.5" opacity="0.5"/>
+                            {/* Staff orb glow aura */}
+                            <circle cx="28" cy="6" r="7" fill="url(#keeper-staff-glow)" opacity="0.4"/>
+                            {/* Staff orb */}
+                            <circle cx="28" cy="6" r="3.5" fill="#f6e05e"/>
+                            <circle cx="28" cy="6" r="2" fill="#faf089"/>
+                            <circle cx="27" cy="5" r="0.8" fill="#fffde7" opacity="0.8"/>
+                            {/* Hood outer shape */}
+                            <path d="M8 14 Q8 3 16 2 Q24 3 24 14 Z" fill="url(#keeper-robe-grad)"/>
+                            {/* Hood brim */}
+                            <path d="M6 14 Q6 12 8 12 L24 12 Q26 12 26 14 Z" fill="#4a4440"/>
+                            {/* Shadowed face */}
+                            <ellipse cx="16" cy="12" rx="6" ry="4" fill="url(#keeper-face-shadow)"/>
+                            {/* Ember eyes */}
+                            <circle cx="13" cy="11.5" r="1.2" fill="#f6ad55"/>
+                            <circle cx="19" cy="11.5" r="1.2" fill="#f6ad55"/>
+                            <circle cx="13" cy="11.2" r="0.5" fill="#fef3c7"/>
+                            <circle cx="19" cy="11.2" r="0.5" fill="#fef3c7"/>
+                            {/* Robe body */}
+                            <path d="M6 14 L4 34 L28 34 L26 14 Z" fill="url(#keeper-robe-grad)"/>
+                            {/* Robe drape folds */}
+                            <path d="M10 16 Q12 22 10 30" stroke="#3a3430" strokeWidth="1" fill="none" opacity="0.6"/>
+                            <path d="M16 14 Q18 24 16 34" stroke="#3a3430" strokeWidth="1" fill="none" opacity="0.5"/>
+                            <path d="M22 16 Q20 22 22 30" stroke="#3a3430" strokeWidth="1" fill="none" opacity="0.6"/>
+                            {/* Robe hem */}
+                            <path d="M4 32 Q8 30 16 32 Q24 30 28 32 L28 34 L4 34 Z" fill="#2a2420"/>
+                            {/* Left hand holding staff */}
+                            <ellipse cx="26" cy="20" rx="2" ry="1.5" fill="#3a3430"/>
                           </svg>
                           <div style={{
                             fontSize: '6px',
