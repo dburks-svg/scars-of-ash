@@ -215,6 +215,16 @@
       50% { transform: scale(1.3); opacity: 1; }
     }
 
+    /* Subtle shimmer on available (not depleted) gathering nodes */
+    @keyframes gather-shimmer {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.15); }
+    }
+
+    .gather-available {
+      animation: gather-shimmer 3s ease-in-out infinite;
+    }
+
     /* FOE aura: amber while patrolling, faster and red once it has your
        scent. Drop-shadow only, so it reads through fog dim without
        repainting the tile underneath. */
@@ -247,6 +257,21 @@
     @keyframes dustPuff {
       0% { opacity: 0.7; transform: scale(0.5) translateY(0); }
       100% { opacity: 0; transform: scale(1.5) translateY(-6px); }
+    }
+
+    /* White flash on battle entry */
+    @keyframes battle-flash {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    .battle-flash-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255, 255, 255, 0.3);
+      z-index: 3000;
+      pointer-events: none;
+      animation: battle-flash 0.4s ease-out forwards;
     }
 
     /* --- Battle juice --- */
@@ -422,6 +447,15 @@
       /* Same trap: fog-lift fills forward to transparent, so with its
          animation removed it would sit opaque on the tile forever */
       .fog-lift {
+        animation: none !important;
+        opacity: 0 !important;
+      }
+      .gather-available {
+        animation: none !important;
+      }
+      /* Flash fills forward to opacity 0, so killing the animation
+         would leave an opaque white sheet. Hide it outright. */
+      .battle-flash-overlay {
         animation: none !important;
         opacity: 0 !important;
       }

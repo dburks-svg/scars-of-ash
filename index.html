@@ -4613,11 +4613,21 @@
           if (ch === 'B' || ch === 'T') {
             var cx = ((x + 0.5) / cols * 100).toFixed(1);
             var cy = ((y + 0.5) / rows * 100).toFixed(1);
-            var radius = ch === 'B' ? '18%' : '12%';
-            var strength = ch === 'B' ? lightColor : lightColor.replace(/[\d.]+\)$/, function(m) {
-              return (parseFloat(m) * 0.6).toFixed(2) + ')';
-            });
-            gradients.push('radial-gradient(circle at ' + cx + '% ' + cy + '%, ' + strength + ' 0%, transparent ' + radius + ')');
+            if (ch === 'B') {
+              // Primary bonfire glow: 50% larger than before
+              gradients.push('radial-gradient(circle at ' + cx + '% ' + cy + '%, ' + lightColor + ' 0%, transparent 27%)');
+              // Outer ambient halo: faint warmth extending two tile radii
+              var outerGlow = lightColor.replace(/[\d.]+\)$/, function(m) {
+                return (parseFloat(m) * 0.4).toFixed(2) + ')';
+              });
+              gradients.push('radial-gradient(circle at ' + cx + '% ' + cy + '%, ' + outerGlow + ' 0%, transparent 40%)');
+            } else {
+              var radius = '12%';
+              var strength = lightColor.replace(/[\d.]+\)$/, function(m) {
+                return (parseFloat(m) * 0.6).toFixed(2) + ')';
+              });
+              gradients.push('radial-gradient(circle at ' + cx + '% ' + cy + '%, ' + strength + ' 0%, transparent ' + radius + ')');
+            }
           }
         }
       }
@@ -4941,7 +4951,9 @@
           case 'P': return lore
             ? <LoreObjectTile objectType={lore.object || 'generic'} area={area} />
             : gatherNode
-              ? <GatherObjectTile kind={gatherNode.kind} depleted={(state.gatheredPoints || []).includes(`${area}:${x},${y}`)} area={area} seed={seed} />
+              ? <div className={(state.gatheredPoints || []).includes(`${area}:${x},${y}`) ? undefined : 'gather-available'} style={{width:'100%',height:'100%'}}>
+                  <GatherObjectTile kind={gatherNode.kind} depleted={(state.gatheredPoints || []).includes(`${area}:${x},${y}`)} area={area} seed={seed} />
+                </div>
               : <PathTile area={area} seed={seed} wallAbove={wallAbove} lit={lit} />;
           case 'G': return <GrassTile area={area} seed={seed} wallAbove={wallAbove} />;
           case 'B': return <BonfireTile area={area} />;
@@ -5258,7 +5270,7 @@
                           width: '10px',
                           height: '6px',
                           borderRadius: '50%',
-                          backgroundColor: 'rgba(200, 190, 170, 0.5)',
+                          backgroundColor: (AREA_PALETTES[state.currentMap] || AREA_PALETTES.ashenPath).dustColor || 'rgba(200, 190, 170, 0.5)',
                           animation: 'dustPuff 0.5s ease-out forwards',
                           pointerEvents: 'none'
                         }} />
@@ -8506,6 +8518,7 @@ const DevDashboard = ({ onClose, onModified }) => {
       const playTimeRef = useRef(Date.now());
       const prevScreenTransRef = useRef(state.screen);
       const [screenTransition, setScreenTransition] = useState(null);
+      const [battleFlash, setBattleFlash] = useState(false);
 
       // Handle tap to start
       const handleStart = async () => {
@@ -8559,7 +8572,11 @@ const DevDashboard = ({ onClose, onModified }) => {
         var prev = prevScreenTransRef.current;
         prevScreenTransRef.current = state.screen;
         if (prev === state.screen) return;
-        if (state.screen === 'battle') return;
+        if (state.screen === 'battle') {
+          setBattleFlash(true);
+          var flashTimer = setTimeout(function() { setBattleFlash(false); }, 400);
+          return function() { clearTimeout(flashTimer); };
+        }
         var palette = AREA_PALETTES[state.currentMap] || AREA_PALETTES.ashenPath;
         var color = palette.transitionColor || palette.deep || '#0f0f1a';
         if (state.screen === 'gameOver') color = '#1a0808';
@@ -8850,6 +8867,8 @@ const DevDashboard = ({ onClose, onModified }) => {
           {screenTransition && (
             <div className="screen-transition" style={{ backgroundColor: screenTransition }} />
           )}
+
+          {battleFlash && <div className="battle-flash-overlay" />}
 
           {/* Difficulty indicator during gameplay */}
           {(state.screen === 'exploration' || state.screen === 'battle') && (

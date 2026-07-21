@@ -2192,7 +2192,8 @@ var AREA_PALETTES = {
     areaFilter: 'saturate(0.85) sepia(0.08) brightness(0.95)',
     lightColor: 'rgba(255, 190, 110, 0.25)',
     vignetteColor: 'rgba(20, 16, 12, 0.7)',
-    transitionColor: '#14100c'
+    transitionColor: '#14100c',
+    dustColor: 'rgba(180, 170, 150, 0.5)'
   },
   // Fallen Keep - "Cold Stone and Torch Gold": blue-violet stone so torchlight pops
   fallenKeep: {
@@ -2221,7 +2222,8 @@ var AREA_PALETTES = {
     areaFilter: 'contrast(1.08) brightness(0.92) saturate(0.9)',
     lightColor: 'rgba(255, 180, 84, 0.3)',
     vignetteColor: 'rgba(11, 9, 22, 0.75)',
-    transitionColor: '#0b0916'
+    transitionColor: '#0b0916',
+    dustColor: 'rgba(140, 130, 150, 0.5)'
   },
   // Hollow Deep - "The Abyss Breathes": void purple, abyssal teal
   hollowDeep: {
@@ -2250,7 +2252,8 @@ var AREA_PALETTES = {
     areaFilter: 'hue-rotate(5deg) saturate(1.15) brightness(0.88)',
     lightColor: 'rgba(167, 139, 250, 0.2)',
     vignetteColor: 'rgba(6, 4, 16, 0.8)',
-    transitionColor: '#060410'
+    transitionColor: '#060410',
+    dustColor: 'rgba(100, 80, 140, 0.4)'
   },
   // The Labyrinth - "Verdant and Wrong": lush greens over old gold
   labyrinth: {
@@ -2280,7 +2283,8 @@ var AREA_PALETTES = {
     areaFilter: 'saturate(1.1) contrast(0.97) brightness(1.02)',
     lightColor: 'rgba(232, 200, 74, 0.2)',
     vignetteColor: 'rgba(8, 21, 16, 0.7)',
-    transitionColor: '#081510'
+    transitionColor: '#081510',
+    dustColor: 'rgba(120, 160, 100, 0.4)'
   }
 };
 
